@@ -1,0 +1,292 @@
+/* Track Adding Area */
+.track-add-toggle-btn {
+  width: 100%;
+  background: rgba(212, 163, 115, 0.03);
+  border: 1px dashed rgba(212, 163, 115, 0.2);
+  color: var(--primary-warm);
+  padding: 0.75rem;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: var(--transition-fast);
+}
+
+.track-add-toggle-btn:hover {
+  background: rgba(212, 163, 115, 0.06);
+  border-style: solid;
+}
+
+/* Modal Content Container */
+.track-add-modal-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  text-align: left;
+}
+
+/* Tab Headers */
+.modal-tab-headers {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 0.75rem;
+}
+
+.modal-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 8px;
+  transition: var(--transition-fast);
+}
+
+.modal-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.modal-tab-btn.active {
+  color: var(--primary-warm);
+  background: rgba(212, 163, 115, 0.08);
+  font-weight: 700;
+}
+
+/* Tab Body */
+.modal-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Search Tab styling */
+.search-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.yt-api-key-banner {
+  background: rgba(212, 163, 115, 0.04);
+  border: 1px dashed rgba(212, 163, 115, 0.15);
+  padding: 0.75rem;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.yt-api-key-banner-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.modal-search-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 13px !important;
+  padding: 0.65rem 0.85rem !important;
+}
+
+.search-submit-btn {
+  padding: 0.65rem 1.25rem !important;
+  font-size: 13px !important;
+}
+
+/* Status messages */
+.search-status-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--primary-warm);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.search-error-message {
+  font-size: 12px;
+  color: var(--error);
+  text-align: center;
+  padding: 1rem 0;
+  margin: 0;
+}
+
+/* Search Results styling */
+.modal-search-results {
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.modal-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  gap: 1rem;
+  transition: var(--transition-fast);
+}
+
+.modal-search-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modal-search-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-search-thumbnail {
+  width: 72px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.modal-search-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.modal-search-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-search-artist {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.modal-search-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.modal-action-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: var(--transition-fast);
+}
+
+.modal-action-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.modal-action-btn.accent {
+  color: var(--primary-warm);
+  background: rgba(212, 163, 115, 0.06);
+  border-color: rgba(212, 163, 115, 0.15);
+}
+
+.modal-action-btn.accent:hover {
+  background: rgba(212, 163, 115, 0.12);
+}
+
+.modal-action-btn.primary {
+  color: #fff;
+  background: rgba(212, 163, 115, 0.25);
+  border-color: rgba(212, 163, 115, 0.35);
+}
+
+.modal-action-btn.primary:hover {
+  background: rgba(212, 163, 115, 0.35);
+}
+
+/* URL Tab styling */
+.url-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-group-cozy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-group-cozy label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.form-row-cozy {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.url-submit-btn {
+  padding: 0.75rem !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  margin-top: 0.5rem;
+}

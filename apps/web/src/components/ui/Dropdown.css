@@ -1,0 +1,195 @@
+.sofar-dropdown {
+  position: relative;
+  display: inline-flex;
+}
+
+.sofar-dropdown-trigger-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.sofar-dropdown-trigger-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sofar-dropdown-trigger-btn.active {
+  color: var(--primary-warm);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* 통일된 팝오버 메인 패널 (볼륨 팝업 및 글로벌 UI 통일 디자인 시스템 적용) */
+.sofar-dropdown-menu {
+  position: fixed;
+  background: var(--bg-popover);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  padding: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 185px;
+  z-index: 10005;
+}
+
+.sofar-dropdown-menu.is-ready {
+  animation: dropdownFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.sofar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1;
+  text-align: left;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 100%;
+  min-width: 8rem;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.sofar-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.dropdown-item-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sofar-dropdown-item.btn-delete,
+.sofar-dropdown-item.delete-option {
+  color: #ff6b6b;
+  opacity: 0.9;
+}
+
+.sofar-dropdown-item.btn-delete:hover,
+.sofar-dropdown-item.delete-option:hover {
+  background: rgba(255, 107, 107, 0.12);
+  color: #ff6b6b;
+  opacity: 1;
+}
+
+/* ── Track Action Dropdown Subpanel (Playlists List) ── */
+.track-dropdown-subpanel,
+.track-dropdown-mainpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+}
+
+.track-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-primary, rgba(255, 255, 255, 0.65));
+  padding: 0.2rem 0.75rem 0.65rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.25rem;
+}
+
+.track-dropdown-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  margin: -4px;
+  margin-left: -6px;
+  margin-right: -2px;
+  border-radius: 100%;
+  transition: all 0.15s ease;
+}
+
+.track-dropdown-back-btn:hover {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.track-dropdown-playlists-list {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.track-dropdown-playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: left;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.dropdown-playlist-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.track-dropdown-playlist-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #fff);
+}
+
+.track-dropdown-empty {
+  font-size: 0.75rem;
+  color: var(--text-muted, rgba(255, 255, 255, 0.4));
+  padding: 0.65rem;
+  text-align: center;
+}
+

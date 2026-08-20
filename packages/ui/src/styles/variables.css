@@ -1,0 +1,38 @@
+:root {
+  /* Cozy Dark Theme Color Palette & Unified Glass UI Backgrounds */
+  --bg-cozy: #121212;
+  --bg-popover: rgba(22, 20, 21, 1);
+  --bg-card: var(--bg-popover);
+  --bg-card-hover: rgba(31, 30, 31, 0.94);
+  --bg-modal: var(--bg-popover);
+  --bg-input: rgba(28, 25, 27, 0.6);
+  --border-cozy: rgba(255, 255, 255, 0.06);
+  --border-cozy-hover: rgba(255, 255, 255, 0.12);
+  --border-active: rgba(255, 255, 255, 0.24);
+  
+  --text-active: #ffffff;
+  --text-primary: #cfd2d6;
+  --text-secondary: #909294;
+  --text-muted: #717273;
+  
+  --primary-warm: #d4a373;
+  --primary-warm-hover: #e2b384;
+  
+  --success: #81c784;
+  --error: #e57373;
+  --overlay-bg: rgba(0, 0, 0, 0.7);
+  
+  --font-sans: 'Outfit', 'Noto Sans KR', sans-serif;
+  --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --transition-fast: all 0.1s ease;
+  --sidebar-width: 340px;
+
+  /* Standardized UI Control Heights & Radius Tokens (Modern Web UI Standard) */
+  --control-height-sm: 36px;
+  --control-height-md: 44px;
+  --control-height-lg: 50px;
+
+  --control-radius-sm: 9px;
+  --control-radius-md: 11px;
+  --control-radius-lg: 13px;
+}

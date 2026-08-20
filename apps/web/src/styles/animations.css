@@ -1,0 +1,33 @@
+/* Global Stagger & Transition Animations Utility */
+
+/* Pure Opacity Stagger Animation (No Y-translation) */
+.stagger-fade-item {
+  opacity: 0;
+  will-change: opacity;
+  animation: pureFadeInStagger 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(min(var(--index, 0), 12) * 18ms);
+}
+
+@keyframes pureFadeInStagger {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Skeleton Delayed Fade In */
+.delayed-skeleton-container {
+  opacity: 0;
+  animation: skeletonContainerFadeIn 0.25s ease-out 0.12s forwards;
+}
+
+@keyframes skeletonContainerFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

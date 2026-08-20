@@ -1,0 +1,1143 @@
+/* ==========================================================================
+   Search Panel Modern Redesign (Design System Matched with HomePanel)
+   ========================================================================== */
+
+.search-panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5.5rem 2.5rem 16rem 2.5rem;
+  background: transparent;
+  color: var(--text-primary, #ffffff);
+  gap: 2.5rem;
+}
+
+.search-panel-content {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 2rem;
+  max-width: 980px;
+  width: 100%;
+  margin: 0 auto;
+  min-height: 0;
+  padding-top: 4px;
+  padding-bottom: 12rem; /* 바텀 플레이어 가림 방지 */
+}
+
+/* ── 1. 상단 스마트 검색 헤더 바 ── */
+.search-header-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  flex-shrink: 0;
+}
+
+.search-form-modern {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.search-input-inner {
+  position: relative;
+  flex: 1;
+  height: 48px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 0 0.95rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-input-inner:focus-within {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--primary-warm, #d4a373);
+}
+
+.search-input-icon {
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.search-input-inner:focus-within .search-input-icon {
+  color: var(--primary-warm, #d4a373);
+}
+
+.search-text-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  color: var(--text-primary, #ffffff);
+  font-weight: 500;
+  height: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.search-text-input::placeholder {
+  color: rgba(255, 255, 255, 0.38);
+  font-weight: 400;
+}
+
+.search-clear-action-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.search-clear-action-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.search-shortcut-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  user-select: none;
+}
+
+.search-submit-btn {
+  height: 48px !important;
+  box-sizing: border-box !important;
+  padding: 0 1.5rem !important;
+  border-radius: 16px !important;
+  flex-shrink: 0;
+}
+
+/* ── 검색창 하단 타이틀 없는 최근 검색어 바 ── */
+.search-header-recents-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.search-header-recents-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-recent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 28px;
+  box-sizing: border-box;
+  padding: 0 0.6rem 0 0.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 450;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.header-recent-chip:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.header-recent-text {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-recent-remove-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 2px;
+  margin-left: -1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.header-recent-remove-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 삭제 액션 칩 (동일한 캡슐 스타일 + 삭제 액션 차별화) */
+.header-recent-chip-clear {
+  padding: 0 0.65rem 0 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(239, 68, 68, 0.38);
+  color: #fca5a5;
+  gap: 0.35rem;
+}
+
+.header-recent-clear-icon {
+  opacity: 0.7;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.header-recent-chip-clear:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-style: solid;
+  color: #fca5a5;
+}
+
+.header-recent-chip-clear:hover .header-recent-clear-icon {
+  color: #f87171;
+  opacity: 1;
+}
+
+/* ── 2. 탐색 허브 랜딩 (Search Landing) ── */
+.search-landing-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.75rem;
+  width: 100%;
+}
+
+.search-landing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* HomePanel과 100% 동일한 섹션 헤더 스타일 */
+.search-landing-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.search-landing-section .section-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.search-landing-section .section-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-primary, #fff);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.icon-gold { color: var(--primary-warm, #d4a373); }
+.icon-blue { color: #38bdf8; }
+.icon-purple { color: #c084fc; }
+.icon-emerald { color: #34d399; }
+
+.text-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.text-clear-btn:hover {
+  color: var(--text-primary, #ffffff);
+  text-decoration: underline;
+}
+
+/* 최근 검색어 칩 */
+.recent-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.recent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.85));
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.recent-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.recent-remove-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.recent-remove-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── 인기 검색어 & 인기 아티스트 좌우 2단 레이아웃 ── */
+.search-landing-dual-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem 3rem;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .search-landing-dual-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+}
+
+.trending-column-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ── 인기 아티스트 그리드 (2단 우측 영역) ── */
+.trending-artists-landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .trending-artists-landing-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+}
+
+.trending-artist-grid-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  box-sizing: border-box;
+  border-radius: 16px;
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@supports (corner-shape: squircle) {
+  .trending-artist-grid-card {
+    border-radius: 28px;
+    corner-shape: squircle;
+  }
+}
+
+.trending-artist-grid-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.trending-artist-grid-card .trending-artist-avatar-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.trending-artist-grid-card .trending-artist-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.trending-artist-grid-card .trending-artist-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+}
+
+.trending-artist-grid-card .trending-artist-rank-badge.rank-1,
+.trending-artist-grid-card .trending-artist-rank-badge.rank-2,
+.trending-artist-grid-card .trending-artist-rank-badge.rank-3 {
+  background: linear-gradient(135deg, #e5b887, #b8864e);
+  color: #121212;
+  border-color: #f7d5a9;
+}
+
+.trending-artist-grid-card .trending-artist-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.trending-artist-grid-card .trending-artist-name {
+  font-size: 0.875rem;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  letter-spacing: -0.01em;
+}
+
+.trending-item-card {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0 1rem;
+  height: 48px;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  cursor: pointer;
+  min-width: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+@supports (corner-shape: squircle) {
+  .trending-item-card {
+    border-radius: 26px;
+    corner-shape: squircle;
+  }
+}
+
+.trending-item-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.trending-artist-row-card:hover {
+  border-color: rgba(192, 132, 252, 0.35);
+}
+
+.trending-artist-mini-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  flex-shrink: 0;
+}
+
+.trending-artist-mini-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trending-rank-num {
+  font-size: 0.95rem;
+  width: 22px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.trending-rank-num.rank-1,
+.trending-rank-num.rank-2,
+.trending-rank-num.rank-3 {
+  color: var(--primary-warm, #d4a373);
+}
+
+.trending-keyword-name {
+  flex: 1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.trending-badge-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── 3. 검색 결과 뷰 (Search Results Viewport) ── */
+.search-results-viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+/* 결과 필터 컨트롤 바 */
+.results-control-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.results-query-title {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.results-count-text {
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.search-results-content-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+/* ── 아티스트 결과 그리드 ── */
+.artists-results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.artist-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.artist-expand-btn:hover {
+  color: var(--text-primary, #ffffff);
+}
+
+.search-artists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 1.25rem;
+  transition: max-height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.search-artists-grid.is-collapsed {
+  overflow: hidden;
+}
+
+.search-artist-profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.65rem;
+  padding: 1.1rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+
+@supports (corner-shape: squircle) {
+  .search-artist-profile-card {
+    border-radius: 36px;
+    corner-shape: squircle;
+  }
+}
+
+.search-artist-profile-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(212, 163, 115, 0.35);
+}
+
+.search-artist-profile-card.is-selected {
+  background: rgba(212, 163, 115, 0.12);
+  border-color: var(--primary-warm, #d4a373);
+}
+
+.artist-profile-avatar-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  transition: border-color 0.15s ease;
+}
+
+.artist-profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artist-profile-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+}
+
+.artist-profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.search-artist-profile-card:hover .artist-profile-avatar-overlay {
+  opacity: 1;
+}
+
+.artist-profile-play-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--primary-warm, #d4a373);
+  border: none;
+  color: #121212;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: scale(0.85);
+  transition: transform 0.15s ease;
+}
+
+.artist-profile-play-btn:hover {
+  transform: scale(1.05);
+}
+
+.artist-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.artist-profile-name {
+  font-size: 0.875rem;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 115px;
+}
+
+.artist-profile-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 4. 최상위 일치 결과 카드 (Top Result Card — AlbumCard & HomePanel 통일) ── */
+.top-result-showcase-section {
+  width: 100%;
+}
+
+.search-top-result-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+
+@supports (corner-shape: squircle) {
+  .search-top-result-card {
+    border-radius: 40px;
+    corner-shape: squircle;
+  }
+}
+
+.search-top-result-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(212, 163, 115, 0.35);
+}
+
+.search-top-result-card.top-result--playing {
+  background: rgba(212, 163, 115, 0.12);
+  border-color: rgba(212, 163, 115, 0.3);
+}
+
+.top-result-thumb-wrapper {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+@supports (corner-shape: squircle) {
+  .top-result-thumb-wrapper {
+    border-radius: 32px;
+    corner-shape: squircle;
+  }
+}
+
+.top-result-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.top-result-thumb-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.search-top-result-card:hover .top-result-thumb-overlay,
+.search-top-result-card.top-result--playing .top-result-thumb-overlay {
+  opacity: 1;
+}
+
+.top-result-play-action-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  color: #ffffff;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: scale(0.85);
+  transition: transform 0.2s ease;
+}
+
+.search-top-result-card:hover .top-result-play-action-btn {
+  transform: scale(1);
+}
+
+.top-result-playing-icon {
+  color: var(--primary-warm, #d4a373);
+}
+
+.top-result-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.top-result-badge-text {
+  font-size: 0.72rem;
+  color: var(--primary-warm, #d4a373);
+  letter-spacing: 0.02em;
+}
+
+.top-result-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.top-result-subinfo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.825rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+}
+
+.top-result-dot {
+  opacity: 0.4;
+}
+
+.top-result-album {
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-result-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.top-result-kebab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.top-result-kebab-btn:hover {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.top-result-kebab-btn.active {
+  color: var(--primary-warm, #d4a373);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── 5. 트랙 리스트 테이블/목록 (HomePanel의 popular-list와 100% 일치) ── */
+.tracks-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.search-popular-row {
+  grid-template-columns: 32px minmax(0, 1.25fr) minmax(0, 0.7fr) minmax(0, 0.7fr) 32px !important;
+  gap: 1rem !important;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .search-popular-row {
+    grid-template-columns: 28px minmax(0, 1.5fr) minmax(0, 0.8fr) 32px !important;
+    gap: 0.75rem !important;
+  }
+  .search-popular-row .popular-row__album {
+    display: none;
+  }
+}
+
+.popular-row__album,
+.search-track-album {
+  font-size: 0.75rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* ── 7. 스켈레톤 로딩 (SearchSkeleton) ── */
+.search-skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+}
+
+.skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-title-shimmer {
+  border-radius: 6px;
+}
+
+.skeleton-artist-card {
+  pointer-events: none;
+  cursor: default;
+}
+
+.skeleton-artist-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-artist-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.skeleton-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.skeleton-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.skeleton-track-row {
+  pointer-events: none;
+  cursor: default;
+}
+
+.skeleton-rank-box {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.skeleton-track-title-box {
+  width: 65%;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-artist-box {
+  display: inline-block;
+  width: 60%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-album-box {
+  display: inline-block;
+  width: 50%;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-action-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  margin: 0 auto;
+}
+
+/* ── 8. 검색 결과 없음 (Empty State) ── */
+.search-empty-state-modern {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  margin-top: 1rem;
+}
+
+@supports (corner-shape: squircle) {
+  .search-empty-state-modern {
+    border-radius: 40px;
+    corner-shape: squircle;
+  }
+}
+
+.empty-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #71717a);
+  margin-bottom: 1.25rem;
+}
+
+.empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted, #a1a1aa);
+  max-width: 420px;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+.empty-recommend-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.recommend-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted, #71717a);
+}
+
+.empty-rec-tag {
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.8));
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.empty-rec-tag:hover {
+  background: rgba(212, 163, 115, 0.15);
+  border-color: rgba(212, 163, 115, 0.35);
+  color: var(--primary-warm, #d4a373);
+}
+
+/* 팝오버 줌인 애니메이션 */
+.animate-scale-in {
+  animation: popoverScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popoverScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

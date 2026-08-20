@@ -1,0 +1,64 @@
+.track-meta-title-container {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+  position: relative;
+  height: 18px; /* 고정 높이 지정으로 애니메이션 활성화 시 높이 흔들림 차단 */
+  display: flex;
+  align-items: center;
+}
+
+/* 재생 중이거나 목록 아이템(.track-row-item, .popular-row)에 호버하여 롤링될 때만 마스크 효과 활성화 */
+.track-row-item:hover .track-meta-title-container.has-marquee,
+.popular-row:hover .track-meta-title-container.has-marquee,
+.track-meta-title-container.has-marquee:has(.animate-marquee) {
+  mask-image: linear-gradient(to right, transparent, black 4px, black 94%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 4px, black 94%, transparent);
+}
+
+.track-meta-title-scroll {
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+  /* 기본 상태: 마키 미동작 시 말줄임 표시 (...) */
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.track-meta-title-scroll.active {
+  color: var(--text-active);
+}
+
+/* 재생 중이거나 목록 아이템 호버 시: inline-block 전환 및 마키 실행 */
+.track-row-item:hover .track-meta-title-container.has-marquee .track-meta-title-scroll,
+.popular-row:hover .track-meta-title-container.has-marquee .track-meta-title-scroll,
+.track-meta-title-container.has-marquee .track-meta-title-scroll.animate-marquee {
+  display: inline-block;
+  overflow: visible;
+  text-overflow: clip;
+  width: auto;
+  animation: sidebar-marquee 10s linear infinite;
+}
+
+.track-meta-title-scroll .marquee-duplicate {
+  padding-left: 2rem; /* 반복 텍스트 간격 */
+  display: none; /* 평소에는 복제본을 숨김 */
+}
+
+/* 롤링 시에만 복제본 노출 */
+.track-row-item:hover .track-meta-title-container.has-marquee .marquee-duplicate,
+.popular-row:hover .track-meta-title-container.has-marquee .marquee-duplicate,
+.track-meta-title-container.has-marquee .track-meta-title-scroll.animate-marquee .marquee-duplicate {
+  display: inline-block;
+}
+
+@keyframes sidebar-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-50% - 1rem));
+  }
+}

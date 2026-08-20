@@ -1,0 +1,201 @@
+/* ── Custom React Dropdown <Select> ── */
+.sofar-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.sofar-select-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #a1a1aa);
+}
+
+.sofar-select-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* ── Trigger Button ── */
+.sofar-select-field.sofar-select-trigger {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--bg-input, rgba(20, 20, 20, 0.6));
+  border: 1px solid var(--border-cozy, rgba(255, 255, 255, 0.1));
+  color: var(--text-primary, #ffffff);
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  text-align: left;
+  user-select: none;
+}
+
+/* Standardized Heights & Paddings */
+.sofar-select-wrapper.select-sm .sofar-select-trigger {
+  height: var(--control-height-sm, 36px);
+  padding: 0 0.8rem;
+  font-size: 0.8125rem;
+  border-radius: var(--control-radius-sm, 9px);
+}
+
+.sofar-select-wrapper.select-md .sofar-select-trigger,
+.sofar-select-wrapper:not(.select-sm):not(.select-lg) .sofar-select-trigger {
+  height: var(--control-height-md, 44px);
+  padding: 0 0.95rem;
+  font-size: 0.875rem;
+  border-radius: var(--control-radius-md, 11px);
+}
+
+.sofar-select-wrapper.select-lg .sofar-select-trigger {
+  height: var(--control-height-lg, 50px);
+  padding: 0 1.15rem;
+  font-size: 0.9375rem;
+  border-radius: var(--control-radius-lg, 13px);
+}
+
+.sofar-select-trigger:focus-visible,
+.sofar-select-wrapper.is-open .sofar-select-trigger {
+  border-color: var(--primary-warm, #d4a373);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.18);
+}
+
+.sofar-select-value-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+.sofar-select-trigger.is-placeholder .sofar-select-value-text {
+  color: var(--text-muted, #71717a);
+}
+
+.sofar-select-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-warm, #d4a373);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sofar-select-arrow.is-open {
+  transform: rotate(180deg);
+  color: var(--primary-warm-hover, #e2b384);
+}
+
+/* ── Custom Dropdown Popover ── */
+.sofar-select-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
+  background: var(--bg-popover, #18181b);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.35rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 1000;
+  animation: sofarDropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+@keyframes sofarDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sofar-select-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.sofar-select-options-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sofar-select-options-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.sofar-select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sofar-select-option:hover:not(.is-disabled):not(.is-selected) {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.sofar-select-option.is-selected {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.sofar-select-option.is-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sofar-select-check-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-warm);
+  flex-shrink: 0;
+}
+
+/* Disabled & Error States */
+.sofar-select-wrapper.is-disabled .sofar-select-trigger {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sofar-select-message {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.sofar-select-message.error-text {
+  color: var(--error, #e57373);
+}
+
+.sofar-select-message.helper-text {
+  color: var(--text-muted, #71717a);
+}

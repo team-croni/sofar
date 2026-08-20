@@ -1,0 +1,47 @@
+.sofar-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.sofar-brand-logo:active {
+  transform: scale(0.98);
+}
+
+.sofar-logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-warm);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.sofar-logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.sofar-logo-name {
+  font-weight: 400;
+  letter-spacing: 0.025em;
+  color: var(--primary-warm);
+  margin: 0;
+  padding: 0;
+}
+
+.sofar-logo-name span {
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.sofar-logo-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+  padding: 0;
+}

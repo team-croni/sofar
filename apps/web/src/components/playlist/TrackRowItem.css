@@ -1,0 +1,183 @@
+/* Track Item Row */
+.track-row-item {
+  position: relative; /* 케밥 팝업의 absolute 기준점 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  gap: 1rem;
+  background: transparent;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+
+.track-row-item:hover {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.track-row-item.active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.track-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.track-icon-symbol {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.track-row-item.active .track-icon-symbol {
+  color: var(--primary-warm);
+}
+
+.track-meta-texts {
+  min-width: 0;
+  flex: 1;
+  pointer-events: none;
+}
+
+.track-meta-title {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-row-item.active .track-meta-title {
+  color: var(--text-active);
+}
+
+.track-row-item.active .track-meta-title-scroll {
+  color: var(--text-active);
+}
+
+.track-meta-artist {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
+}
+
+.track-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.track-status-badge {
+  position: relative;
+  width: 2.2rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.35rem;
+}
+
+.track-duration,
+.track-playing-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.track-duration {
+  min-width: 2rem;
+  text-align: center;
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.track-row-item.active .track-duration {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.track-playing-indicator {
+  width: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-warm, #e65d0b);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+/* 재생 중 (is-playing) 전환 스케일 & 페이드 효과 */
+.track-status-badge.is-playing .track-duration {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+.track-status-badge.is-playing .track-playing-indicator {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.track-row-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.35rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  transition: var(--transition-fast);
+}
+
+.track-row-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--primary-warm);
+}
+
+.track-row-btn.btn-delete:hover {
+  background: rgba(229, 115, 115, 0.08);
+  color: var(--error);
+}
+
+/* AI 정리 중 주황빛 펄스 배지 */
+.refining-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 10px;
+  color: var(--accent-orange);
+  font-weight: 500;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(230, 93, 11, 0.1);
+  border: 1px dashed rgba(230, 93, 11, 0.25);
+  animation: pulse 1.8s infinite ease-in-out;
+}
+
+/* 리스트 항목 썸네일 이미지 공통 */
+.track-thumbnail-mini {
+  width: 36px;
+  height: 27px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #16161a;
+}
+

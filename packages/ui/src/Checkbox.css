@@ -1,0 +1,96 @@
+/* ── Modern Custom Checkbox ── */
+.sofar-checkbox-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  color: var(--text-primary, #ffffff);
+  transition: opacity 0.15s ease;
+}
+
+.sofar-checkbox-wrapper.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sofar-checkbox-box {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Hidden native input for full accessibility and keyboard focus */
+.sofar-checkbox-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: inherit;
+  z-index: 1;
+}
+
+/* Custom styled checkbox element matching brand warm aesthetic */
+.sofar-checkbox-custom {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-cozy-hover, rgba(255, 255, 255, 0.22));
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #121212;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+/* Unchecked Hover State */
+.sofar-checkbox-wrapper:hover:not(.is-disabled):not(.is-checked) .sofar-checkbox-custom {
+  border-color: var(--primary-warm, #d4a373);
+  background: rgba(212, 163, 115, 0.12);
+}
+
+.sofar-checkbox-input:focus-visible ~ .sofar-checkbox-custom {
+  border-color: var(--primary-warm, #d4a373);
+}
+
+/* Checked Normal State */
+.sofar-checkbox-wrapper.is-checked .sofar-checkbox-custom,
+.sofar-checkbox-input:checked ~ .sofar-checkbox-custom {
+  background: var(--primary-warm, #d4a373);
+  border-color: var(--primary-warm, #d4a373);
+  color: #121212;
+}
+
+/* Checked Hover State */
+.sofar-checkbox-wrapper.is-checked:hover:not(.is-disabled) .sofar-checkbox-custom,
+.sofar-checkbox-input:checked:hover ~ .sofar-checkbox-custom {
+  background: var(--primary-warm-hover, #e2b080);
+  border-color: var(--primary-warm-hover, #e2b080);
+  color: #121212;
+  transform: scale(1.04);
+}
+
+/* Checkmark Icon Animation */
+.sofar-checkbox-icon {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.sofar-checkbox-wrapper.is-checked .sofar-checkbox-icon,
+.sofar-checkbox-input:checked ~ .sofar-checkbox-custom .sofar-checkbox-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sofar-checkbox-label {
+  line-height: 1.3;
+}

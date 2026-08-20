@@ -1,0 +1,504 @@
+.vinyl-player-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2.5rem 1rem 1rem 1rem;
+  position: relative;
+  height: auto;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* 빈 상태 디자인 (재생 중인 곡이 없을 때 중앙 정렬) */
+.vinyl-player-card.empty {
+  padding: 1rem;
+  gap: 1.5rem;
+}
+
+.vinyl-player-card.empty .vinyl-container-wrapper {
+  width: 240px;
+  height: 240px;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.vinyl-player-card.empty .vinyl-container {
+  width: 240px;
+  height: 240px;
+  justify-content: center;
+}
+
+.vinyl-player-card.empty .empty-jacket {
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: none;
+}
+
+.empty-jacket-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.empty-jacket-logo {
+  width: 52px;
+  height: 52px;
+  opacity: 0.35;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  pointer-events: none;
+}
+
+.vinyl-container-wrapper {
+  position: relative;
+  width: 370px;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-shrink: 0;
+  perspective: 1000px;
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.vinyl-container-wrapper.video-active {
+  cursor: default;
+}
+
+.vinyl-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  
+  /* 3D context for children */
+  transform-style: preserve-3d;
+  
+  /* Default transform values using CSS variables */
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  --scale: 1;
+  
+  transform: rotateX(var(--rotate-x, 0deg)) rotateY(var(--rotate-y, 0deg)) scale3d(var(--scale, 1), var(--scale, 1), var(--scale, 1));
+  transition: transform 2s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
+}
+
+.vinyl-container-wrapper:hover .vinyl-container {
+  transition: transform 0.1s ease-out;
+}
+
+/* 사각형 앨범 자켓 */
+.album-jacket {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 2;
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.5), 
+    0 5px 15px rgba(0, 0, 0, 0.3),
+    inset 0 0 20px rgba(0, 0, 0, 0.1);
+  background: #141210;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0.3s ease;
+
+  /* 3D layer depth: lift jacket forward */
+  transform-style: preserve-3d;
+  transform: translateZ(20px);
+}
+
+@supports (corner-shape: squircle) {
+  .album-jacket {
+    border-radius: 16px;
+    corner-shape: squircle;
+  }
+}
+
+.jacket-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fade-in-image {
+  animation: fadeInImage 0.6s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes fadeInImage {
+  from {
+    opacity: 0;
+    filter: blur(4px) brightness(0.7);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0) brightness(1);
+  }
+}
+
+.jacket-shadow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.25) 100%);
+  pointer-events: none;
+}
+
+/* LP판 컨테이너 (정적 레이어) */
+.vinyl-record-disc {
+  position: absolute;
+  left: 125px; /* 자켓 오른쪽으로 밀려나와 배치 */
+  top: 7px;
+  width: 226px;
+  height: 226px;
+  border-radius: 50%;
+  z-index: 1;
+  box-shadow: 
+    0 12px 35px rgba(0, 0, 0, 0.65), 
+    inset 0 0 25px rgba(0, 0, 0, 0.75);
+  transition: 
+    left 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0.3s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid #2c2c2c;
+  background: #080808;
+  overflow: hidden;
+
+  /* 3D Effects: stays behind the jacket (translateZ(5px)) */
+  transform-style: preserve-3d;
+  transform: translateZ(5px);
+}
+
+/* 곡 전환 시 자켓 안으로 쏙 완전히 가려지는 지점 */
+.vinyl-record-disc.transition-in {
+  left: 7px;
+  transition: 
+    left 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, visibility 0.3s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 실제로 회전하는 LP판 몸체 */
+.vinyl-record-body {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #0d0d0d;
+}
+
+.animate-spin-slow {
+  animation: spinRecord 12s linear infinite;
+}
+
+.animate-spin-paused {
+  animation-play-state: paused;
+}
+
+@keyframes spinRecord {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 정지 상태로 고정되어 빛 반사만 물리적으로 표현하는 정적 wrapper 및 overlay */
+.vinyl-sheen-wrapper {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 4;
+  animation: sheen-shimmer 6s ease-in-out infinite;
+}
+
+.vinyl-sheen-overlay {
+  scale: 2;
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: 
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.35) 100%),
+    conic-gradient(
+      from 45deg,
+      transparent 0deg,
+      rgba(255, 255, 255, 0.04) 10deg,
+      rgba(255, 255, 255, 0.18) 45deg,
+      rgba(255, 255, 255, 0.04) 80deg,
+      transparent 90deg,
+      transparent 180deg,
+      rgba(255, 255, 255, 0.04) 190deg,
+      rgba(255, 255, 255, 0.18) 225deg,
+      rgba(255, 255, 255, 0.04) 260deg,
+      transparent 270deg,
+      transparent 360deg
+    ),
+    conic-gradient(
+      from 135deg,
+      transparent 0deg,
+      rgba(255, 255, 255, 0.01) 15deg,
+      rgba(255, 255, 255, 0.08) 45deg,
+      rgba(255, 255, 255, 0.01) 75deg,
+      transparent 90deg,
+      transparent 180deg,
+      rgba(255, 255, 255, 0.01) 195deg,
+      rgba(255, 255, 255, 0.08) 225deg,
+      rgba(255, 255, 255, 0.01) 255deg,
+      transparent 270deg,
+      transparent 360deg
+    );
+  mix-blend-mode: screen;
+  opacity: 0.88;
+  
+  /* 3D translation light shift */
+  transform: translate(var(--sheen-x, 0px), var(--sheen-y, 0px));
+  transition: transform 2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.vinyl-container-wrapper:hover .vinyl-sheen-overlay {
+  transition: transform 0.08s ease-out;
+}
+
+/* 재생 정지 시 반사광 흔들림 애니메이션도 일시 정지 */
+.vinyl-record-body.animate-spin-paused + .vinyl-sheen-wrapper {
+  animation-play-state: paused;
+}
+
+/* LP판 표면 질감 및 고유 트랙 섹터 분할 */
+.vinyl-grooves {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: 
+    radial-gradient(
+      circle,
+      transparent 0%,
+      transparent 35%,
+      rgba(0, 0, 0, 0.55) 35%,
+      rgba(0, 0, 0, 0.55) 37.5%,
+      transparent 38.5%,
+      transparent 59%,
+      rgba(0, 0, 0, 0.4) 59%,
+      rgba(0, 0, 0, 0.4) 60%,
+      transparent 61.5%,
+      transparent 68.5%,
+      rgba(0, 0, 0, 1) 68.5%,
+      rgba(0, 0, 0, 1) 70%,
+      transparent 70%,
+      transparent 100%
+    ),
+    repeating-radial-gradient(
+      circle at center,
+      #000 0px,
+      #000 1.2px,
+      rgba(255, 255, 255, 0.06) 1.8px,
+      #000 2.4px,
+      #000 2.6px
+    ),
+    repeating-radial-gradient(
+      circle at 49% 50%,
+      transparent 0px,
+      transparent 1.4px,
+      rgba(255, 255, 255, 0.04) 2.0px,
+      transparent 2.6px,
+      transparent 3.2px
+    );
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+/* LP판 중심 라벨 */
+.vinyl-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #111;
+  background: #000;
+  box-shadow: 
+    0 2px 5px rgba(0, 0, 0, 0.4),
+    inset 0 0 10px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+
+.vinyl-label::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 150 150' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.3'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 3;
+  mix-blend-mode: overlay;
+}
+
+.vinyl-label-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* LP판 중심 구멍 */
+.vinyl-center-hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--bg-cozy, #181412);
+  border: 2px solid #000;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vinyl-center-pin {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #111;
+}
+
+/* Metadata Title & Artist */
+.track-info {
+  width: 100%;
+  margin: 1.5rem 0 0.5rem 0;
+}
+
+.track-title {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 1rem;
+}
+
+.track-artist {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-top: 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@keyframes sheen-shimmer {
+  0% {
+    transform: rotate(0deg) scale(1) translate(var(--sheen-x, 0px), var(--sheen-y, 0px));
+  }
+  33% {
+    transform: rotate(1.2deg) scale(0.997) translate(var(--sheen-x, 0px), var(--sheen-y, 0px));
+  }
+  66% {
+    transform: rotate(-0.8deg) scale(1.003) translate(var(--sheen-x, 0px), var(--sheen-y, 0px));
+  }
+  100% {
+    transform: rotate(0deg) scale(1) translate(var(--sheen-x, 0px), var(--sheen-y, 0px));
+  }
+}
+
+/* 비디오가 활성화되었을 때 LP와 자켓 가림 처리 */
+.vinyl-container-wrapper.video-active .album-jacket,
+.vinyl-container-wrapper.video-active .vinyl-record-disc {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* 슬라이딩 전환 시 자켓과 LP판을 가로 기준 중앙(translateX(65px))으로 이동 */
+.vinyl-container-wrapper.slipping-in .album-jacket,
+.vinyl-container-wrapper.video-active .album-jacket {
+  transform: translateZ(20px) translateX(65px);
+}
+
+.vinyl-container-wrapper.slipping-in .vinyl-record-disc,
+.vinyl-container-wrapper.video-active .vinyl-record-disc {
+  transform: translateZ(5px) translateX(65px);
+}
+
+/* ── 원곡 매칭 피드백 (디자인 시스템 토큰 & 규격 준수) ── */
+.vinyl-match-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.35rem 0.8rem;
+  background: var(--bg-card, rgba(26, 26, 26, 0.65));
+  border: 1px solid var(--border-cozy, rgba(255, 255, 255, 0.06));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  transition: var(--transition-fast, all 0.1s ease);
+}
+
+.vinyl-match-feedback:hover {
+  background: var(--bg-card-hover, rgba(36, 36, 36, 0.85));
+  border-color: var(--border-cozy-hover, rgba(255, 255, 255, 0.12));
+}
+
+.vinyl-match-label {
+  font-size: 11.5px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  font-weight: 500;
+  user-select: none;
+}
+
+.vinyl-match-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vinyl-match-btn {
+  background: transparent;
+  border: 1px solid var(--border-cozy, rgba(255, 255, 255, 0.08));
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: var(--transition-fast, all 0.1s ease);
+}
+
+.vinyl-match-btn.match-correct:hover {
+  color: var(--success, #81c784);
+  border-color: rgba(129, 199, 132, 0.4);
+  background: rgba(129, 199, 132, 0.12);
+}
+
+.vinyl-match-btn.match-incorrect:hover {
+  color: var(--error, #e57373);
+  border-color: rgba(229, 115, 115, 0.4);
+  background: rgba(229, 115, 115, 0.12);
+}
+
+.vinyl-match-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}

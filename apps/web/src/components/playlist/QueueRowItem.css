@@ -1,0 +1,41 @@
+/* Queue Item drag handle styling */
+.drag-handle-zone {
+  color: var(--text-muted);
+  cursor: grab;
+  padding: 0.25rem 0.25rem;
+  margin-left: -0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.drag-handle-zone:hover {
+  color: var(--text-primary);
+}
+
+.drag-handle-zone:active {
+  cursor: grabbing;
+}
+
+/* Drag and Drop Insertion Line Indicator */
+.drag-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-warm, #ff6d1f);
+  pointer-events: none;
+  z-index: 50;
+}
+
+.drag-indicator-top {
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.drag-indicator-bottom {
+  bottom: 0;
+  transform: translateY(50%);
+}
+

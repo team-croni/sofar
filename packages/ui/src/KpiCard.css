@@ -1,0 +1,124 @@
+.sofar-kpi-card {
+  background: var(--bg-card, rgba(22, 20, 21, 0.94));
+  border: 1px solid var(--border-cozy, rgba(255, 255, 255, 0.06));
+  border-radius: 16px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.sofar-kpi-card:hover {
+  border-color: var(--border-cozy-hover, rgba(255, 255, 255, 0.12));
+  background: var(--bg-card-hover, rgba(31, 30, 31, 0.94));
+}
+
+.sofar-kpi-card.clickable {
+  cursor: pointer;
+}
+
+.sofar-kpi-card.clickable:hover {
+  transform: translateY(-2px);
+}
+
+.sofar-kpi-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sofar-kpi-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #909294);
+  font-weight: 400;
+  letter-spacing: -0.2px;
+}
+
+.sofar-kpi-top-right {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sofar-kpi-value-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sofar-kpi-value {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-active, #ffffff);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.sofar-kpi-unit {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-left: 0.15rem;
+}
+
+.sofar-kpi-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #717273);
+  padding-top: 0.875rem;
+  white-space: nowrap;
+}
+
+.sofar-kpi-subtext {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted, #717273);
+}
+
+.sofar-kpi-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-weight: 400;
+}
+
+.sofar-kpi-tag.success {
+  background: rgba(129, 199, 132, 0.15);
+  color: var(--success, #81c784);
+}
+
+.sofar-kpi-tag.warning {
+  background: rgba(255, 183, 77, 0.15);
+  color: #ffb74d;
+}
+
+.sofar-kpi-tag.info {
+  background: rgba(144, 202, 249, 0.15);
+  color: #90caf9;
+}
+
+.sofar-kpi-tag.purple {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
+.sofar-kpi-tag.default {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary, #909294);
+}

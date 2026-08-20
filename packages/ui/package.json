@@ -1,0 +1,18 @@
+{
+  "name": "@sofar/ui",
+  "private": true,
+  "version": "1.0.0",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./styles/variables.css": "./src/styles/variables.css",
+    "./styles/*": "./src/styles/*"
+  },
+  "dependencies": {
+    "lucide-react": "^1.24.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

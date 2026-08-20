@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60" fill="none"><metadata><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Description><dc:creator>RealFaviconGenerator</dc:creator><dc:source>https://realfavicongenerator.net</dc:source></rdf:Description></rdf:RDF></metadata><g filter="url(#filter0_i_1379_94)">
+<path d="M23.6902 27.1724C30.9866 34.4689 20.8527 3.58695 47.2753 30.0098C73.698 56.4327 51.7343 13.7209 44.4379 6.4244C37.1415 -0.872077 26.5821 -2.14244 20.8527 3.58695C15.1234 9.31635 16.3938 19.8759 23.6902 27.1724Z" fill="#D4A373"></path>
+<path d="M36.2525 32.827C28.9561 25.5306 39.09 56.4125 12.6674 29.9896C-13.7553 3.5667 8.20837 46.2785 15.5048 53.575C22.8012 60.8715 33.3606 62.1419 39.09 56.4125C44.8193 50.6831 43.5489 40.1235 36.2525 32.827Z" fill="#D4A373"></path>
+</g><defs>
+<filter id="filter0_i_1379_94" x="0" y="0" width="59.9427" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"></feFlood>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"></feBlend>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"></feColorMatrix>
+<feOffset dy="4"></feOffset>
+<feGaussianBlur stdDeviation="4"></feGaussianBlur>
+<feComposite in2="hardAlpha" operator="arithmetic" k2="-1" k3="1"></feComposite>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"></feColorMatrix>
+<feBlend mode="normal" in2="shape" result="effect1_innerShadow_1379_94"></feBlend>
+</filter>
+</defs></svg>

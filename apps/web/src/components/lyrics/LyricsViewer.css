@@ -1,0 +1,975 @@
+/* Vertical Masking for Lyrics Viewer (Fade-out at top and bottom) */
+.mask-image-vertical {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent calc(0% + 40px),
+    black calc(20% + 40px),
+    black calc(80% - 40px),
+    transparent calc(100% - 40px)
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent calc(0% + 40px),
+    black calc(20% + 40px),
+    black calc(80% - 40px),
+    transparent calc(100% - 40px)
+  );
+}
+
+/* Lyrics Card Viewport */
+.lyrics-card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 500px;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 20px;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  
+  /* Pure CSS transitions for smooth crossfade */
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lyrics-card.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.lyrics-card.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* 히든 카드 내의 싱크 바는 호버 유무에 관계없이 즉시 강제로 숨김 */
+.lyrics-card.hidden .lyrics-sync-bar {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: none !important;
+}
+
+/* 호버 또는 포커스 상태일 때도 투명 상태 유지 (확대 상태 제외) */
+.lyrics-card:not(.expanded):hover,
+.lyrics-card:not(.expanded):focus-within {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Lyrics Wrapper (holds layout footprint in the document flow) */
+.lyrics-wrapper {
+  width: 100%;
+  max-width: 500px;
+  height: calc(18vh + 5rem);
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ── 가사 숨김 상태: 실제 오디오 스펙트럼 이퀄라이저 (미니멀 & 캄) ── */
+.lyrics-visualizer-container {
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100% !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.lyrics-audio-visualizer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 120px;
+  animation: lyricsFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.visualizer-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3.5px;
+  height: 28px;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.visualizer-bar {
+  flex: 1;
+  max-width: 3.5px;
+  min-width: 2px;
+  height: 2.5px;
+  border-radius: 1.5px 1.5px 0 0;
+  background: rgba(245, 235, 225, 0.15);
+  box-shadow: none;
+  animation-duration: var(--bar-dur, 1.8s);
+  animation-delay: var(--bar-del, 0s);
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  will-change: height, opacity;
+  transform-origin: bottom center;
+}
+
+/* 6가지 서로 다른 주파수 대역별 점프 애니메이션 (부드럽고 절제된 높이) */
+.eq-anim-1 { animation-name: eqJumpPattern1; }
+.eq-anim-2 { animation-name: eqJumpPattern2; }
+.eq-anim-3 { animation-name: eqJumpPattern3; }
+.eq-anim-4 { animation-name: eqJumpPattern4; }
+.eq-anim-5 { animation-name: eqJumpPattern5; }
+.eq-anim-6 { animation-name: eqJumpPattern6; }
+
+.lyrics-audio-visualizer.is-paused .visualizer-bar {
+  animation-play-state: paused !important;
+  height: 2px !important;
+  opacity: 0.15 !important;
+  box-shadow: none !important;
+  transition: all 0.4s ease;
+}
+
+@keyframes eqJumpPattern1 {
+  0%, 100% { height: 2.5px; opacity: 0.25; }
+  22% { height: calc(20px * var(--bar-scale, 1)); opacity: 0.85; }
+  45% { height: calc(8px * var(--bar-scale, 1)); opacity: 0.45; }
+  68% { height: calc(26px * var(--bar-scale, 1)); opacity: 0.9; }
+  85% { height: calc(5px * var(--bar-scale, 1)); opacity: 0.35; }
+}
+
+@keyframes eqJumpPattern2 {
+  0%, 100% { height: 3px; opacity: 0.28; }
+  26% { height: calc(14px * var(--bar-scale, 1)); opacity: 0.65; }
+  52% { height: calc(23px * var(--bar-scale, 1)); opacity: 0.85; }
+  74% { height: calc(9px * var(--bar-scale, 1)); opacity: 0.5; }
+  90% { height: calc(17px * var(--bar-scale, 1)); opacity: 0.75; }
+}
+
+@keyframes eqJumpPattern3 {
+  0%, 100% { height: 2.5px; opacity: 0.25; }
+  18% { height: calc(22px * var(--bar-scale, 1)); opacity: 0.9; }
+  40% { height: calc(7px * var(--bar-scale, 1)); opacity: 0.4; }
+  64% { height: calc(19px * var(--bar-scale, 1)); opacity: 0.75; }
+  82% { height: calc(11px * var(--bar-scale, 1)); opacity: 0.5; }
+}
+
+@keyframes eqJumpPattern4 {
+  0%, 100% { height: 3px; opacity: 0.25; }
+  30% { height: calc(11px * var(--bar-scale, 1)); opacity: 0.55; }
+  48% { height: calc(25px * var(--bar-scale, 1)); opacity: 0.9; }
+  72% { height: calc(14px * var(--bar-scale, 1)); opacity: 0.65; }
+  92% { height: calc(4px * var(--bar-scale, 1)); opacity: 0.35; }
+}
+
+@keyframes eqJumpPattern5 {
+  0%, 100% { height: 2.5px; opacity: 0.25; }
+  20% { height: calc(17px * var(--bar-scale, 1)); opacity: 0.7; }
+  44% { height: calc(27px * var(--bar-scale, 1)); opacity: 0.95; }
+  68% { height: calc(7px * var(--bar-scale, 1)); opacity: 0.4; }
+  88% { height: calc(20px * var(--bar-scale, 1)); opacity: 0.8; }
+}
+
+@keyframes eqJumpPattern6 {
+  0%, 100% { height: 3px; opacity: 0.28; }
+  24% { height: calc(21px * var(--bar-scale, 1)); opacity: 0.8; }
+  48% { height: calc(8px * var(--bar-scale, 1)); opacity: 0.45; }
+  70% { height: calc(24px * var(--bar-scale, 1)); opacity: 0.85; }
+  88% { height: calc(12px * var(--bar-scale, 1)); opacity: 0.55; }
+}
+
+/* 축소 상태 (Collapsed) */
+.lyrics-card.collapsed {
+  height: 100%;
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+}
+
+.lyrics-card.collapsed .sync-value {
+  min-width: 2.25rem !important;
+  font-size: 0.875rem !important;
+}
+
+.lyrics-card.collapsed.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: scale(0.95);
+}
+
+.lyrics-card.collapsed.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(1);
+}
+
+/* 확대 상태 (Expanded - Overlay) */
+.lyrics-card.expanded {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 6rem;
+  z-index: 200;
+  max-width: 100%;
+  margin: 0;
+  padding: 1.25rem 1.5rem 3rem 1.5rem;
+  background: rgba(18, 14, 11, 0.9) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px);
+  border: none !important;
+  border-radius: 0px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+.lyrics-card.expanded.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(20px);
+}
+
+.lyrics-card.expanded.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+
+
+/* (Removed View Transition overrides and keyframes) */
+
+/* (Removed collapsed header override) */
+
+/* 축소 모드일 때 평소에는 가독성 및 공간 최적화 오버라이드 (호버/포커스 시 노출) */
+.lyrics-card.collapsed:not(:hover):not(:focus-within) .lyrics-sync-bar {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(15px);
+  pointer-events: none;
+}
+
+.lyrics-card.collapsed .lyric-line {
+  padding: 0.375rem 0.5rem;
+  font-size: 14px;
+}
+
+.lyrics-card.collapsed .mask-image-vertical {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 25%,
+    black 75%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 25%,
+    black 75%,
+    transparent 100%
+  );
+}
+
+/* 상단 노래 제목 및 가수 항상 노출 (중앙 정렬) */
+.lyrics-static-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  gap: 0.25rem;
+  width: 100%;
+  padding-top: 3%;
+  padding-bottom: 1rem;
+  z-index: 10;
+  box-sizing: border-box;
+}
+
+.lyrics-static-header-title {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.lyrics-static-header-artist {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 싱크바 좌측 버튼 그룹 */
+.sync-bar-left-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 0.25rem;
+}
+
+/* 싱크바 우측 버튼 그룹 */
+.sync-bar-right-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: 0.25rem;
+}
+
+.lyrics-sync-bar {
+  position: absolute;
+  height: 4.25rem;
+  bottom: 0.875rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.25rem 1rem;
+  background: transparent;
+  border-top: none;
+  flex-shrink: 0;
+  z-index: 10;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(15px);
+  transition: opacity 0.25s ease,
+              visibility 0.25s,
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lyrics-card.expanded .lyrics-sync-bar {
+  bottom: 0;
+  transform: translateY(0px);
+  padding: 0.75rem 1.5rem 1.25rem 1.5rem;
+}
+
+/* 호버/포커스 상태일 때 설정 노출 */
+/* (Removed hover header overrides) */
+
+.lyrics-card:hover .lyrics-sync-bar,
+.lyrics-card:focus-within .lyrics-sync-bar {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+
+.lyrics-header-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lyrics-sync-controls {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.sync-adjust-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.25rem 0.45rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.sync-adjust-btn:hover {
+  color: var(--text-primary);
+}
+
+.sync-value {
+  min-width: 2.75rem;
+  color: var(--primary-warm);
+  padding: 0.25rem;
+  margin: 0 0.5rem;
+  font-size: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.lyrics-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.lyrics-action-btn:hover {
+  color: var(--primary-warm);
+}
+
+@keyframes lyricsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Lyrics Content list */
+.lyrics-viewport {
+  height: calc(100% - 5rem);
+  width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 5vh 0;
+  text-align: center;
+  position: relative;
+  animation: lyricsFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-sizing: border-box;
+}
+
+.lyrics-card.expanded .lyrics-viewport {
+  padding: 20vh 0;
+}
+
+.lyric-line {
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  color: var(--text-secondary);
+  transition: var(--transition-smooth);
+}
+
+.lyric-line:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.01);
+  transition-duration: 0ms;
+}
+
+.lyric-line.active {
+  color: var(--primary-warm);
+  font-weight: 450;
+  transform: scale(1.25);
+}
+
+/* Lyrics Modal Editor */
+.lyrics-editor-modal-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.lyrics-editor-modal-container .editor-info-bar {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lyrics-editor-modal-container .lyrics-textarea {
+  width: 100%;
+  height: 250px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.85rem;
+  color: var(--text-primary);
+  font-family: monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.lyrics-editor-modal-container .lyrics-textarea:focus {
+  border-color: var(--primary-warm, #d4a373);
+}
+
+.lyrics-editor-modal-container .editor-actions-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.btn-small-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-small-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.btn-small-primary {
+  background: var(--primary-warm);
+  border: none;
+  color: #1a1512;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-small-primary:hover {
+  background: var(--primary-warm-hover);
+}
+
+/* ── 가사 싱크 조절바 좌우 설정/확장 버튼 ── */
+.sync-bar-side-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.sync-bar-side-btn:hover {
+  color: var(--text-primary);
+}
+
+.sync-bar-side-btn.active {
+  opacity: 1;
+}
+
+.sync-bar-placeholder-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.sync-bar-side-btn.left {
+  margin-right: auto;
+}
+
+.sync-bar-side-btn.right {
+  margin-left: auto;
+}
+
+
+/* 로딩 상태 */
+.lyrics-loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  overflow: visible !important;
+  background: linear-gradient(
+    90deg,
+    var(--text-secondary) 35%,
+    var(--text-primary) 50%,
+    var(--text-secondary) 65%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: lyricsFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both,
+             lyrics-loading-shine 6s infinite linear 0.4s;
+}
+
+@keyframes lyrics-loading-shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 등록된 가사 없음 상태 컨테이너 */
+.lyrics-empty-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  overflow: visible !important;
+}
+
+.lyrics-empty-text {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.lyrics-empty-actions {
+  width: 100%;
+  max-width: 30rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.875rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-cozy);
+  transition: opacity 0.25s ease,
+              visibility 0.25s,
+              transform 0.25s ease,
+              border-color 0.25s ease;
+}
+
+.lyrics-card.collapsed.is-empty {
+  padding-bottom: 0;
+}
+
+/* 등록된 가사가 없을 때(is-empty), 축소 모드 카드 호버 시 바텀 싱크바 미노출 */
+.lyrics-card.collapsed.is-empty .lyrics-sync-bar {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(8px) !important;
+}
+
+/* 로딩 상태일 때(is-loading), 축소 모드 카드 호버 시 바텀 싱크바 미노출 */
+.lyrics-card.collapsed.is-loading .lyrics-sync-bar {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transform: translateY(8px) !important;
+}
+
+/* 축소 모드 가사 없음 상태일 때 액션 버튼 absolute 배치 및 숨김 */
+.lyrics-card.collapsed.is-empty .lyrics-empty-actions {
+  position: absolute;
+  bottom: -2rem;
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.875rem 1.5rem 0 1.5rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  border-top-color: transparent;
+}
+
+/* 축소 모드 가사 없음 상태 호버 시 액션 버튼 페이드인 및 테두리 활성화 */
+.lyrics-card.collapsed.is-empty:hover .lyrics-empty-actions,
+.lyrics-card.collapsed.is-empty:focus-within .lyrics-empty-actions {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  border-top-color: var(--border-cozy);
+}
+
+.lyrics-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lyrics-empty-btn:hover {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: var(--primary-warm) !important;
+}
+
+.sync-bar-side-btn.is-fallback-warn {
+  color: #f59e0b;
+}
+
+.sync-bar-side-btn.is-fallback-warn:hover {
+  color: #fbbf24 !important;
+}
+
+.sync-target-btn {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  margin: 0;
+  overflow: hidden;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.25s;
+}
+
+.sync-target-btn.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Raw LRC Line */
+.raw-lyric-line {
+  padding: 0.45rem 0;
+  color: var(--text-primary);
+  opacity: 0.85;
+  font-size: 13.5px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+/* 빈 트랙 카드 스타일 */
+.lyrics-card-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* 가사 검색 모달 관련 스타일 */
+.lyrics-search-modal-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  max-height: 520px;
+  min-width: 320px;
+  text-align: left;
+}
+
+.lyrics-search-input-row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.lyrics-search-input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.lyrics-search-input-icon {
+  position: absolute;
+  left: 0.875rem;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.lyrics-search-input-wrapper:focus-within .lyrics-search-input-icon {
+  color: var(--primary-warm, #d4a373);
+}
+
+.lyrics-search-input {
+  width: 100%;
+  padding: 0.65rem 0.875rem 0.65rem 2.4rem;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.lyrics-search-input:focus {
+  border-color: var(--primary-warm, #d4a373);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.15);
+}
+
+.lyrics-search-btn {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.lyrics-search-reset-btn {
+  align-self: flex-start;
+  align-items: center;
+}
+
+.lyrics-search-results-list {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.85rem;
+  max-height: 380px;
+  padding-right: 4px;
+}
+
+.lyrics-search-message {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.lyrics-search-message.error {
+  color: #ff6b6b;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin-animation {
+  animation: spin 1s linear infinite;
+}
+
+.lyric-search-item {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: var(--transition-fast);
+  text-align: left;
+}
+
+.lyric-search-item:hover {
+  border: 1px solid var(--text-muted);
+}
+
+.lyric-search-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.lyric-search-item-title-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.lyric-search-item-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lyric-search-item-artist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lyric-search-badge {
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lyric-search-badge.synced {
+  color: var(--primary-warm);
+}
+
+.lyric-search-badge.plain {
+  color: var(--text-muted);
+}
+
+/* 가사 미리보기 박스 */
+.lyric-search-item-preview {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 3.6rem;
+  justify-content: center;
+}
+
+.lyric-preview-line {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+.lyric-preview-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
+
+
+/* 가사 편집 모달 관련 추가 스타일 */
+.editor-info-text {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.lyrics-file-select-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.lyrics-hidden-input {
+  display: none;
+}

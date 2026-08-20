@@ -1,0 +1,51 @@
+/* Mini Vinyl Record Thumbnail Ring */
+.track-thumbnail-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: #131316;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+@supports (corner-shape: squircle) {
+  .track-thumbnail-ring {
+    border-radius: 100%;
+    corner-shape: squircle;
+  }
+}
+
+.thumbnail-disk-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-disk-fallback {
+  background: linear-gradient(135deg, #2a221b 0%, #d4a373 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.thumbnail-disk-fallback-title {
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.thumbnail-center-pin {
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #2a2b30;
+}

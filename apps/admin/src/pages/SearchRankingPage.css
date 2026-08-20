@@ -1,0 +1,412 @@
+/* ==========================================================================
+   Search Ranking Page Styles
+   관리자 실시간 검색어 순위 & 아티스트 순위 & 금지어 & 고정 키워드 관리 스타일
+   (사용자 관리 UsersPage 디자인 시스템과 100% 동일한 일관성 적용)
+   ========================================================================== */
+
+.search-ranking-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ── Top 4 KPI Summary Cards Grid ── */
+.search-ranking-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 1300px) {
+  .search-ranking-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .search-ranking-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+/* When right sidebar is open in admin layout */
+.admin-layout-container.has-right-sidebar .search-ranking-summary-grid {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 1550px) {
+  .admin-layout-container.has-right-sidebar .search-ranking-summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ── Integrated Main Card (UsersPage .users-main-card 규격) ── */
+.sr-main-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-cozy);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ── Card Header: Tabs (Left) & Search/Toolbar Actions (Right) ── */
+.sr-card-header {
+  padding: 1.15rem 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-cozy);
+  box-sizing: border-box;
+  background: var(--bg-card);
+}
+
+/* Tab Group Aligned with insights-tab-group */
+.insights-tab-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+
+.insights-tab-group::-webkit-scrollbar {
+  display: none;
+}
+
+.insight-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.95rem;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #94a3b8);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition-fast, all 0.15s ease);
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.insight-tab-btn:hover:not(.active) {
+  color: var(--text-primary, #ffffff);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.insight-tab-btn.active {
+  color: var(--text-active, #ffffff);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.insight-tab-btn .insights-tab-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-warm, #d4a373);
+}
+
+/* ── Toolbar Actions (Right side of Card Header) ── */
+.sr-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.sr-search-wrapper {
+  width: 220px;
+  min-width: 180px;
+}
+
+.sr-select-container {
+  width: 135px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1250px) {
+  .sr-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem;
+  }
+
+  .sr-toolbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sr-search-wrapper {
+    flex: 1;
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* ── Standardized Table Section inside Card (UsersPage .users-table-card 규격) ── */
+.sr-table-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: none;
+  border-radius: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sr-table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.825rem;
+}
+
+.sr-table th {
+  padding: 1.05rem 1.35rem;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-muted, #a0a0a0);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.sr-table td {
+  padding: 1.1rem 1.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.sr-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sr-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ── Table Row Profiles & Meta Elements ── */
+.sr-rank-number {
+  font-size: 1rem;
+  color: var(--text-muted, #777777);
+  display: inline-block;
+  text-align: center;
+}
+
+.sr-rank-number.rank-1 {
+  color: #ffd700;
+}
+
+.sr-rank-number.rank-2 {
+  color: #e0e0e0;
+}
+
+.sr-rank-number.rank-3 {
+  color: #cd7f32;
+}
+
+.sr-profile-flex {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 180px;
+}
+
+/* Standardized 40px Avatar Box (Identical to UsersPage .user-avatar-gradient) */
+.sr-avatar-box {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  max-width: 40px;
+  max-height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary, #ffffff);
+  flex-shrink: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.sr-avatar-img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sr-profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.sr-profile-name {
+  font-size: 0.75rem;
+  color: var(--text-active, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Activity / Stats Column ── */
+.sr-activity-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.sr-activity-main {
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* ── Date Column ── */
+.sr-date-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 120px;
+}
+
+.sr-date-main {
+  color: var(--text-primary, #ffffff);
+  font-size: 0.75rem;
+}
+
+.sr-date-sub {
+  color: var(--text-muted, #777777);
+  font-size: 0.725rem;
+}
+
+/* ── Rank Diff & Status Pills (UsersPage status-pill 규격) ── */
+.sr-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 999px;
+  font-size: 0.725rem;
+  white-space: nowrap;
+}
+
+.sr-status-pill.up {
+  color: var(--error, #e57373);
+}
+
+.sr-status-pill.down {
+  color: #1890ff;
+}
+
+.sr-status-pill.new {
+  color: var(--success, #81c784);
+}
+
+.sr-status-pill.same {
+  color: var(--text-muted, #8c8c8c);
+}
+
+.sr-status-pill.pinned {
+  color: var(--primary-warm, #d4a373);
+}
+
+.sr-status-pill.banned {
+  color: var(--error, #e57373);
+}
+
+/* ── Table Action Buttons Group (UsersPage .user-table-actions 규격) ── */
+.sr-table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  min-width: 100px;
+}
+
+/* ── Log Artists Tags ── */
+.sr-log-artists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 280px;
+}
+
+.sr-log-artist-pill {
+  font-size: 0.725rem;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary, #b0b0b0);
+}
+
+/* ── Empty & Loading States (UsersPage 규격) ── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: var(--text-muted, #777777);
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.empty-state-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #a0a0a0);
+  margin: 0;
+}
+
+/* ── Modal Form ── */
+.sr-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.sr-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary, #cccccc);
+}
+
+.sr-form-help {
+  font-size: 12px;
+  color: var(--text-tertiary, #888888);
+  margin-top: 4px;
+}

@@ -1,0 +1,131 @@
+.sofar-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sofar-input-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #a1a1aa);
+}
+
+.sofar-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.sofar-input-field {
+  width: 100%;
+  height: var(--control-height-md, 44px);
+  padding: 0 0.95rem;
+  background: var(--bg-input, rgba(20, 20, 20, 0.6));
+  border: 1px solid var(--border-cozy, rgba(255, 255, 255, 0.1));
+  border-radius: var(--control-radius-md, 11px);
+  color: var(--text-primary, #ffffff);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 400;
+  outline: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+/* Standardized Size Variants */
+.sofar-input-wrapper.input-sm .sofar-input-field {
+  height: var(--control-height-sm, 36px);
+  padding: 0 0.8rem;
+  font-size: 0.8125rem;
+  border-radius: var(--control-radius-sm, 9px);
+}
+
+.sofar-input-wrapper.input-md .sofar-input-field {
+  height: var(--control-height-md, 44px);
+  padding: 0 0.95rem;
+  font-size: 0.875rem;
+  border-radius: var(--control-radius-md, 11px);
+}
+
+.sofar-input-wrapper.input-lg .sofar-input-field {
+  height: var(--control-height-lg, 50px);
+  padding: 0 1.15rem;
+  font-size: 0.9375rem;
+  border-radius: var(--control-radius-lg, 13px);
+}
+
+.sofar-input-field:focus {
+  border-color: var(--primary-warm, #d4a373);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.15);
+}
+
+.sofar-input-wrapper.has-error .sofar-input-field {
+  border-color: var(--error, #e57373);
+}
+
+.sofar-input-field.has-leading {
+  padding-left: 2.65rem !important;
+}
+
+.sofar-input-field.has-trailing {
+  padding-right: 2.65rem !important;
+}
+
+.sofar-input-wrapper.input-lg .sofar-input-field.has-leading {
+  padding-left: 2.9rem !important;
+}
+
+.sofar-input-wrapper.input-lg .sofar-input-field.has-trailing {
+  padding-right: 2.9rem !important;
+}
+
+.sofar-input-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #71717a);
+  pointer-events: none;
+}
+
+.sofar-input-icon.leading {
+  left: 0.85rem;
+}
+
+.sofar-input-icon.trailing {
+  right: 0.85rem;
+}
+
+.sofar-input-wrapper.input-lg .sofar-input-icon.leading {
+  left: 1rem;
+}
+
+.sofar-input-wrapper.input-lg .sofar-input-icon.trailing {
+  right: 1rem;
+}
+
+.sofar-input-message {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.sofar-input-message.error-text {
+  color: var(--error, #e57373);
+}
+
+.sofar-input-message.helper-text {
+  color: var(--text-muted, #71717a);
+}
+
+.sofar-input-wrapper.is-disabled .sofar-input-field {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.02);
+}

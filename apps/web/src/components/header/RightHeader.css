@@ -1,0 +1,237 @@
+/* ─────────────────────────────────────────
+   RightHeader — right-panel-column 상단 투명 헤더
+   (왼쪽 사이드바 헤더와 위아래 중심선 및 패딩 완벽 정렬)
+───────────────────────────────────────── */
+.right-panel-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2.5rem;
+  z-index: 100;
+  box-sizing: border-box;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: -200%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.4) 10%, rgba(0, 0, 0, 0) 50%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    mask: linear-gradient(black 30%, transparent);
+    -webkit-mask: linear-gradient(black 30%, transparent);
+    z-index: -1;
+    opacity: var(--header-scroll-opacity, 0);
+    pointer-events: none;
+    /* 스크롤 시에는 지연 없이 즉각 반응 */
+    transition: opacity 0.04s linear;
+    will-change: opacity;
+  }
+
+  /* 라우트(화면) 전환 시에만 부드럽게 Fade-In 적용 */
+  &.is-transitioning::before {
+    transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), backdrop-filter 0.4s ease, -webkit-backdrop-filter 0.4s ease;
+  }
+}
+
+.right-panel-header * {
+  pointer-events: auto; /* 버튼, 드롭다운 클릭 이벤트 복원 */
+}
+
+/* ── 왼쪽 컨트롤 영역 ── */
+.right-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  height: 36px;
+}
+
+.header-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 36px;
+}
+
+.header-nav-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.header-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #ffffff);
+  transform: scale(1.08);
+}
+
+.header-nav-btn:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.96);
+}
+
+.header-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.header-location-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 32px;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-primary, #ffffff);
+  box-sizing: border-box;
+}
+
+.header-location-badge .location-icon {
+  display: flex;
+  align-items: center;
+  color: var(--primary-warm, #d4a373);
+}
+
+.location-title {
+  white-space: nowrap;
+}
+
+/* ── 오른쪽 유저 프로필 영역 ── */
+.right-header-right {
+  display: flex;
+  align-items: center;
+  height: 36px;
+}
+
+.user-profile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #ffffff);
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: trasnform;
+}
+
+.user-profile-name {
+  font-size: 0.825rem;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+.user-profile-trigger:hover,
+.user-profile-trigger.active {
+  background: transparent;
+  transform: scale(1.03);
+}
+
+/* ── 프로필 드롭다운 메뉴 스타일 (볼륨 팝오버 통일 스타일) ── */
+.profile-dropdown-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 230px;
+}
+
+.profile-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.75rem 0.65rem 0.65rem;
+}
+
+.profile-dropdown-meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-meta-name {
+  font-size: 0.925rem;
+  color: var(--text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.profile-meta-email {
+  font-size: 0.75rem;
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.profile-dropdown-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 0.35rem 0;
+}
+
+.profile-dropdown-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.profile-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.85));
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.profile-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #ffffff);
+}
+
+.profile-dropdown-item.login-btn:hover {
+  color: var(--primary-warm, #d4a373);
+}
+
+.profile-dropdown-item.logout-btn:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.12);
+}

@@ -1,0 +1,1014 @@
+/* ─────────────────────────────────────────
+   HomePanel — 상용 뮤직앱 스타일 홈 레이아웃
+───────────────────────────────────────── */
+.home-panel-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5.5rem 2.5rem 14rem 2.5rem;
+  background: transparent;
+  color: var(--text-primary, #fff);
+  gap: 3rem;
+}
+
+/* 하단 콘텐츠는 하나의 그리드로 묶어 같은 행에 안정적으로 배치 */
+.home-bottom-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  gap: 2rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.home-bottom-layout > .home-section--popular,
+.home-bottom-layout > .home-section--recommended {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.home-bottom-layout.has-popular > .home-section--popular {
+  grid-column: 1;
+  order: -1;
+}
+
+.home-bottom-layout.has-popular > .home-section--recommended {
+  grid-column: 2;
+}
+
+.home-bottom-layout .home-section--popular .popular-row {
+  grid-template-columns: 26px minmax(0, 1.25fr) minmax(0, 0.7fr) 24px 32px;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.home-bottom-layout .home-section--popular .popular-row__artist {
+  min-width: 0;
+}
+
+/* ── 스핀 로딩 ── */
+.home-loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+@keyframes home-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.home-spinner-ring {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(212, 163, 115, 0.15);
+  border-top-color: var(--primary-warm, #d4a373);
+  animation: home-spin 0.8s linear infinite;
+}
+
+/* ── 섹션 공통 ── */
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex-shrink: 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.section-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.section-title-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.section-title-wrapper.clickable {
+  cursor: pointer;
+  user-select: none;
+  border-radius: 6px;
+  transition: color 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.section-title-wrapper.clickable:hover {
+  color: var(--primary-warm, #d4a373);
+}
+
+.section-title-wrapper.clickable:hover .section-title {
+  color: var(--primary-warm, #d4a373);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+  color: var(--text-primary, #fff);
+  letter-spacing: -0.01em;
+  transition: color 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  white-space: nowrap;
+}
+
+.section-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.section-header-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    color 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.section-header-action-btn:hover {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.08);
+}
+
+.section-header-action-btn:active {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.96);
+}
+
+.section-header-action-btn.active {
+  color: var(--primary-warm, #d4a373);
+  background: transparent;
+}
+
+.section-header-action-btn.active:hover {
+  color: var(--primary-warm, #d4a373);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── 스크롤 화살표 및 페이지 인디케이터 ── */
+.scroll-arrows {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.popular-page-indicator {
+  font-size: 0.78rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  margin: 0 0.2rem;
+  min-width: 3.5rem;
+  text-align: center;
+  user-select: none;
+}
+
+.arrow-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.arrow-btn:hover:not(:disabled) {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.08);
+}
+
+.arrow-btn:active:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(0.96);
+}
+
+.arrow-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── 수평 스크롤 행 ── */
+/* bleed-out: 컨테이너 패딩(2.5rem)만큼 양옆으로 넘쳐서 엣지까지 닿게 함 */
+.h-scroll-row {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 0.75rem;
+  padding-left: 2.5rem; /* 첫 번째 카드 앞 공간 (초기 시작 여백) */
+  padding-right: 2.5rem; /* 마지막 카드 뒤 숨쉬는 공간 */
+  margin-left: -2.5rem; /* 컨테이너 패딩 무력화 → 왼쪽 엣지까지 확장 */
+  margin-right: -2.5rem; /* 컨테이너 패딩 무력화 → 오른쪽 엣지까지 확장 */
+  scrollbar-width: none;
+  cursor: grab;
+  user-select: none;
+}
+.h-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+.h-scroll-row.is-dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+.h-scroll-row img {
+  pointer-events: none;
+}
+
+.h-scroll-track {
+  display: flex;
+  gap: 1.5rem;
+  will-change: transform;
+}
+
+/* ── 대형 앨범 카드 ── */
+.album-card {
+  flex-shrink: 0;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.album-card__cover {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@supports (corner-shape: squircle) {
+  .album-card__cover {
+    border-radius: 48px;
+    corner-shape: squircle;
+  }
+}
+
+.album-card__cover .track-thumbnail-ring {
+  width: 160px;
+  height: 160px;
+  border-radius: 14px;
+}
+
+.album-card__cover .thumbnail-disk-img {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.album-card__cover-img {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
+.album-card__searching {
+  color: var(--primary-warm, #d4a373);
+}
+
+@keyframes spin-anim {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin-icon {
+  animation: spin-anim 0.8s linear infinite;
+}
+
+.album-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  border-radius: 14px;
+}
+.album-card:hover .album-card__overlay {
+  opacity: 1;
+}
+
+.album-card__play-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  color: var(--text-active);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: scale(0.85);
+  transition: transform 0.2s ease;
+}
+.album-card:hover .album-card__play-btn {
+  transform: scale(1);
+}
+
+.album-card__now-badge {
+  position: absolute;
+  top: 50%;
+  right: 50%;
+  transform: translate(50%, -50%);
+  color: var(--primary-warm);
+  font-size: 0.62rem;
+  font-weight: 800;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.album-card__meta {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.25rem;
+  padding-right: 0.1rem;
+}
+
+.album-card__meta-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.album-card__title {
+  font-size: 0.83rem;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.album-card__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.album-card__kebab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
+  margin-right: -4px;
+}
+
+.album-card__kebab-btn:hover {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.album-card__kebab-btn.active {
+  color: var(--primary-warm, #d4a373);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.album-card__artist {
+  font-size: 0.75rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-card--playing .album-card__cover .album-card__cover-img {
+  filter: brightness(0.25);
+}
+
+/* ── 하단 2단 분할 ── */
+.home-bottom-split {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+
+
+.popular-table-header .col-rank,
+.popular-table-header .col-change {
+  text-align: center;
+}
+
+.popular-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.popular-row {
+  display: grid;
+  grid-template-columns:
+    32px minmax(0, 1fr) minmax(0, 0.6fr) minmax(0, 0.6fr)
+    42px;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+
+  & span {
+    pointer-events: none;
+  }
+}
+
+.popular-row:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+.popular-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.popular-row--playing {
+  background: rgba(212, 163, 115, 0.14) !important;
+}
+
+.popular-row__col-rank {
+  position: relative;
+  font-size: 0.92rem;
+  color: var(--text-secondary, #fff);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+}
+
+.popular-row__rank-num,
+.popular-row__playing-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transition:
+    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.popular-row__rank-num {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.popular-row__playing-icon {
+  position: absolute;
+  color: var(--primary-warm, #d4a373);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+/* 재생 중 전환 스케일 & 페이드 효과 */
+.popular-row--playing .popular-row__rank-num,
+.popular-row__col-rank.is-playing .popular-row__rank-num {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+.popular-row--playing .popular-row__playing-icon,
+.popular-row__col-rank.is-playing .popular-row__playing-icon {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.popular-row__title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.popular-row__col-change {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 순위 변동 배지 */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.75rem;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.rank-badge--up {
+  color: #ef4444;
+}
+.rank-badge--up .rank-arrow {
+  font-size: 0.48rem;
+  margin-right: 2px;
+}
+
+.rank-badge--down {
+  color: #3b82f6;
+}
+.rank-badge--down .rank-arrow {
+  font-size: 0.48rem;
+  margin-right: 2px;
+}
+
+.rank-badge--new {
+  color: #10b981;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.rank-badge--same {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.75rem;
+}
+
+.popular-row__thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+@supports (corner-shape: squircle) {
+  .popular-row__thumb {
+    border-radius: 100%;
+    corner-shape: squircle;
+  }
+}
+
+.popular-row__thumb .track-thumbnail-ring {
+  width: 42px;
+  height: 42px;
+}
+.popular-row__thumb .thumbnail-disk-img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.popular-row__thumb-img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.popular-row__meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.popular-row__title {
+  font-size: 0.875rem;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popular-row .track-meta-title-container {
+  height: 20px;
+  flex: 1;
+  min-width: 0;
+}
+
+.popular-row .track-meta-title-scroll {
+  font-size: 0.875rem;
+  color: var(--text-primary, #fff);
+}
+
+.popular-row--playing .track-meta-title-scroll {
+  color: var(--text-active, #fff);
+}
+
+.popular-row__artist {
+  font-size: 0.75rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popular-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  opacity: 1;
+  transition: opacity 0.15s ease;
+}
+
+.icon-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.icon-action-btn:hover {
+  color: var(--text-primary, #fff);
+}
+.icon-action-btn.active {
+  color: var(--primary-warm, #d4a373);
+}
+
+/* ── 추천 플레이리스트 그리드 ── */
+.recommended-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+}
+
+.rec-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  cursor: pointer;
+}
+
+.rec-card__cover {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+.rec-card__cover .track-thumbnail-ring {
+  width: 100%;
+  height: 100%;
+}
+.rec-card__cover .thumbnail-disk-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rec-card__cover-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, rgba(255, 255, 255, 0.4));
+}
+
+.rec-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.rec-card:hover .rec-card__overlay {
+  opacity: 1;
+}
+
+.rec-card__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rec-card__count {
+  font-size: 0.7rem;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+}
+
+.rec-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 0;
+  color: var(--text-muted, rgba(255, 255, 255, 0.4));
+  text-align: center;
+}
+.rec-empty p {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+/* ── 소파 무드 믹스 카드 ── */
+.mood-mix-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.mix-cover-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/10;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mix-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.mood-mix-card:hover .mix-cover-img {
+  transform: scale(1.05);
+}
+
+.mix-play-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.mood-mix-card:hover .mix-play-overlay {
+  opacity: 1;
+}
+
+.mix-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mix-title {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mix-subtitle {
+  font-size: 0.72rem;
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 공유 플레이리스트 리스트 그리드 마진 -14px */
+.home-section--recommended .playlist-folder-grid {
+  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+  margin: -14px;
+}
+
+.home-section--recommended .empty-list-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 7rem 1rem;
+  color: var(--text-muted, #717273);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  margin: 0;
+  width: 100%;
+}
+
+/* 카테고리 필터 탭 (장르/테마/상황) */
+.category-filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.category-filter-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  font-size: 0.875rem;
+  padding: 0.4rem 0.675rem;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+
+
+.category-tab-btn:hover {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.category-tab-btn.active {
+  color: var(--primary-warm, #d4a373);
+}
+
+.category-tab-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 카테고리 플레이리스트 카드 (album-card & folder-card 동일 규격 적용) */
+.category-playlist-card {
+  flex-shrink: 0;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  cursor: pointer;
+}
+
+.category-card-cover-wrapper {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.25);
+  transition: var(--transition-smooth, all 0.2s ease);
+}
+
+@supports (corner-shape: squircle) {
+  .category-card-cover-wrapper {
+    border-radius: 48px;
+    corner-shape: squircle;
+  }
+}
+
+.category-card-cover-img {
+  width: 160px;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 14px;
+  transition: filter 0.2s ease;
+}
+
+.category-card-tag-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  z-index: 2;
+}
+
+.category-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 14px;
+  z-index: 3;
+}
+
+.category-playlist-card:hover .category-card-overlay {
+  opacity: 1;
+}
+
+.category-card-play-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  color: var(--text-active, #fff);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: scale(0.85);
+  transition: transform 0.2s ease;
+}
+
+.category-playlist-card:hover .category-card-play-btn {
+  transform: scale(1);
+}
+
+.category-card-info {
+  display: flex;
+  flex-direction: column;
+  padding-left: 0.25rem;
+  padding-right: 0.1rem;
+}
+
+.category-card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.category-card-title {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.category-card-subtitle {
+  font-size: 0.625rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category-card-meta {
+  font-size: 0.625rem;
+  color: var(--primary-warm, #d4a373);
+  margin-top: 1px;
+}

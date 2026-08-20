@@ -1,0 +1,8 @@
+{
+  "name": "@sofar/assets",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    "./sofar-logo.svg": "./sofar-logo.svg"
+  }
+}
