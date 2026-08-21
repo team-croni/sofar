@@ -21,7 +21,9 @@ function TrackActionDropdownContent({
   const handleAddToPlaylist = async (targetPlaylist) => {
     if (!track) return;
     try {
-      let videoId = track.youtube_video_id || '';
+      let videoId = track.youtube_video_id 
+        || track.videoId 
+        || (typeof track.id === 'string' && !track.id.startsWith('tr-') && track.id.length === 11 ? track.id : '');
       const title = track.custom_title || track.title || '유튜브 동영상';
       const artist = track.custom_artist || track.artist || '알 수 없는 아티스트';
 
@@ -39,7 +41,7 @@ function TrackActionDropdownContent({
 
       await addTrackMutation.mutateAsync({
         playlistId: targetPlaylist.id,
-        videoId,
+        videoId: videoId || '',
         title,
         artist,
       });

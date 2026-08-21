@@ -125,16 +125,20 @@ export default function Player() {
     showToast('대기열에 곡을 추가했습니다.');
   };
 
-  const addTrackMutation = useAddTrackMutation();
-
   const handleAddToPlaylist = async (targetPlaylist) => {
     if (!currentTrack) return;
     try {
+      let videoId = currentTrack.youtube_video_id 
+        || currentTrack.videoId 
+        || (typeof currentTrack.id === 'string' && !currentTrack.id.startsWith('tr-') && currentTrack.id.length === 11 ? currentTrack.id : '');
+      const title = currentTrack.custom_title || currentTrack.title || '유튜브 동영상';
+      const artist = currentTrack.custom_artist || currentTrack.artist || '알 수 없는 아티스트';
+
       const insertedTrack = await addTrackMutation.mutateAsync({
         playlistId: targetPlaylist.id,
-        videoId: currentTrack.youtube_video_id || '',
-        title: currentTrack.custom_title || '유튜브 동영상',
-        artist: currentTrack.custom_artist || '알 수 없는 아티스트',
+        videoId: videoId || '',
+        title,
+        artist,
       });
 
       showToast(`'${targetPlaylist.title}' 플레이리스트에 추가되었습니다.`);

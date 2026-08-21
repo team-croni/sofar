@@ -8,6 +8,7 @@ export function usePlaylistsQuery() {
   return useQuery({
     queryKey: ['playlists', user?.id || 'guest'],
     initialData: () => {
+      if (user && !user.isGuest) return undefined;
       try {
         const localPl = localStorage.getItem('sofar_playlists');
         return localPl ? JSON.parse(localPl) : undefined;
@@ -23,6 +24,27 @@ export function usePlaylistsQuery() {
           .eq('user_id', user.id)
           .order('created_at', { ascending: true });
         if (error) throw error;
+
+        // 로그인 유저의 플레이리스트가 비어있다면 '내 플레이리스트' 자동 생성
+        if (!data || data.length === 0) {
+          const authorName = user?.user_metadata?.full_name 
+            || user?.user_metadata?.name 
+            || user?.email?.split('@')[0] 
+            || '나의 플레이리스트';
+          const { data: newPl, error: createErr } = await supabase
+            .from('playlists')
+            .insert({
+              user_id: user.id,
+              title: '내 플레이리스트',
+              author: authorName
+            })
+            .select()
+            .single();
+
+          if (!createErr && newPl) {
+            return [newPl];
+          }
+        }
         return data || [];
       } else {
         const localPl = localStorage.getItem('sofar_playlists');
@@ -46,6 +68,7 @@ export function usePlaylistPreviewsQuery() {
   return useQuery({
     queryKey: ['playlist-previews', user?.id || 'guest'],
     initialData: () => {
+      if (user && !user.isGuest) return undefined;
       try {
         const localTr = localStorage.getItem('sofar_tracks');
         if (!localTr) return undefined;

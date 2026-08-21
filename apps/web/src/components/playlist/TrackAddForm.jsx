@@ -99,8 +99,9 @@ export default function TrackAddForm({
     if (!artist) artist = '알 수 없는 아티스트';
 
     let insertedTrack = null;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedPlaylistId);
 
-    if (user && !user.isGuest && supabase) {
+    if (user && !user.isGuest && supabase && isUuid) {
       const { data, error } = await supabase
         .from('tracks')
         .insert({
@@ -118,6 +119,9 @@ export default function TrackAddForm({
         insertedTrack = data;
         onTrackInserted(data, needLlmRefine, rawTitleForLlm, rawChannelForLlm);
         showToast('곡을 등록했습니다.');
+      } else if (error) {
+        console.error('Failed to insert track to Supabase:', error);
+        showToast('곡 등록에 실패했습니다.');
       }
     } else {
       const newTrack = {
@@ -195,7 +199,9 @@ export default function TrackAddForm({
       }
     }
 
-    if (user && !user.isGuest && supabase) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedPlaylistId);
+
+    if (user && !user.isGuest && supabase && isUuid) {
       const { data, error } = await supabase
         .from('tracks')
         .insert({
@@ -212,6 +218,9 @@ export default function TrackAddForm({
       if (!error && data) {
         onTrackInserted(data, true, rawTitle, rawChannel);
         showToast('곡을 플레이리스트에 추가했습니다.');
+      } else if (error) {
+        console.error('Failed to insert track to Supabase:', error);
+        showToast('곡 추가에 실패했습니다.');
       }
     } else {
       const newTrack = {

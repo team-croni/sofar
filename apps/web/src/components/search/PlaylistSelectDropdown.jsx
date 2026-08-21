@@ -4,6 +4,8 @@ import { usePlaylistsQuery } from '../../hooks/usePlaylists';
 import { useAddTrackMutation } from '../../hooks/useTracks';
 import { useAudio } from '../../contexts/AudioContext';
 
+import { searchYoutube } from '../../utils/youtube';
+
 export default function PlaylistSelectDropdown({ track, buttonVariant = 'icon', className = '' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [addedPlaylistIds, setAddedPlaylistIds] = useState(new Set());
@@ -48,15 +50,34 @@ export default function PlaylistSelectDropdown({ track, buttonVariant = 'icon', 
     if (!track || !playlist) return;
 
     try {
+      let videoId = track.youtube_video_id 
+        || track.videoId 
+        || (typeof track.id === 'string' && !track.id.startsWith('tr-') && track.id.length === 11 ? track.id : '');
+      const title = track.custom_title || track.title || '알 수 없는 곡';
+      const artist = track.custom_artist || track.artist || '알 수 없는 아티스트';
+
+      if (!videoId) {
+        const query = track.searchQuery || `${title} ${artist}`;
+        try {
+          const results = await searchYoutube(query);
+          if (results && results.length > 0) {
+            videoId = results[0].youtube_video_id || results[0].id || '';
+          }
+        } catch (searchErr) {
+          console.warn('YouTube search failed during playlist add:', searchErr);
+        }
+      }
+
       await addTrackMutation.mutateAsync({
         playlistId: playlist.id,
-        videoId: track.youtube_video_id || null,
-        title: track.custom_title || track.title || 'Unknown Title',
-        artist: track.custom_artist || track.artist || 'Unknown Artist',
+        videoId: videoId || '',
+        title,
+        artist,
       });
 
       setAddedPlaylistIds(prev => new Set(prev).add(playlist.id));
       showToast?.(`'${playlist.title}' 플레이리스트에 추가되었습니다.`);
+      window.dispatchEvent(new Event('tracks-updated'));
     } catch (err) {
       console.error('Failed to add track to playlist:', err);
       showToast?.('플레이리스트 추가에 실패했습니다.');
