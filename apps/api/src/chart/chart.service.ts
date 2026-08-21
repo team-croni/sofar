@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -70,7 +70,7 @@ export interface PlayLogEvent {
 }
 
 @Injectable()
-export class ChartService {
+export class ChartService implements OnModuleInit {
   private readonly logger = new Logger(ChartService.name);
 
   // 인메모리 캐시 (10분 TTL)
@@ -100,6 +100,106 @@ export class ChartService {
 
   constructor() {
     this.loadPersistedMismatchData();
+  }
+
+  async onModuleInit() {
+    await this.syncMismatchReportsFromSupabase();
+  }
+
+  /** Supabase DB에서 song_match_reports를 가져와 인메모리 스토어와 동기화 */
+  private async syncMismatchReportsFromSupabase() {
+    const { url, key } = this.getSupabaseConfig();
+    if (!url || !key) return;
+
+    try {
+      const response = await fetch(
+        `${url}/rest/v1/song_match_reports?select=*&order=last_reported_at.desc`,
+        {
+          headers: {
+            apikey: key,
+            Authorization: `Bearer ${key}`,
+            Accept: 'application/json',
+          },
+        },
+      );
+
+      if (response.ok) {
+        const rows: any[] = await response.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          rows.forEach((row) => {
+            const report: MismatchReport = {
+              id: row.id,
+              searchQuery: row.search_query,
+              custom_title: row.custom_title,
+              custom_artist: row.custom_artist || '',
+              youtube_video_id: row.youtube_video_id,
+              mismatchCount: row.mismatch_count || 1,
+              lastReportedAt: new Date(row.last_reported_at || row.created_at).getTime(),
+              artwork: row.artwork || '',
+              thumbnail: row.thumbnail || row.artwork || '',
+              logs: Array.isArray(row.logs) ? row.logs : [],
+              status: row.status || 'pending',
+              resolvedAt: row.resolved_at ? new Date(row.resolved_at).getTime() : undefined,
+            };
+
+            this.mismatchReportsMap.set(report.id, report);
+
+            // 미해결 리포트의 비디오 ID 페널티 동기화
+            if (report.status === 'pending' && report.logs) {
+              report.logs.forEach((l) => {
+                if (l.youtube_video_id) {
+                  const curr = this.matchPenalties.get(l.youtube_video_id) || 0;
+                  this.matchPenalties.set(l.youtube_video_id, Math.max(curr, l.mismatchCount || 1));
+                }
+              });
+            }
+          });
+
+          this.logger.log(
+            `[Supabase] Synced ${rows.length} song_match_reports from DB successfully.`,
+          );
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`[Supabase] Sync song_match_reports failed: ${err?.message || err}`);
+    }
+  }
+
+  /** 단일 MismatchReport를 Supabase DB에 Upsert (비동기) */
+  private async saveMismatchReportToSupabase(report: MismatchReport) {
+    const { url, key } = this.getSupabaseConfig();
+    if (!url || !key) return;
+
+    try {
+      const payload = {
+        id: report.id,
+        search_query: report.searchQuery || report.custom_title || '',
+        custom_title: report.custom_title,
+        custom_artist: report.custom_artist || '',
+        youtube_video_id: report.youtube_video_id,
+        mismatch_count: report.mismatchCount,
+        artwork: report.artwork || '',
+        thumbnail: report.thumbnail || report.artwork || '',
+        status: report.status || 'pending',
+        logs: report.logs || [],
+        last_reported_at: new Date(report.lastReportedAt || Date.now()).toISOString(),
+        resolved_at: report.resolvedAt ? new Date(report.resolvedAt).toISOString() : null,
+        updated_at: new Date().toISOString(),
+      };
+
+      await fetch(`${url}/rest/v1/song_match_reports`, {
+        method: 'POST',
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates',
+        },
+        body: JSON.stringify(payload),
+      });
+    } catch (err: any) {
+      this.logger.warn(`[Supabase] Failed to upsert song_match_report (${report.id}): ${err?.message || err}`);
+    }
   }
 
   private loadPersistedMismatchData() {
@@ -1122,7 +1222,7 @@ export class ChartService {
         } catch (e) {}
       }
 
-      this.mismatchReportsMap.set(songKey, {
+      const newReport: MismatchReport = {
         id: songKey,
         searchQuery: rawQuery,
         custom_title:
@@ -1137,11 +1237,16 @@ export class ChartService {
         logs,
         status: 'pending', // 신규/추가 신고 발생 시 '미해결' 상태로 세팅
         resolvedAt: undefined,
-      });
+      };
+
+      this.mismatchReportsMap.set(songKey, newReport);
 
       this.logger.log(
         `[MatchFeedback] Penalty recorded for song "${songKey}" -> video "${videoId}". Song total count: ${totalMismatchCount}`,
       );
+
+      // Supabase DB에 실시간 영구 저장 (비동기)
+      this.saveMismatchReportToSupabase(newReport).catch(() => {});
 
       // resolution store에 저장된 비디오 ID가 피드백 받은 나쁜 ID라면 캐시 무효화
       const stored = this.youtubeResolutionStore.get(rawQuery);
@@ -1218,6 +1323,9 @@ export class ChartService {
    * 관리자 대시보드용: 불일치 리포트 목록 (미해결 우선 정렬)
    */
   async getMismatchReports(limit = 50): Promise<MismatchReport[]> {
+    // Supabase DB에서 최신 데이터가 있다면 동기화 시도
+    await this.syncMismatchReportsFromSupabase().catch(() => {});
+
     const list = Array.from(this.mismatchReportsMap.values());
 
     // 정렬 우선순위:
@@ -1305,6 +1413,9 @@ export class ChartService {
             );
           }
           this.mismatchReportsMap.set(matchedKey, report);
+
+          // Supabase DB에 상태 업데이트 반영
+          this.saveMismatchReportToSupabase(report).catch(() => {});
         }
       }
     }
