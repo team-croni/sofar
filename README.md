@@ -1,45 +1,44 @@
 <div align="center">
 
-  <img src="./packages/assets/sofar-logo.svg" alt="sofar logo" width="72" height="72" />
+![sofar Logo](./packages/assets/sofar-full-logo.svg)
 
-  <h1>sofar</h1>
+[![Release](https://img.shields.io/github/v/release/team-croni/sofar?include_prereleases&sort=semver&display_name=tag&color=3D8BA3)](https://github.com/team-croni/sofar/releases/latest)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](./LICENSE)
 
-  <p align="center">
-    <strong>듣고 싶던 모든 음악, 실시간 가사와 함께 편안하게</strong><br>
-    <em>A modern web audio player with real-time synced lyrics for YouTube music.</em>
-  </p>
+[버그 제보](https://github.com/team-croni/sofar/issues) · [기능 요청](https://github.com/team-croni/sofar/issues)
 
-  <p align="center">
-    나만의 취향과 분위기에 온전히 집중할 수 있도록,<br>
-    실시간 가사와 함께 더 깊이 있는 음악 감상을 경험해 보세요.
-  </p>
+<div align="center">
 
-  <p align="center">
-    <a href="#-key-features">Key Features</a> •
-    <a href="#-architecture--tech-stack">Architecture</a> •
-    <a href="#-monorepo-structure">Monorepo Structure</a> •
-    <a href="#-quick-start">Quick Start</a> •
-    <a href="#-environment-variables">Env Setup</a> •
-    <a href="#-contributing">Contributing</a> •
-    <a href="#-copyright--disclaimer">Copyright & Disclaimer</a>
-  </p>
-
-  <p align="center">
-    <img src="https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg?style=flat-square" alt="License" />
-    <img src="https://img.shields.io/badge/Turborepo-v2.1-blue.svg?style=flat-square" alt="Turborepo" />
-    <img src="https://img.shields.io/badge/React-18-61dafb.svg?style=flat-square" alt="React" />
-    <img src="https://img.shields.io/badge/NestJS-11-e0234e.svg?style=flat-square" alt="NestJS" />
-    <img src="https://img.shields.io/badge/Vite-5-646cff.svg?style=flat-square" alt="Vite" />
-    <img src="https://img.shields.io/badge/Supabase-Auth%20%26%20DB-3ecf8e.svg?style=flat-square" alt="Supabase" />
-  </p>
+**sofar**는 광고 없이 누구나 무료로 음악을 감상할 수 있는 웹 스트리밍 서비스입니다.<br>
+유튜브 영상 중 커버나 라이브가 아닌 실제 원곡을 정확하게 찾아내는 자체 매칭 로직을 구현했고,<br>
+이를 바탕으로 실시간 싱크 가사까지 매끄럽게 연동하여 완성도 높은 음악 감상 환경을 제공합니다.
 
 </div>
+
+·
+
+·
+
+·
+
+</div>
+
+## 📖 목차
+
+- [소개](#-about-the-project-소개)
+- [주요 기능](#-key-features-주요-기능)
+- [아키텍처 및 기술 스택](#-architecture--tech-stack-아키텍처-및-기술-스택)
+- [디렉토리 구조](#-monorepo-structure-디렉토리-구조)
+- [빠른 시작 가이드](#-quick-start-빠른-시작-가이드)
+- [환경변수 구성](#-environment-variables-환경변수-세부-구성)
+- [기여 가이드](#-contributing-기여-가이드)
+- [저작권 및 법적 고지](#-copyright--disclaimer-저작권-및-법적-고지)
 
 ---
 
 ## 📖 About The Project (소개)
 
-**sofar**는 번잡한 추천 알고리즘과 자극적인 영상 피드에서 벗어나, 유튜브 영상 속 라이브 세션, 희귀 커버곡, 인기 음악을 **별도 구독 없이 단정하고 아늑한 전용 오디오 플레이어 환경에서 실시간 싱크 가사와 함께 감상할 수 있는 웹 오디오 플랫폼**입니다.
+**sofar**는 광고 없이 누구나 무료로 음악을 감상할 수 있는 웹 스트리밍 서비스입니다. 유튜브 영상 중 커버나 라이브가 아닌 **실제 원곡을 정확하게 찾아내는 자체 음원 매칭 로직**을 구현하였으며, 이를 바탕으로 **실시간 싱크 가사 연동 및 완성도 높은 웹 오디오 플레이어 환경**을 제공합니다.
 
 - **미니멀 & 코지 다크 테마**: 장시간 청취에도 눈이 편안한 웜 다크 톤과 글래스모피즘 인터페이스
 - **하이브리드 음원 매칭 엔진**: iTunes API 메타데이터 + YouTube 검색 + 재생길이(Duration Delta ±3s) 검증 알고리즘
