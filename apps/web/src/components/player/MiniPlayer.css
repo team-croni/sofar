@@ -26,10 +26,6 @@
 .mini-player-container.show {
   opacity: 1;
   pointer-events: auto;
-
-  &.in-sidebar:hover {
-    transform: scale(1.01) !important;
-  }
 }
 
 /* LP 영역에 삽입되었을 때 스타일 덮어쓰기 (스케일 커지며 페이드인 애니메이션 적용) */
