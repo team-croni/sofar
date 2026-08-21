@@ -24,7 +24,7 @@
 /* When right sidebar is open, stack 2-col section cards into 1 column under 1450px */
 @media (max-width: 1450px) {
   .admin-layout-container.has-right-sidebar .dashboard-grid-2col {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -179,13 +179,15 @@
 /* ── Grid 2 Column Section ── */
 .dashboard-grid-2col {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.5rem;
+  width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 1100px) {
   .dashboard-grid-2col {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -200,6 +202,9 @@
   gap: 1.25rem;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dash-card-header {
@@ -391,9 +396,38 @@
 
 .qc-health-top {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.qc-health-label-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qc-live-pulse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.625rem;
+  color: var(--primary-warm);
+  border-radius: 4px;
+}
+
+.qc-pulse-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--primary-warm);
+  animation: qc-pulse-anim 1.5s infinite;
+}
+
+@keyframes qc-pulse-anim {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.4; }
 }
 
 .qc-health-bar {
@@ -407,6 +441,7 @@
   height: 100%;
   background: linear-gradient(90deg, #81c784, #4caf50);
   border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .qc-unmatched-list {
@@ -416,6 +451,56 @@
   max-height: 280px;
   overflow-y: auto;
   padding-right: 0.25rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.qc-track-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.qc-track-card .track-card-content {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.qc-track-card .track-card-info-group {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.qc-track-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.qc-track-title-row .track-card-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qc-error-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .qc-track-row {
@@ -1154,10 +1239,11 @@
   padding: 0.7rem 0.9rem;
   transition: var(--transition-fast);
   min-width: 0;
+  cursor: pointer;
 }
 
 .daily-playlist-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
   border-color: var(--border-cozy-hover);
 }
 

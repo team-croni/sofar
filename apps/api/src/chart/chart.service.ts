@@ -19,6 +19,7 @@ export interface ChartTrack {
   source: 'bugs-live-crawler' | 'lastfm-discovery' | 'local-curation';
   genre?: string;
   releaseYear?: number;
+  enrichmentError?: string;
 }
 
 export interface CategoryPlaylist {
@@ -93,6 +94,11 @@ export class ChartService implements OnModuleInit {
   private mismatchReportsMap = new Map<string, MismatchReport>(); // 일치하지 않음 피드백 리포트 스토어
   private feedbackTimestampStore = new Map<string, number>(); // 악의적 연타/어뷰징 방지용 타임스탬프 스토어
   private isEnriching = false; // 중복 실행 방지 플래그
+
+  // 장르 플레이리스트(400곡) 안전한 백그라운드 순차 큐 워커
+  private backgroundCategoryEnrichmentQueue: string[] = [];
+  private isBackgroundCategoryEnriching = false;
+  private enrichmentErrorMap = new Map<string, { message: string; timestamp: number }>();
 
   private dataDir = path.join(process.cwd(), 'data');
   private reportsFilePath = path.join(this.dataDir, 'mismatch_reports.json');
@@ -1935,100 +1941,113 @@ export class ChartService implements OnModuleInit {
     const queryKey = query.trim().toLowerCase();
     const excludeSet = new Set(excludeVideoIds);
 
-    try {
-      const searchQuery =
-        !queryKey.includes('audio') && !queryKey.includes('topic')
-          ? `${query} Audio`
-          : query;
+    // 다단계 검색 쿼리 후보 생성 (1차: '곡명 가수 Audio' -> 2차: '곡명 가수' -> 3차: 괄호/특수기호 제거 클린 검색)
+    const cleanQuery = query
+      .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+      .replace(/[\-_\/\\#]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
-      const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`;
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-        },
-      });
+    const candidateQueries: string[] = [];
+    if (!queryKey.includes('audio') && !queryKey.includes('topic')) {
+      candidateQueries.push(`${query} Audio`);
+    }
+    candidateQueries.push(query);
+    if (cleanQuery && cleanQuery !== query && cleanQuery.length >= 2) {
+      candidateQueries.push(cleanQuery);
+    }
 
-      if (response.ok) {
-        const html = await response.text();
-        const jsonMatch = html.match(
-          /var ytInitialData = ({[\s\S]*?});<\/script>/,
-        );
+    for (const q of candidateQueries) {
+      try {
+        const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+        const response = await fetch(url, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+          },
+        });
 
-        if (jsonMatch) {
-          const data = JSON.parse(jsonMatch[1]);
-          const contents =
-            data.contents?.twoColumnSearchResultsRenderer?.primaryContents
-              ?.sectionListRenderer?.contents[0]?.itemSectionRenderer
-              ?.contents || [];
-          const results: any[] = [];
+        if (response.ok) {
+          const html = await response.text();
+          const jsonMatch = html.match(
+            /var ytInitialData = ({[\s\S]*?});<\/script>/,
+          );
 
-          contents.forEach((c: any) => {
-            const video = c.videoRenderer;
-            if (video && video.videoId) {
-              const videoId = video.videoId;
-              // 명시적으로 제외(exclude)된 영상은 건너뀀
-              if (excludeSet.has(videoId)) return;
+          if (jsonMatch) {
+            const data = JSON.parse(jsonMatch[1]);
+            const contents =
+              data.contents?.twoColumnSearchResultsRenderer?.primaryContents
+                ?.sectionListRenderer?.contents[0]?.itemSectionRenderer
+                ?.contents || [];
+            const results: any[] = [];
 
-              const rawTitle = video.title?.runs[0]?.text || '';
-              const rawChannel = video.ownerText?.runs[0]?.text || '';
-              const lengthText =
-                video.lengthText?.simpleText ||
-                video.lengthText?.runs?.[0]?.text ||
-                '';
-              const durationSec = this.parseDurationText(lengthText);
+            contents.forEach((c: any) => {
+              const video = c.videoRenderer;
+              if (video && video.videoId) {
+                const videoId = video.videoId;
+                // 명시적으로 제외(exclude)된 영상은 건너뀀
+                if (excludeSet.has(videoId)) return;
 
-              const viewCountText =
-                video.viewCountText?.simpleText ||
-                video.shortViewCountText?.simpleText ||
-                video.viewCountText?.runs?.map((r: any) => r.text).join('') ||
-                '';
-              const publishedTimeText =
-                video.publishedTimeText?.simpleText ||
-                video.publishedTimeText?.runs?.[0]?.text ||
-                '';
+                const rawTitle = video.title?.runs[0]?.text || '';
+                const rawChannel = video.ownerText?.runs[0]?.text || '';
+                const lengthText =
+                  video.lengthText?.simpleText ||
+                  video.lengthText?.runs?.[0]?.text ||
+                  '';
+                const durationSec = this.parseDurationText(lengthText);
 
-              let baseScore = this.scoreAudioCandidate(
-                rawTitle,
-                rawChannel,
-                targetDurationSec,
-                durationSec,
-                query,
-              );
+                const viewCountText =
+                  video.viewCountText?.simpleText ||
+                  video.shortViewCountText?.simpleText ||
+                  video.viewCountText?.runs?.map((r: any) => r.text).join('') ||
+                  '';
+                const publishedTimeText =
+                  video.publishedTimeText?.simpleText ||
+                  video.publishedTimeText?.runs?.[0]?.text ||
+                  '';
 
-              // 페널티 수치 반영 (쿼리별 페널티 5000점 감점, 글로벌 페널티 3000점 감점)
-              const compositeKey = `${queryKey}::${videoId}`;
-              const qPenalty =
-                (this.matchPenalties.get(compositeKey) || 0) * 5000;
-              const gPenalty = (this.matchPenalties.get(videoId) || 0) * 3000;
-              baseScore = baseScore - qPenalty - gPenalty;
+                let baseScore = this.scoreAudioCandidate(
+                  rawTitle,
+                  rawChannel,
+                  targetDurationSec,
+                  durationSec,
+                  query,
+                );
 
-              results.push({
-                youtube_video_id: videoId,
-                custom_title: rawTitle,
-                custom_artist: rawChannel,
-                rawTitle,
-                rawChannel,
-                score: baseScore,
-                thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                ...(durationSec > 0 ? { durationSec } : {}),
-                viewCountText,
-                publishedTimeText,
-              });
+                // 페널티 수치 반영 (쿼리별 페널티 5000점 감점, 글로벌 페널티 3000점 감점)
+                const compositeKey = `${queryKey}::${videoId}`;
+                const qPenalty =
+                  (this.matchPenalties.get(compositeKey) || 0) * 5000;
+                const gPenalty = (this.matchPenalties.get(videoId) || 0) * 3000;
+                baseScore = baseScore - qPenalty - gPenalty;
+
+                results.push({
+                  youtube_video_id: videoId,
+                  custom_title: rawTitle,
+                  custom_artist: rawChannel,
+                  rawTitle,
+                  rawChannel,
+                  score: baseScore,
+                  thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                  ...(durationSec > 0 ? { durationSec } : {}),
+                  viewCountText,
+                  publishedTimeText,
+                });
+              }
+            });
+
+            results.sort((a, b) => b.score - a.score);
+
+            if (results.length > 0) {
+              this.youtubeCache.set(cacheKey, results);
+              return results;
             }
-          });
-
-          results.sort((a, b) => b.score - a.score);
-
-          if (results.length > 0) {
-            this.youtubeCache.set(cacheKey, results);
-            return results;
           }
         }
+      } catch (err: any) {
+        this.logger.warn(`Keyless YouTube search trial error for "${q}": ${err?.message || err}`);
       }
-    } catch (err: any) {
-      this.logger.error(`Keyless YouTube search error: ${err?.message || err}`);
     }
 
     return [];
@@ -2393,15 +2412,25 @@ export class ChartService implements OnModuleInit {
 
     if (allQueriesToEnrich.length > 0) {
       await this.loadDbResolutions(allQueriesToEnrich);
+
+      // DB 조회 후에도 아직 매칭되지 않은 곡들을 백그라운드 1초 순차 큐에 등록 (Rate Limit 및 CPU 과부하 방지)
+      const remainingUnresolved = allQueriesToEnrich.filter(
+        (q) => !this.youtubeResolutionStore.has(q),
+      );
+      if (remainingUnresolved.length > 0) {
+        this.enqueueBackgroundCategoryEnrichment(remainingUnresolved);
+      }
     }
 
     const enrichResolution = (tracks: ChartTrack[]): ChartTrack[] => {
       return tracks.map((t) => {
         const stored = this.youtubeResolutionStore.get(t.searchQuery);
+        const errInfo = this.enrichmentErrorMap.get(t.searchQuery);
         return {
           ...t,
           youtube_video_id: stored?.youtube_video_id || t.youtube_video_id,
           durationSec: stored?.durationSec || t.durationSec,
+          enrichmentError: errInfo ? errInfo.message : undefined,
         };
       });
     };
@@ -2511,6 +2540,149 @@ export class ChartService implements OnModuleInit {
     categoryPlaylists.push(...dbGenrePlaylists);
 
     return categoryPlaylists;
+  }
+
+  /**
+   * 장르 미매칭 곡들을 백그라운드 1초 순차 큐에 등록
+   */
+  private enqueueBackgroundCategoryEnrichment(queries: string[]) {
+    const newItems = queries.filter(
+      (q) =>
+        !this.youtubeResolutionStore.has(q) &&
+        !this.backgroundCategoryEnrichmentQueue.includes(q),
+    );
+    if (newItems.length === 0) return;
+
+    this.backgroundCategoryEnrichmentQueue.push(...newItems);
+    this.logger.log(
+      `[Category Enrich Queue] Enqueued ${newItems.length} tracks. Total in queue: ${this.backgroundCategoryEnrichmentQueue.length}`,
+    );
+
+    if (!this.isBackgroundCategoryEnriching) {
+      this.processBackgroundCategoryEnrichmentQueue().catch((err) => {
+        this.logger.warn(
+          `[Category Enrich Queue] Error during processing: ${err?.message || err}`,
+        );
+        this.isBackgroundCategoryEnriching = false;
+      });
+    }
+  }
+
+  /**
+   * 백그라운드에서 1초(1,000ms) 딜레이를 두고 순차적으로 1곡씩 유튜브 매칭 & Supabase DB 영구 저장
+   */
+  private async processBackgroundCategoryEnrichmentQueue() {
+    if (this.isBackgroundCategoryEnriching) return;
+    this.isBackgroundCategoryEnriching = true;
+    this.logger.log(
+      `[Category Enrich Queue] Worker started. Remaining tracks: ${this.backgroundCategoryEnrichmentQueue.length}`,
+    );
+
+    const batchSaved: {
+      search_query: string;
+      youtube_video_id: string;
+      duration_sec: number;
+    }[] = [];
+
+    let processedCountInCycle = 0;
+    let consecutiveErrorCount = 0;
+
+    while (this.backgroundCategoryEnrichmentQueue.length > 0) {
+      const query = this.backgroundCategoryEnrichmentQueue.shift();
+      if (!query) continue;
+
+      if (this.youtubeResolutionStore.has(query)) continue;
+
+      let isSuccess = false;
+
+      try {
+        let results = await this.searchYoutubeKeyless(query);
+
+        // 만약 여전히 결과가 없다면 iTunes API로 정식 곡명/아티스트명 조회 후 재검색
+        if (!results || results.length === 0) {
+          try {
+            const itunesResults = await this.searchItunes(query);
+            if (itunesResults && itunesResults.length > 0) {
+              const bestItunes = itunesResults[0];
+              const itunesQuery = `${bestItunes.custom_title} ${bestItunes.custom_artist}`;
+              results = await this.searchYoutubeKeyless(itunesQuery);
+            }
+          } catch (_) {}
+        }
+
+        if (results && results.length > 0) {
+          const best = results[0];
+          const dur = best.durationSec || 0;
+          this.youtubeResolutionStore.set(query, {
+            youtube_video_id: best.youtube_video_id,
+            durationSec: dur,
+          });
+
+          // 성공 시 에러 맵에서 제거 및 연속 에러 카운터 리셋
+          this.enrichmentErrorMap.delete(query);
+          consecutiveErrorCount = 0;
+          isSuccess = true;
+          processedCountInCycle++;
+
+          batchSaved.push({
+            search_query: query,
+            youtube_video_id: best.youtube_video_id,
+            duration_sec: dur,
+          });
+
+          // 5개씩 모이거나 큐가 끝날 때마다 Supabase DB에 실시간 Upsert
+          if (
+            batchSaved.length >= 5 ||
+            this.backgroundCategoryEnrichmentQueue.length === 0
+          ) {
+            await this.saveDbResolutions([...batchSaved]);
+            batchSaved.length = 0;
+          }
+        } else {
+          // 검색 결과가 없는 경우 관리자 검수용 에러 기록
+          this.enrichmentErrorMap.set(query, {
+            message: '검색 결과 없음 (수동 매칭 필요)',
+            timestamp: Date.now(),
+          });
+        }
+      } catch (err: any) {
+        consecutiveErrorCount++;
+        this.enrichmentErrorMap.set(query, {
+          message: `YouTube 연결 오류: ${err?.message || '네트워크 오류'}`,
+          timestamp: Date.now(),
+        });
+        this.logger.warn(
+          `[Category Enrich Queue] Failed to enrich "${query}": ${err?.message || err}`,
+        );
+
+        // 🛑 지수 백오프: 연속 에러 발생 시 5초~30초간 대기하여 IP 차단 방지
+        const backoffDelay = Math.min(30000, consecutiveErrorCount * 5000);
+        this.logger.warn(
+          `[Category Enrich Queue] Backoff cooldown for ${backoffDelay}ms due to error...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+      }
+
+      // ☕ 5곡 연속 처리 완료 시 3초간 쿨다운 휴식
+      if (processedCountInCycle >= 5 && this.backgroundCategoryEnrichmentQueue.length > 0) {
+        this.logger.log(`[Category Enrich Queue] Taking a 3s cooldown after 5 tracks...`);
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        processedCountInCycle = 0;
+      } else if (this.backgroundCategoryEnrichmentQueue.length > 0) {
+        // 🎲 랜덤 지터(Random Jitter) 딜레이: 1,200ms ~ 2,500ms 무작위 슬립 (봇 패턴 감지 100% 회피)
+        const jitterDelay = 1200 + Math.floor(Math.random() * 1300);
+        await new Promise((resolve) => setTimeout(resolve, jitterDelay));
+      }
+    }
+
+    if (batchSaved.length > 0) {
+      await this.saveDbResolutions(batchSaved);
+    }
+
+    this.isBackgroundCategoryEnriching = false;
+    this.logger.log(
+      `[Category Enrich Queue] Worker finished. All genre tracks are now fully resolved & saved to DB.`,
+    );
   }
 
   /**

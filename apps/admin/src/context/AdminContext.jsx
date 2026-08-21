@@ -53,9 +53,9 @@ export function AdminProvider({ children }) {
   const [isFetched, setIsFetched] = useState(false);
 
 
-  const fetchPlaylists = async (key = adminKey) => {
+  const fetchPlaylists = async (key = adminKey, silent = false) => {
     if (!key) return;
-    setIsLoading(true);
+    if (!silent) setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/admin/playlists`, {
         headers: { 'x-admin-key': key },
@@ -69,14 +69,14 @@ export function AdminProvider({ children }) {
     } catch (err) {
       console.error('Failed to fetch admin playlists:', err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
       setIsFetched(true);
     }
   };
 
-  const fetchUserPlaylists = async (key = adminKey) => {
+  const fetchUserPlaylists = async (key = adminKey, silent = false) => {
     if (!key) return;
-    setIsUserLoading(true);
+    if (!silent) setIsUserLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/admin/user-playlists`, {
         headers: { 'x-admin-key': key },
@@ -90,7 +90,7 @@ export function AdminProvider({ children }) {
     } catch (err) {
       console.error('Failed to fetch user playlists:', err);
     } finally {
-      setIsUserLoading(false);
+      if (!silent) setIsUserLoading(false);
     }
   };
 
@@ -183,9 +183,9 @@ export function AdminProvider({ children }) {
     return false;
   };
 
-  const fetchDashboardInsights = async (key = adminKey) => {
+  const fetchDashboardInsights = async (key = adminKey, silent = false) => {
     if (!key) return;
-    setIsInsightsLoading(true);
+    if (!silent) setIsInsightsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/admin/dashboard-insights`, {
         headers: { 'x-admin-key': key },
@@ -199,7 +199,7 @@ export function AdminProvider({ children }) {
     } catch (err) {
       console.error('Failed to fetch dashboard insights:', err);
     } finally {
-      setIsInsightsLoading(false);
+      if (!silent) setIsInsightsLoading(false);
     }
   };
 

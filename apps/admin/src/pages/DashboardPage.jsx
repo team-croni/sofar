@@ -77,36 +77,6 @@ export default function DashboardPage() {
   // ── Playlist Modal State ──
   const [viewingPlaylistTracks, setViewingPlaylistTracks] = useState(null);
 
-  useEffect(() => {
-    const savedKey = sessionStorage.getItem('sofar_admin_key') || localStorage.getItem('sofar_admin_key') || adminKey;
-    if (savedKey) {
-      fetchPlaylists(savedKey);
-      fetchUserPlaylists(savedKey);
-      fetchUsers(savedKey);
-      fetchUserStats(savedKey);
-      fetchDashboardInsights(savedKey);
-    }
-  }, [location.key, adminKey]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    if (!keyInput.trim()) return;
-
-    setIsVerifying(true);
-    setAuthError('');
-
-    try {
-      const res = await login(keyInput);
-      if (!res.success) {
-        setAuthError(res.message);
-      }
-    } catch (err) {
-      setAuthError('서버 연결 실패: API 서버가 실행 중인지 확인하세요.');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
   // ── Metrics Calculation (레거시 제거 및 핵심 지표 최적화) ──
   const metrics = useMemo(() => {
     const totalCurations = playlists.length;
@@ -264,6 +234,52 @@ export default function DashboardPage() {
     };
   }, [playlists, userPlaylists, users, dashboardInsights]);
 
+  useEffect(() => {
+    const savedKey = sessionStorage.getItem('sofar_admin_key') || localStorage.getItem('sofar_admin_key') || adminKey;
+    if (savedKey) {
+      fetchPlaylists(savedKey);
+      fetchUserPlaylists(savedKey);
+      fetchUsers(savedKey);
+      fetchUserStats(savedKey);
+      fetchDashboardInsights(savedKey);
+    }
+  }, [location.key, adminKey]);
+
+  // ── 실시간 음원 매칭률 및 대시보드 백그라운드 자동 갱신 ──
+  useEffect(() => {
+    const activeKey = sessionStorage.getItem('sofar_admin_key') || localStorage.getItem('sofar_admin_key') || adminKey;
+    if (!activeKey || !isLoggedIn) return;
+
+    // 미매칭 곡이 남아있으면 4초마다 조용히 갱신하여 매칭률 실시간 반영
+    const pollIntervalMs = metrics?.unmatchedTracks?.length > 0 ? 4000 : 30000;
+
+    const interval = setInterval(() => {
+      fetchPlaylists(activeKey, true);
+      fetchDashboardInsights(activeKey, true);
+    }, pollIntervalMs);
+
+    return () => clearInterval(interval);
+  }, [adminKey, isLoggedIn, metrics?.unmatchedTracks?.length]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!keyInput.trim()) return;
+
+    setIsVerifying(true);
+    setAuthError('');
+
+    try {
+      const res = await login(keyInput);
+      if (!res.success) {
+        setAuthError(res.message);
+      }
+    } catch (err) {
+      setAuthError('서버 연결 실패: API 서버가 실행 중인지 확인하세요.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const categoryLabelMap = {
     theme: '테마별 큐레이션',
     situation: '상황별 큐레이션',
@@ -352,7 +368,7 @@ export default function DashboardPage() {
               {/* Card 5: Sound Quality & Mismatch Reports QC */}
               <KpiCard
                 label="음원 품질 (QC)"
-                value={metrics.pendingMismatchCount > 0 ? `${metrics.pendingMismatchCount}건 미해결` : '정상 운영 중'}
+                value={metrics.pendingMismatchCount > 0 ? `${metrics.pendingMismatchCount}건 미해결` : '정상'}
                 subText={`총 접수 ${metrics.totalMismatchCount} · 해결 ${metrics.resolvedMismatchCount}`}
                 tagText={metrics.pendingMismatchCount > 0 ? `${metrics.pendingMismatchCount}건 조치필요` : '100% 정상'}
                 tagVariant={metrics.pendingMismatchCount > 0 ? 'warning' : 'success'}
@@ -568,20 +584,16 @@ export default function DashboardPage() {
                       {dashboardInsights.dailyTopPlaylists.map((pl, idx) => {
                         const rank = pl.rank || (idx + 1);
                         return (
-                          <div key={pl.id || idx} className="daily-playlist-item">
+                          <div
+                            key={pl.id || idx}
+                            className="daily-playlist-item"
+                            onClick={() => navigate(`/playlist/${pl.id}${pl.isUser ? '?type=user' : ''}`)}
+                            title="클릭하여 플레이리스트 편집 / 검토"
+                          >
                             <div className={`daily-rank-badge rank-${rank <= 3 ? rank : 'normal'}`}>
                               {rank}
                             </div>
-                            <div
-                              className="daily-pl-left"
-                              onClick={() => {
-                                const fullPl = pl.isUser
-                                  ? userPlaylists.find(p => p.id === pl.id)
-                                  : playlists.find(p => p.id === pl.id);
-                                if (fullPl) setViewingPlaylistTracks(fullPl);
-                              }}
-                              title="클릭하여 수록곡 목록 보기"
-                            >
+                            <div className="daily-pl-left">
                               <div className="daily-pl-cover">
                                 {pl.cover ? (
                                   <img src={pl.cover} alt="" onError={(e) => { e.target.style.display = 'none'; }} />
@@ -605,14 +617,6 @@ export default function DashboardPage() {
                               <span className="daily-views-badge">
                                 <Eye size={12} /> {pl.dailyViews}회 조회
                               </span>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                leadingIcon={<Edit2 size={13} />}
-                                onClick={() => navigate(`/playlist/${pl.id}${pl.isUser ? '?type=user' : ''}`)}
-                              >
-                                {pl.isUser ? '검토' : '수정'}
-                              </Button>
                             </div>
                           </div>
                         );
@@ -849,7 +853,14 @@ export default function DashboardPage() {
                 <div className="qc-health-header">
                   <div className="qc-health-gauge">
                     <div className="qc-health-top">
-                      <span>YouTube 연동 매칭률</span>
+                      <div className="qc-health-label-wrap">
+                        <span>YouTube 연동 매칭률</span>
+                        {metrics.unmatchedTracks.length > 0 && (
+                          <span className="qc-live-pulse-badge" title="백엔드에서 1초 간격으로 순차 자동 매칭 진행 중">
+                            <span className="qc-pulse-dot" /> 실시간 매칭 중
+                          </span>
+                        )}
+                      </div>
                       <span>{metrics.youtubeMatchRate}% ({metrics.matchedTracksCount}/{metrics.totalCatalogTracks})</span>
                     </div>
                     <div className="qc-health-bar">
@@ -883,20 +894,26 @@ export default function DashboardPage() {
                               )}
                             </div>
                             <div className="track-card-info-group">
-                              <div className="track-card-title">{track.custom_title || track.title || '제목 없음'}</div>
+                              <div className="qc-track-title-row">
+                                <div className="track-card-title">{track.custom_title || track.title || '제목 없음'}</div>
+                                {track.enrichmentError && (
+                                  <span className="qc-error-tag" title={track.enrichmentError}>
+                                    <AlertTriangle size={11} /> {track.enrichmentError.includes('연결 오류') ? 'API 오류' : '검색 결과 없음'}
+                                  </span>
+                                )}
+                              </div>
                               <div className="track-card-artist">{track.custom_artist || track.artist || '아티스트 없음'}</div>
                             </div>
                           </div>
                           <Button
                             variant="secondary"
-                            size="sm"
-                            leadingIcon={<Search size={13} />}
+                            size="md"
+                            leadingIcon={<YoutubeIcon size={16} />}
                             onClick={(e) => {
                               e.stopPropagation();
                               searchYoutubeFromSong(track.custom_artist, track.custom_title);
                             }}
                           >
-                            매칭하기
                           </Button>
                         </div>
                       );
@@ -957,19 +974,6 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         </div>
-
-                        <div className="activity-right" onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            leadingIcon={<Edit2 size={13} />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/playlist/${item.id}`);
-                            }}
-                          >
-                          </Button>
-                        </div>
                       </div>
                     ))
                   )}
@@ -1025,19 +1029,6 @@ export default function DashboardPage() {
                                 </span>
                               </div>
                             </div>
-                          </div>
-
-                          <div className="activity-right" onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              leadingIcon={<Edit2 size={13} />}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/playlist/${item.id}?type=user`);
-                              }}
-                            >
-                            </Button>
                           </div>
                         </div>
                       );
