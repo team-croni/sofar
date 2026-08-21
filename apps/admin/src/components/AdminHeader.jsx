@@ -1,9 +1,9 @@
-import React from 'react';
+import {Fragment} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight, Search } from 'lucide-react';
 import { Button } from '@sofar/ui';
 import { useAdmin } from '../context/AdminContext';
-import '../pages/CurationsPage.css';
+import './AdminLayout.css';
 
 export default function AdminHeader({ breadcrumbs, pageTitle = '큐레이션 관리', children }) {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function AdminHeader({ breadcrumbs, pageTitle = '큐레이션 관
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
-            <React.Fragment key={index}>
+            <Fragment key={index}>
               {item.path && !isLast ? (
                 <span
                   className="admin-header-breadcrumb"
@@ -59,7 +59,7 @@ export default function AdminHeader({ breadcrumbs, pageTitle = '큐레이션 관
                 </span>
               )}
               {!isLast && <ChevronRight size={14} className="admin-header-chevron" />}
-            </React.Fragment>
+            </Fragment>
           );
         })}
       </div>

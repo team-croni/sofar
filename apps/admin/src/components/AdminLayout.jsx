@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
 import { Button, Input, Logo } from './ui';
 import AdminHeader from './AdminHeader';
 import AdminSidebar from './AdminSidebar';
@@ -8,7 +7,7 @@ import AdminRightSidebar from './AdminRightSidebar';
 import { useAdmin } from '../context/AdminContext';
 import { useToast } from '../context/ToastContext';
 import './AdminSidebar.css';
-import '../pages/CurationsPage.css';
+import './AdminLayout.css';
 
 export default function AdminLayout({
   children,

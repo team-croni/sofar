@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Plus,
   ExternalLink,
-  Search,
   Edit2,
   Eye,
   Sparkles,
@@ -20,18 +19,10 @@ import {
   Check,
   AlertCircle,
   RefreshCw,
-  Flame,
-  Clock,
-  Target,
-  Zap,
-  BarChart2,
-  Radio,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useAdmin } from '../context/AdminContext';
-import './CurationsPage.css';
 import './DashboardPage.css';
-import './UsersPage.css';
 
 const YoutubeIcon = ({ size = 16, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -57,13 +48,9 @@ export default function DashboardPage() {
     fetchDashboardInsights,
     isInsightsLoading,
     resolveMismatch,
-    isLoading,
-    isUserLoading,
     fetchPlaylists,
     fetchUserPlaylists,
     login,
-    logout,
-    isRightSidebarOpen,
     toggleRightSidebar,
     searchYoutubeFromSong,
     openSongDetail,
@@ -682,7 +669,7 @@ export default function DashboardPage() {
                       <div className="peak-box-header">
                         <span className="peak-box-title">24시간 청취 피크 트렌드 (KST 기준)</span>
                         <span className="peak-golden-text">
-                          집중 골든타임: <strong>{metrics.marketing.peakHourLabel}</strong>
+                          집중 골든타임: <span>{metrics.marketing.peakHourLabel}</span>
                         </span>
                       </div>
 

@@ -6,11 +6,9 @@ import {
   PinOff,
   ShieldAlert,
   ShieldCheck,
-  Plus,
   Trash2,
   Edit2,
   RefreshCw,
-  Sparkles,
   Loader2,
   Clock,
   ArrowUp,
@@ -23,7 +21,6 @@ import AdminLayout from '../components/AdminLayout';
 import { Button, Input, Select, Checkbox, Modal, Badge, KpiCard } from '../components/ui';
 import { useAdmin } from '../context/AdminContext';
 import { useToast } from '../context/ToastContext';
-import './CurationsPage.css';
 import './DashboardPage.css';
 import './UsersPage.css';
 import './SearchRankingPage.css';

@@ -2,24 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   Search,
-  ShieldCheck,
-  ShieldAlert,
   UserCheck,
   UserX,
-  ListMusic,
   Eye,
   Trash2,
-  Edit2,
   RefreshCw,
-  Sparkles,
   Loader2,
-  ExternalLink,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
-import { Button, Input, Select, Modal, Badge, KpiCard } from '../components/ui';
+import { Button, Input, Select, Modal, KpiCard } from '../components/ui';
 import { useAdmin } from '../context/AdminContext';
 import { useToast } from '../context/ToastContext';
-import './CurationsPage.css';
 import './DashboardPage.css';
 import './UsersPage.css';
 
