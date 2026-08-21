@@ -23,6 +23,7 @@ export class CuratedPlaylistDto {
   author?: string;
   display_order?: number;
   is_active?: boolean;
+  is_system?: boolean;
   tracks?: CuratedTrackDto[];
 }
 
@@ -34,7 +35,6 @@ export class AdminService {
     private readonly chartService: ChartService,
     private readonly searchService: SearchService,
   ) {}
-
 
   private getSupabaseConfig() {
     const url = process.env.SUPABASE_URL || '';
@@ -53,36 +53,81 @@ export class AdminService {
     };
   }
 
-  /** 전체 큐레이션 플레이리스트 목록 조회 */
-  async listPlaylists(): Promise<CuratedPlaylistDto[]> {
-    const { url } = this.getSupabaseConfig();
-    const headers = this.getHeaders();
-
+  /** 시스템 기본 8대 장르 큐레이션 목록 추출 */
+  private async getSystemGenrePlaylists(): Promise<CuratedPlaylistDto[]> {
     try {
-      const response = await fetch(
-        `${url}/rest/v1/curated_playlists?order=display_order.asc,created_at.desc&select=id,category,category_label,title,subtitle,cover,tag,author,display_order,is_active,tracks,created_at,updated_at`,
-        { headers },
-      );
-
-      if (!response.ok) {
-        const errText = await response.text();
-        this.logger.warn(
-          `[Admin] List playlists failed: ${response.status} ${errText}`,
-        );
-        return [];
-      }
-
-      return await response.json();
-    } catch (error: any) {
-      this.logger.error(
-        `[Admin] List playlists error: ${error?.message || error}`,
-      );
+      const allCategories = await this.chartService.getCuratedCategoryPlaylists();
+      return allCategories
+        .filter((cat) => cat.id && cat.id.startsWith('cat-'))
+        .map((cat, idx) => ({
+          id: cat.id,
+          category: 'genre' as const,
+          category_label: cat.categoryLabel || '장르별',
+          title: cat.title,
+          subtitle: cat.subtitle || '실시간 음원 차트 자동 연동 (50곡)',
+          cover: cat.cover || (cat.tracks?.[0]?.artwork || ''),
+          tag: cat.tag || cat.title,
+          author: cat.author || 'sofar',
+          display_order: idx - 100, // 시스템 기본 큐레이션은 상단 배치
+          is_active: true,
+          is_system: true,
+          tracks: (cat.tracks || []).map((t) => ({
+            id: t.id,
+            custom_title: t.custom_title,
+            custom_artist: t.custom_artist,
+            artwork: t.artwork,
+            youtube_video_id: t.youtube_video_id,
+            durationSec: t.durationSec,
+            searchQuery: t.searchQuery,
+          })),
+        }));
+    } catch (err: any) {
+      this.logger.warn(`[Admin] Failed to load system genre playlists: ${err?.message || err}`);
       return [];
     }
   }
 
+  /** 전체 큐레이션 플레이리스트 목록 조회 (시스템 기본 장르 + 커스텀 DB 큐레이션 병합) */
+  async listPlaylists(): Promise<CuratedPlaylistDto[]> {
+    const { url } = this.getSupabaseConfig();
+    const headers = this.getHeaders();
+
+    let dbPlaylists: CuratedPlaylistDto[] = [];
+
+    if (url && headers.apikey) {
+      try {
+        const response = await fetch(
+          `${url}/rest/v1/curated_playlists?order=display_order.asc,created_at.desc&select=id,category,category_label,title,subtitle,cover,tag,author,display_order,is_active,tracks,created_at,updated_at`,
+          { headers },
+        );
+
+        if (response.ok) {
+          dbPlaylists = await response.json();
+        } else {
+          const errText = await response.text();
+          this.logger.warn(
+            `[Admin] List playlists failed: ${response.status} ${errText}`,
+          );
+        }
+      } catch (error: any) {
+        this.logger.error(
+          `[Admin] List playlists error: ${error?.message || error}`,
+        );
+      }
+    }
+
+    const systemGenrePlaylists = await this.getSystemGenrePlaylists();
+    return [...systemGenrePlaylists, ...dbPlaylists];
+  }
+
   /** 단일 플레이리스트 상세 조회 */
   async getPlaylist(id: string): Promise<CuratedPlaylistDto | null> {
+    if (id && id.startsWith('cat-')) {
+      const systemGenres = await this.getSystemGenrePlaylists();
+      const found = systemGenres.find((g) => g.id === id);
+      if (found) return found;
+    }
+
     const { url } = this.getSupabaseConfig();
     const headers = this.getHeaders();
 
@@ -169,6 +214,10 @@ export class AdminService {
     id: string,
     data: Partial<CuratedPlaylistDto>,
   ): Promise<CuratedPlaylistDto | null> {
+    if (id && id.startsWith('cat-')) {
+      throw new Error('시스템 기본 장르 큐레이션은 실시간 차트와 연동되어 직접 수정할 수 없습니다.');
+    }
+
     const { url } = this.getSupabaseConfig();
     const headers = this.getHeaders();
 
@@ -223,6 +272,10 @@ export class AdminService {
 
   /** 플레이리스트 삭제 */
   async deletePlaylist(id: string): Promise<boolean> {
+    if (id && id.startsWith('cat-')) {
+      throw new Error('시스템 기본 장르 큐레이션은 삭제할 수 없습니다.');
+    }
+
     const { url } = this.getSupabaseConfig();
     const headers = this.getHeaders();
 

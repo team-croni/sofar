@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Button, Input, Badge, Logo } from '../components/ui';
-import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Eye, EyeOff, Loader2, ListMusic } from 'lucide-react';
+import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Eye, EyeOff, Loader2, ListMusic, Lock, Sparkles, Radio } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useAdmin } from '../context/AdminContext';
 import { useToast } from '../context/ToastContext';
@@ -423,29 +423,37 @@ export default function CurationsPage() {
                 <tbody>
                   {filteredPlaylists.map((item, index) => {
                     const tracksCount = Array.isArray(item.tracks) ? item.tracks.length : 0;
+                    const isSystem = Boolean(item.is_system);
+
                     return (
-                      <tr key={item.id}>
+                      <tr key={item.id} className={isSystem ? 'system-curation-row' : ''}>
                         <td className="text-center">
-                          <div className="order-btn-group justify-center">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="order-btn"
-                              disabled={index === 0}
-                              onClick={() => handleMove(index, 'up')}
-                              title="위로 이동"
-                              leadingIcon={<ArrowUp size={13} />}
-                            />
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="order-btn"
-                              disabled={index === filteredPlaylists.length - 1}
-                              onClick={() => handleMove(index, 'down')}
-                              title="아래로 이동"
-                              leadingIcon={<ArrowDown size={13} />}
-                            />
-                          </div>
+                          {isSystem ? (
+                            <span className="system-fixed-tag" title="시스템 기본 연동 플레이리스트 (실시간 자동 차트)">
+                              <Lock size={13} />
+                            </span>
+                          ) : (
+                            <div className="order-btn-group justify-center">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="order-btn"
+                                disabled={index === 0}
+                                onClick={() => handleMove(index, 'up')}
+                                title="위로 이동"
+                                leadingIcon={<ArrowUp size={13} />}
+                              />
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="order-btn"
+                                disabled={index === filteredPlaylists.length - 1}
+                                onClick={() => handleMove(index, 'down')}
+                                title="아래로 이동"
+                                leadingIcon={<ArrowDown size={13} />}
+                              />
+                            </div>
+                          )}
                         </td>
                         <td>
                           <div className="playlist-cover-cell">
@@ -462,7 +470,9 @@ export default function CurationsPage() {
                               </div>
                             )}
                             <div className="playlist-title-info">
-                              <span className="playlist-title-text">{item.title}</span>
+                              <div className="playlist-title-header-row">
+                                <span className="playlist-title-text">{item.title}</span>
+                              </div>
                               <span className="playlist-subtitle-text">
                                 {item.subtitle || item.category_label || 'sofar'}
                               </span>
@@ -470,41 +480,65 @@ export default function CurationsPage() {
                           </div>
                         </td>
                         <td className="text-center">
-                          <Badge variant="secondary">
-                            {item.category === 'theme' ? '테마' : item.category === 'situation' ? '상황' : '장르'}
-                          </Badge>
+                          {isSystem ? (
+                            <Badge variant="primary" className="badge-system-auto">
+                              시스템
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              {item.category === 'theme' ? '테마' : item.category === 'situation' ? '상황' : '장르'}
+                            </Badge>
+                          )}
                         </td>
                         <td className="col-track-count text-center">
                           {tracksCount}곡
                         </td>
                         <td className="text-center">
-                          <button
-                            type="button"
-                            className={`status-badge clickable ${item.is_active ? 'active' : 'inactive'}`}
-                            onClick={() => handleToggleActive(item)}
-                            title="클릭하여 메인 앱 홈 패널 노출/숨김 변경"
-                          >
-                            {item.is_active ? <Eye size={12} /> : <EyeOff size={12} />}
-                            <span>{item.is_active ? '노출 중' : '숨김'}</span>
-                          </button>
+                          {isSystem ? (
+                            <div className="status-badge active static" title="실시간 음원 차트 자동 연동 중">
+                              <Radio size={12} />
+                              <span>실시간</span>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className={`status-badge clickable ${item.is_active ? 'active' : 'inactive'}`}
+                              onClick={() => handleToggleActive(item)}
+                              title="클릭하여 메인 앱 홈 패널 노출/숨김 변경"
+                            >
+                              {item.is_active ? <Eye size={12} /> : <EyeOff size={12} />}
+                              <span>{item.is_active ? '노출 중' : '숨김'}</span>
+                            </button>
+                          )}
                         </td>
-                        <td className="text-right">
-                          <div className="action-row">
+                        <td className="text-center">
+                          {isSystem ? (
                             <Button
                               variant="secondary"
                               size="md"
-                              leadingIcon={<Edit size={16} />}
-                              onClick={() => navigate(`/playlist/${item.id}`)}
+                              leadingIcon={<Eye size={16} />}
+                              onClick={() => navigate(`/playlist/${item.id}?readonly=true`)}
+                              title="실시간 수록곡 목록 미리보기"
                             >
                             </Button>
-                            <Button
-                              variant="danger"
-                              size="md"
-                              leadingIcon={<Trash2 size={16} />}
-                              onClick={() => handleDelete(item.id, item.title)}
-                            >
-                            </Button>
-                          </div>
+                          ) : (
+                            <div className="action-row">
+                              <Button
+                                variant="secondary"
+                                size="md"
+                                leadingIcon={<Edit size={16} />}
+                                onClick={() => navigate(`/playlist/${item.id}`)}
+                              >
+                              </Button>
+                              <Button
+                                variant="danger"
+                                size="md"
+                                leadingIcon={<Trash2 size={16} />}
+                                onClick={() => handleDelete(item.id, item.title)}
+                              >
+                              </Button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

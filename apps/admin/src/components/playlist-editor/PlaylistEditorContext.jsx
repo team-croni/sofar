@@ -22,7 +22,9 @@ export function PlaylistEditorProvider({ children }) {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const isUserType = searchParams.get('type') === 'user';
+  const isReadonly = searchParams.get('readonly') === 'true';
   const isNew = !id || id === 'new';
+  const isSystem = Boolean(id && id.startsWith('cat-'));
 
   const [adminKey, setAdminKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -967,7 +969,13 @@ export function PlaylistEditorProvider({ children }) {
 
   // 플레이리스트 최종 제출 및 저장
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
+
+    if (isSystem) {
+      showWarningToast('시스템 기본 장르 큐레이션은 실시간 차트와 연동되어 직접 수정할 수 없습니다.', '시스템 고정');
+      return;
+    }
+
     if (!formData.title.trim()) {
       alert('플레이리스트 제목을 입력해주세요.');
       return;
@@ -1055,6 +1063,8 @@ export function PlaylistEditorProvider({ children }) {
     navigate,
     id,
     isUserType,
+    isReadonly,
+    isSystem,
     isNew,
     adminKey,
     isLoading: isDetailLoading,
