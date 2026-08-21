@@ -7,6 +7,7 @@ import { durationCache, saveDurationCache, formatDuration } from '../../utils/du
 import { fetchVideoDurations } from '../../utils/youtube';
 import { useAudio } from '../../contexts/AudioContext';
 import { isMatchTrack, formatArtistName } from '../../utils/trackUtils';
+import { handleTrackDragStart } from '../../utils/dragUtils';
 import './TrackRowItem.css';
 
 export default function TrackRowItem({ 
@@ -87,6 +88,8 @@ export default function TrackRowItem({
     <div 
       className={`track-row-item ${isCurrent ? 'active' : ''}`}
       style={track.isRefining ? { opacity: 0.75 } : undefined}
+      draggable={!track.isRefining}
+      onDragStart={(e) => handleTrackDragStart(e, track)}
       onClick={handleRowClick}
     >
       <div className="track-item-meta">

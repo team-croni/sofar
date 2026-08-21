@@ -3,12 +3,17 @@ import { Play, Loader, Headphones, MoreVertical } from 'lucide-react';
 import TrackThumbnail from '../playlist/TrackThumbnail';
 import TrackActionDropdown from '../ui/TrackActionDropdown';
 import { formatArtistName } from '../../utils/trackUtils';
+import { handleTrackDragStart } from '../../utils/dragUtils';
 
 export default function AlbumCard({ track, isPlaying, onPlay, isSearching, onAddQueue }) {
   const artworkSrc = track.artwork || (track.youtube_video_id ? `https://img.youtube.com/vi/${track.youtube_video_id}/hqdefault.jpg` : null);
 
   return (
-    <div className={`album-card ${isPlaying ? 'album-card--playing' : ''}`}>
+    <div 
+      className={`album-card ${isPlaying ? 'album-card--playing' : ''}`}
+      draggable={true}
+      onDragStart={(e) => handleTrackDragStart(e, track)}
+    >
       <div className="album-card__cover" onClick={() => onPlay(track)}>
         {artworkSrc ? (
           <img src={artworkSrc} alt="" className="album-card__cover-img" />
