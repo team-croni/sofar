@@ -425,7 +425,7 @@ export default function SearchPanel() {
       <div className="search-panel-content">
         {/* ── 상단 스마트 검색 헤더 바 ── */}
         <div className="search-header-box">
-          <form onSubmit={handleSearchSubmit} className="search-form-modern">
+          <form onSubmit={handleSearchSubmit} className="search-form-modern" autoComplete="off">
             <div className="search-input-inner">
               <Search size={19} className="search-input-icon" />
               <input
@@ -436,6 +436,10 @@ export default function SearchPanel() {
                 placeholder="곡 제목, 아티스트, 장르 또는 YouTube 링크를 입력하세요..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
                 autoFocus
               />
 
