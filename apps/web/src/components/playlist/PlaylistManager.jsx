@@ -13,7 +13,7 @@ import QueueRowItem from './QueueRowItem';
 import TrackThumbnail from './TrackThumbnail';
 import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube } from '../../utils/youtube';
 import { durationCache } from '../../utils/durationCache';
-import { extractTracksFromDragData } from '../../utils/dragUtils';
+import { extractTracksFromDragData, handleTrackDragStart } from '../../utils/dragUtils';
 import { isMatchTrack } from '../../utils/trackUtils';
 import { Button, Logo, Dropdown } from '../ui';
 import './PlaylistManager.css';
@@ -30,7 +30,8 @@ import {
   usePlaylistTracksQuery, 
   useAddTracksMutation,
   useDeleteTrackMutation,
-  useClearPlaylistTracksMutation
+  useClearPlaylistTracksMutation,
+  useReorderTracksMutation
 } from '../../hooks/useTracks';
 import PlaylistModal from './PlaylistModal';
 import { getStaggerStyle } from '../../utils/animation';
@@ -88,6 +89,7 @@ export default function PlaylistManager() {
   const addTracksMutation = useAddTracksMutation();
   const deleteTrackMutation = useDeleteTrackMutation();
   const clearPlaylistTracksMutation = useClearPlaylistTracksMutation();
+  const reorderTracksMutation = useReorderTracksMutation();
 
   const isAddingBatchTracks = addTracksMutation.isPending;
   const [pendingFolderId, setPendingFolderId] = useState(null);
@@ -101,6 +103,10 @@ export default function PlaylistManager() {
   // 드래그앤드랍 위치 표시 및 이동 상태
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverInfo, setDragOverInfo] = useState(null);
+
+  // 플레이리스트 내부 곡 순서 드래그앤드랍 상태
+  const [draggedPlaylistTrackIndex, setDraggedPlaylistTrackIndex] = useState(null);
+  const [dragOverPlaylistTrackInfo, setDragOverPlaylistTrackInfo] = useState(null);
 
   // 플레이리스트 폴더 화면 전환 애니메이션 상태
   const [enteringFolderId, setEnteringFolderId] = useState(null);
@@ -249,6 +255,7 @@ export default function PlaylistManager() {
     setIsDetailDragOver(false);
     setIsBackDragOver(false);
     setDragOverInfo(null);
+    setDragOverPlaylistTrackInfo(null);
   }, [clearDragHoverTimer]);
 
   // 화면 전환(탭, 선택 플레이리스트, 공유 플레이리스트 등) 발생 시 모든 dragover 잔여 스타일 즉시 클리어
@@ -437,15 +444,171 @@ export default function PlaylistManager() {
     setIsDetailDragOver(false);
   };
 
+  const handlePlaylistTrackDragStart = (e, index, track) => {
+    setDraggedPlaylistTrackIndex(index);
+    const payload = {
+      ...track,
+      _fromPlaylistId: selectedPlaylistId,
+      _fromIndex: index,
+    };
+    handleTrackDragStart(e, payload);
+  };
+
+  const handlePlaylistTrackDragOver = (e, index) => {
+    if (isReadOnlyShared) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const position = relativeY < rect.height / 2 ? 'top' : 'bottom';
+
+    let targetIndex = index;
+    let targetPosition = position;
+    const displayTracks = getCurrentDetailTracks();
+    if (position === 'bottom' && index < displayTracks.length - 1) {
+      targetIndex = index + 1;
+      targetPosition = 'top';
+    }
+
+    if (draggedPlaylistTrackIndex !== null) {
+      const boundaryIndex = targetPosition === 'top' ? targetIndex : targetIndex + 1;
+      const insertIndex = draggedPlaylistTrackIndex < boundaryIndex ? boundaryIndex - 1 : boundaryIndex;
+
+      if (insertIndex === draggedPlaylistTrackIndex) {
+        if (dragOverPlaylistTrackInfo !== null) {
+          setDragOverPlaylistTrackInfo(null);
+        }
+        return;
+      }
+    }
+
+    if (
+      !dragOverPlaylistTrackInfo ||
+      dragOverPlaylistTrackInfo.index !== targetIndex ||
+      dragOverPlaylistTrackInfo.position !== targetPosition
+    ) {
+      setDragOverPlaylistTrackInfo({ index: targetIndex, position: targetPosition });
+    }
+  };
+
+  const handlePlaylistTrackDragEnd = () => {
+    setDraggedPlaylistTrackIndex(null);
+    setDragOverPlaylistTrackInfo(null);
+  };
+
+  const handlePlaylistTrackDrop = async (e, targetIndex) => {
+    if (isReadOnlyShared || !selectedPlaylistId) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const currentDetailTracks = getCurrentDetailTracks();
+
+    // 1) 같은 플레이리스트 내부 아이템 순서 변경
+    if (draggedPlaylistTrackIndex !== null) {
+      let insertIndex = draggedPlaylistTrackIndex;
+      if (dragOverPlaylistTrackInfo) {
+        const boundaryIndex = dragOverPlaylistTrackInfo.position === 'top' ? dragOverPlaylistTrackInfo.index : dragOverPlaylistTrackInfo.index + 1;
+        insertIndex = draggedPlaylistTrackIndex < boundaryIndex ? boundaryIndex - 1 : boundaryIndex;
+      } else if (targetIndex !== undefined && targetIndex !== null) {
+        insertIndex = targetIndex;
+      }
+
+      if (draggedPlaylistTrackIndex !== insertIndex) {
+        const newTracks = [...currentDetailTracks];
+        const [movedItem] = newTracks.splice(draggedPlaylistTrackIndex, 1);
+        const finalInsert = Math.max(0, Math.min(insertIndex, newTracks.length));
+        newTracks.splice(finalInsert, 0, movedItem);
+
+        // TanStack Query 캐시 즉각 낙관적 갱신
+        queryClient.setQueryData(['tracks', selectedPlaylistId], newTracks);
+        reorderTracksMutation.mutate({ playlistId: selectedPlaylistId, reorderedTracks: newTracks });
+      }
+
+      setDraggedPlaylistTrackIndex(null);
+      setDragOverPlaylistTrackInfo(null);
+      return;
+    }
+
+    // 2) 외부 드롭 또는 rawData 기반 처리
+    setDraggedPlaylistTrackIndex(null);
+    setDragOverPlaylistTrackInfo(null);
+
+    try {
+      const jsonStr = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
+      if (!jsonStr) return;
+      const rawData = JSON.parse(jsonStr);
+
+      // 같은 플레이리스트에서 온 곡인 경우 (순서 이동)
+      if (rawData?._fromPlaylistId === selectedPlaylistId && typeof rawData?._fromIndex === 'number') {
+        const fromIndex = rawData._fromIndex;
+        let insertIndex = targetIndex ?? fromIndex;
+        if (fromIndex !== insertIndex) {
+          const newTracks = [...currentDetailTracks];
+          const [movedItem] = newTracks.splice(fromIndex, 1);
+          const finalInsert = Math.max(0, Math.min(insertIndex, newTracks.length));
+          newTracks.splice(finalInsert, 0, movedItem);
+
+          queryClient.setQueryData(['tracks', selectedPlaylistId], newTracks);
+          reorderTracksMutation.mutate({ playlistId: selectedPlaylistId, reorderedTracks: newTracks });
+        }
+        return;
+      }
+
+      const tracks = extractTracksFromDragData(rawData);
+      if (!tracks || tracks.length === 0) return;
+
+      const currentPl = playlists.find(p => p.id === selectedPlaylistId);
+      const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
+        playlistId: selectedPlaylistId,
+        tracks,
+      });
+
+      if (inserted.length === 0 && skippedCount > 0) {
+        showToast(`'${currentPl?.title || '플레이리스트'}'에 이미 모두 담겨있는 곡입니다.`);
+        return;
+      }
+
+      if (inserted.length === 1) {
+        const title = inserted[0].custom_title || inserted[0].title || '제목 없음';
+        if (skippedCount > 0) {
+          showToast(`'${title}' 1곡을 추가했습니다. (중복 ${skippedCount}곡 제외)`);
+        } else {
+          showToast(`'${title}' 곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+        }
+      } else if (inserted.length > 1) {
+        const label = rawData.name || rawData.title || `${inserted.length}곡`;
+        if (skippedCount > 0) {
+          showToast(`'${label}' ${inserted.length}곡을 추가했습니다. (중복 ${skippedCount}곡 제외)`);
+        } else {
+          showToast(`'${label}' ${inserted.length}곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+        }
+      }
+    } catch (err) {
+      console.warn('Drop to detail track failed:', err);
+      showToast('플레이리스트 추가 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleDetailDrop = async (e) => {
     if (!selectedPlaylistId || activeSharedPlaylist) return;
     e.preventDefault();
     e.stopPropagation();
     resetAllDragOverStates();
+    setDraggedPlaylistTrackIndex(null);
+    setDragOverPlaylistTrackInfo(null);
+
     try {
       const jsonStr = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
       if (!jsonStr) return;
       const rawData = JSON.parse(jsonStr);
+
+      // 같은 플레이리스트에서 온 드래그인 경우 (순서 변경 실패/제자리 드롭 시 에러 토스트 차단)
+      if (draggedPlaylistTrackIndex !== null || rawData?._fromPlaylistId === selectedPlaylistId) {
+        return;
+      }
+
       const tracks = extractTracksFromDragData(rawData);
       if (!tracks || tracks.length === 0) return;
 
@@ -1911,6 +2074,11 @@ export default function PlaylistManager() {
                             }}
                             addToQueue={addToQueue}
                             onDeleteTrack={isReadOnlyShared ? null : handleDeleteTrack}
+                            handleDragStart={isReadOnlyShared ? null : handlePlaylistTrackDragStart}
+                            handleDragOver={isReadOnlyShared ? null : handlePlaylistTrackDragOver}
+                            handleDrop={isReadOnlyShared ? null : handlePlaylistTrackDrop}
+                            handleDragEnd={isReadOnlyShared ? null : handlePlaylistTrackDragEnd}
+                            dragOverPosition={dragOverPlaylistTrackInfo && dragOverPlaylistTrackInfo.index === idx ? dragOverPlaylistTrackInfo.position : null}
                           />
                         ));
                       })()}

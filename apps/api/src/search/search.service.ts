@@ -69,6 +69,58 @@ export interface SearchLogArtistDto {
   genre?: string;
 }
 
+const hasKorean = (text: string): boolean => /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(text);
+
+/**
+ * 아티스트 이름 포매터
+ * 괄호 병기(예: BIGBANG (빅뱅), 아이오아이(I.O.I)) 형태에서 한글명을 우선 추출하여 반환
+ */
+export const formatArtistName = (rawArtist: string): string => {
+  if (!rawArtist || typeof rawArtist !== 'string') return rawArtist || '';
+
+  const parseSingleArtist = (name: string): string => {
+    const trimmed = name.trim();
+    if (!trimmed) return '';
+
+    const match = trimmed.match(/^(.*?)\s*\(([^()]+)\)$/);
+    if (!match) return trimmed;
+
+    const [, main, sub] = match;
+    const cleanMain = main.trim();
+    const cleanSub = sub.trim();
+
+    if (!cleanMain) return trimmed; // "(여자)아이들" 등 보호
+
+    const mainHasKo = hasKorean(cleanMain);
+    const subHasKo = hasKorean(cleanSub);
+
+    // 1. 괄호 안(sub)에 한글이 있고 앞(main)에는 한글이 없는 경우 -> sub(한글) 선택 (예: BIGBANG (빅뱅) -> 빅뱅)
+    if (subHasKo && !mainHasKo) {
+      return cleanSub;
+    }
+    // 2. 앞(main)에 한글이 있고 괄호 안(sub)에는 한글이 없는 경우 -> main(한글) 선택 (예: 아이오아이(I.O.I) -> 아이오아이)
+    if (mainHasKo && !subHasKo) {
+      return cleanMain;
+    }
+    // 3. 둘 다 한글이 있는 경우 -> 기본명(main) 선택 (예: 옥상달빛 (옥달) -> 옥상달빛)
+    if (mainHasKo && subHasKo) {
+      return cleanMain;
+    }
+    // 4. 둘 다 한글이 없는 경우 -> 기본명(main) 선택 (예: Maroon 5 (US) -> Maroon 5)
+    return cleanMain;
+  };
+
+  if (rawArtist.includes(',')) {
+    return rawArtist
+      .split(',')
+      .map(parseSingleArtist)
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  return parseSingleArtist(rawArtist);
+};
+
 @Injectable()
 export class SearchService implements OnModuleInit {
   private readonly logger = new Logger(SearchService.name);
@@ -227,7 +279,7 @@ export class SearchService implements OnModuleInit {
     }
 
     const artistNames = (artists || [])
-      .map((a) => (a.name || '').trim())
+      .map((a) => formatArtistName((a.name || '').trim()))
       .filter((name) => name.length >= 2 && name !== 'Unknown Artist');
 
     // 1. 로그 추가 (어뷰징으로 제외되더라도 사용자 검색 히스토리는 정상 기록)
@@ -267,7 +319,7 @@ export class SearchService implements OnModuleInit {
       // 3. 아티스트 통계 갱신
       if (artists && artists.length > 0) {
         artists.slice(0, 3).forEach((art, idx) => {
-          const name = (art.name || '').trim();
+          const name = formatArtistName((art.name || '').trim());
           if (!name || name.length < 2 || name === 'Unknown Artist') return;
 
           const weight = idx === 0 ? 1 : 0.5;
@@ -384,7 +436,7 @@ export class SearchService implements OnModuleInit {
         if (liveChartTracks && liveChartTracks.length > 0) {
           for (let i = 0; i < liveChartTracks.length && scoredMap.size < 15; i++) {
             const t = liveChartTracks[i];
-            const artist = (t.custom_artist || '').trim();
+            const artist = formatArtistName((t.custom_artist || '').trim());
             const title = (t.custom_title || '').trim();
 
             if (artist && !scoredMap.has(artist)) {
@@ -542,12 +594,9 @@ export class SearchService implements OnModuleInit {
             const rawArtist = (t.custom_artist || '').trim();
             if (!rawArtist || rawArtist === 'Unknown Artist') return;
 
-            // 괄호 및 피처링 정리
-            let cleanArtist = rawArtist;
-            if (cleanArtist.includes('(')) {
-              const main = cleanArtist.split('(')[0].trim();
-              if (main.length >= 2) cleanArtist = main;
-            }
+            // 괄호 한글명 우선 추출 및 피처링 정리
+            const cleanArtist = formatArtistName(rawArtist);
+            if (!cleanArtist || cleanArtist.length < 2 || cleanArtist === 'Unknown Artist') return;
 
             const chartBonus = Math.max(1, 30 - i) * 1.5;
             const existing = scoredMap.get(cleanArtist);

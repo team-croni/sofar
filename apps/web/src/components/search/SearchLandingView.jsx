@@ -194,19 +194,22 @@ export default function SearchLandingView({
             </div>
           </div>
           <div className="trending-column-list">
-            {trendingKeywords.map((item) => (
-              <div 
-                key={item.rank} 
-                className="trending-item-card"
-                onClick={() => onSearchTerm(item.keyword)}
-              >
-                <span className={`trending-rank-num rank-${item.rank}`}>{item.rank}</span>
-                <span className="trending-keyword-name">{item.keyword}</span>
-                <div className="trending-badge-wrapper">
-                  <RankChangeBadge type={item.status} val={item.diff} />
+            {trendingKeywords.map((item) => {
+              const displayKeyword = cleanKeyword(item.keyword) || item.keyword;
+              return (
+                <div 
+                  key={item.rank} 
+                  className="trending-item-card"
+                  onClick={() => onSearchTerm(displayKeyword)}
+                >
+                  <span className={`trending-rank-num rank-${item.rank}`}>{item.rank}</span>
+                  <span className="trending-keyword-name">{displayKeyword}</span>
+                  <div className="trending-badge-wrapper">
+                    <RankChangeBadge type={item.status} val={item.diff} />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -220,32 +223,35 @@ export default function SearchLandingView({
               </div>
             </div>
             <div className="trending-artists-landing-grid">
-              {trendingArtists.map((artist) => (
-                <div
-                  key={artist.rank || artist.name}
-                  className="trending-artist-grid-card"
-                  onClick={() => onSearchTerm(artist.name)}
-                  title={`${artist.name} 검색하기`}
-                >
-                  <div className="trending-artist-avatar-wrap">
-                    {artist.thumbnail ? (
-                      <img
-                        src={artist.thumbnail}
-                        alt={artist.name}
-                        className="trending-artist-avatar-img"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="trending-artist-avatar-fallback">
-                        <User size={26} />
-                      </div>
-                    )}
+              {trendingArtists.map((artist) => {
+                const displayName = cleanKeyword(artist.name) || artist.name;
+                return (
+                  <div
+                    key={artist.rank || artist.name}
+                    className="trending-artist-grid-card"
+                    onClick={() => onSearchTerm(displayName)}
+                    title={`${displayName} 검색하기`}
+                  >
+                    <div className="trending-artist-avatar-wrap">
+                      {artist.thumbnail ? (
+                        <img
+                          src={artist.thumbnail}
+                          alt={displayName}
+                          className="trending-artist-avatar-img"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="trending-artist-avatar-fallback">
+                          <User size={26} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="trending-artist-meta">
+                      <span className="trending-artist-name">{displayName}</span>
+                    </div>
                   </div>
-                  <div className="trending-artist-meta">
-                    <span className="trending-artist-name">{artist.name}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

@@ -17,6 +17,7 @@ import SearchTrackRow from './SearchTrackRow';
 import SearchArtistCard from './SearchArtistCard';
 import SearchSkeleton from './SearchSkeleton';
 import { getSearchCache, setSearchCache } from '../../utils/searchCache';
+import { formatArtistName } from '../../utils/trackUtils';
 
 import './SearchPanel.css';
 
@@ -185,7 +186,8 @@ export default function SearchPanel() {
         try {
           const artistsMap = new Map();
           for (const t of fetchedTracks) {
-            const artist = (t.custom_artist || t.artist || '').trim();
+            const rawArtist = (t.custom_artist || t.artist || '').trim();
+            const artist = formatArtistName(rawArtist);
             if (artist && artist !== 'Unknown Artist' && !artistsMap.has(artist.toLowerCase())) {
               artistsMap.set(artist.toLowerCase(), {
                 name: artist,

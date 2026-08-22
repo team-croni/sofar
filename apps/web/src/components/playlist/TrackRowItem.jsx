@@ -18,7 +18,12 @@ export default function TrackRowItem({
   togglePlay,
   playTrack, 
   addToQueue, 
-  onDeleteTrack 
+  onDeleteTrack,
+  handleDragStart,
+  handleDragOver,
+  handleDrop,
+  handleDragEnd,
+  dragOverPosition
 }) {
   const { duration: audioDuration, isLoadingTrack } = useAudio();
 
@@ -99,9 +104,26 @@ export default function TrackRowItem({
       className={`track-row-item ${isCurrent ? 'active' : ''}`}
       style={track.isRefining ? { opacity: 0.75 } : undefined}
       draggable={!track.isRefining}
-      onDragStart={(e) => handleTrackDragStart(e, track)}
+      onDragStart={(e) => {
+        if (handleDragStart) {
+          handleDragStart(e, index, track);
+        } else {
+          handleTrackDragStart(e, track);
+        }
+      }}
+      onDragOver={(e) => {
+        if (handleDragOver) handleDragOver(e, index);
+      }}
+      onDragEnd={(e) => {
+        if (handleDragEnd) handleDragEnd(e);
+      }}
+      onDrop={(e) => {
+        if (handleDrop) handleDrop(e, index);
+      }}
       onClick={handleRowClick}
     >
+      {dragOverPosition === 'top' && <div className="drag-indicator drag-indicator-top" />}
+      {dragOverPosition === 'bottom' && <div className="drag-indicator drag-indicator-bottom" />}
       <div className="track-item-meta">
         <TrackThumbnail 
           title={track.custom_title || track.title} 

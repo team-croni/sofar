@@ -182,3 +182,25 @@
   background: #16161a;
 }
 
+/* Drag and Drop Insertion Line Indicator */
+.drag-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--primary-warm, #ff6d1f);
+  pointer-events: none;
+  z-index: 50;
+}
+
+.drag-indicator-top {
+  top: 0;
+  transform: translateY(-50%);
+}
+
+.drag-indicator-bottom {
+  bottom: 0;
+  transform: translateY(50%);
+}
+
+

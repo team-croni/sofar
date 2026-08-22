@@ -495,12 +495,12 @@
 
 .playlist-detail-header.list-header {
   padding-left: 1.25rem;
-  padding-right: 0.75rem;
+  padding-right: 0.875rem;
 }
 
 .playlist-detail-header.detail-header {
   padding-left: 0.75rem;
-  padding-right: 0.75rem;
+  padding-right: 0.875rem;
 }
 
 .playlist-detail-header.queue-header {
@@ -987,6 +987,13 @@
   color: var(--primary-warm, #d4a373);
   z-index: 5;
   animation: fadeIn 0.15s ease forwards;
+}
+
+@supports (corner-shape: squircle) {
+  .folder-card-processing-overlay {
+    border-radius: 32px;
+    corner-shape: squircle;
+  }
 }
 
 @keyframes spin {

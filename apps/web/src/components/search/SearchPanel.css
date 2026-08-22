@@ -520,14 +520,13 @@
 .trending-rank-num.rank-1,
 .trending-rank-num.rank-2,
 .trending-rank-num.rank-3 {
-  color: var(--primary-warm, #d4a373);
+  color: var(--primary-warm);
 }
 
 .trending-keyword-name {
   flex: 1;
   font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
