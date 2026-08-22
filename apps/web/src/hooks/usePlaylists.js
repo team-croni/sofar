@@ -76,9 +76,7 @@ export function usePlaylistPreviewsQuery() {
         const previews = {};
         parsedTr.sort((a, b) => (a.sequence || 0) - (b.sequence || 0)).forEach(t => {
           if (!previews[t.playlist_id]) previews[t.playlist_id] = [];
-          if (previews[t.playlist_id].length < 4) {
-            previews[t.playlist_id].push(t);
-          }
+          previews[t.playlist_id].push(t);
         });
         return previews;
       } catch (e) {
@@ -96,9 +94,7 @@ export function usePlaylistPreviewsQuery() {
         const previews = {};
         (data || []).forEach(t => {
           if (!previews[t.playlist_id]) previews[t.playlist_id] = [];
-          if (previews[t.playlist_id].length < 4) {
-            previews[t.playlist_id].push(t);
-          }
+          previews[t.playlist_id].push(t);
         });
         return previews;
       } else {
@@ -108,9 +104,7 @@ export function usePlaylistPreviewsQuery() {
           const parsedTr = JSON.parse(localTr);
           parsedTr.sort((a, b) => (a.sequence || 0) - (b.sequence || 0)).forEach(t => {
             if (!previews[t.playlist_id]) previews[t.playlist_id] = [];
-            if (previews[t.playlist_id].length < 4) {
-              previews[t.playlist_id].push(t);
-            }
+            previews[t.playlist_id].push(t);
           });
         }
         return previews;
