@@ -8,7 +8,6 @@ const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || 'support@croni.com';
 export default function HomeFooter() {
   return (
     <footer className="home-footer">
-      <div className="home-footer-divider" />
       <div className="home-footer-content">
         <div className="home-footer-brand">
           <Logo iconSize={17} titleSize="1.05rem" className="home-footer-brand-logo" />
