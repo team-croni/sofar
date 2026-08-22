@@ -223,6 +223,7 @@ export default function SearchPanel() {
           }
           lastLoggedRef.current = { query: targetQuery, timestamp: now };
 
+          const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
           const logPayload = {
             keyword: targetQuery,
             clientId: userId ? `usr_${userId.substring(0, 8)}` : clientId,
@@ -231,7 +232,7 @@ export default function SearchPanel() {
             artists: Array.from(artistsMap.values())
           };
 
-          fetch('/api/search/log', {
+          fetch(`${backendUrl}/api/search/log`, {
             method: 'POST',
             headers: { 
               'Content-Type': 'application/json',

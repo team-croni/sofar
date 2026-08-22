@@ -51,7 +51,8 @@ export default function SearchLandingView({
 
     async function fetchServerTrending() {
       try {
-        const res = await fetch('/api/search/trending?limit=10');
+        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${backendUrl}/api/search/trending?limit=10`);
         if (res.ok) {
           const json = await res.json();
           if (isMounted && json?.success) {
