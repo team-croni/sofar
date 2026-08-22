@@ -606,7 +606,8 @@ export default function SearchPanel() {
                           onClick={() => {
                             if (remainingTracks.length > 0) {
                               addToQueue(remainingTracks, 'end');
-                              showToast?.(`음악 ${remainingTracks.length}곡을 대기열에 추가했습니다.`);
+                            } else {
+                              showToast?.('대기열에 추가할 곡이 없습니다.');
                             }
                           }}
                           title="대기열 추가"

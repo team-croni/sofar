@@ -12,6 +12,7 @@ export default function TrendingSection() {
     handleAddQueue,
     showToast,
     playTrack,
+    addToQueue,
     setQueue,
     isShuffle,
     setIsShuffle,
@@ -73,8 +74,7 @@ export default function TrendingSection() {
       showToast('대기열에 추가할 곡이 없습니다.');
       return;
     }
-    setQueue(prev => [...prev, ...topTracks]);
-    showToast(`'뜨고 있는 음악' ${topTracks.length}곡을 대기열에 추가했습니다.`);
+    addToQueue(topTracks, 'end');
   };
 
   const handleTitleClick = () => {

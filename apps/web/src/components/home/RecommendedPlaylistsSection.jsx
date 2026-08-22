@@ -14,6 +14,7 @@ export default function RecommendedPlaylistsSection() {
     categoryPlaylists,
     sharedPlaylists,
     playTrack,
+    addToQueue,
     setQueue,
     showToast,
     activeSharedPlaylist,
@@ -59,8 +60,9 @@ export default function RecommendedPlaylistsSection() {
   const handleAddPlaylistToQueue = (playlist) => {
     const tracks = playlist.tracks || [];
     if (tracks.length > 0) {
-      setQueue((previousQueue) => [...previousQueue, ...tracks]);
-      showToast(`'${playlist.title}' ${tracks.length}곡을 대기열에 추가했습니다.`);
+      addToQueue(tracks, 'end');
+    } else {
+      showToast('대기열에 추가할 곡이 없습니다.');
     }
   };
 

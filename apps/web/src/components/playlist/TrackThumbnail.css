@@ -29,12 +29,11 @@
 }
 
 .thumbnail-disk-fallback {
-  background: linear-gradient(135deg, #2a221b 0%, #d4a373 100%);
+  background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  font-weight: 700;
   font-size: 1rem;
 }
 

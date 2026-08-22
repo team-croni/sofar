@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { isUsableArtwork, thumbnailCache } from '../../utils/thumbnailCache';
+import { Music } from 'lucide-react';
 import './TrackThumbnail.css';
 
 /**
@@ -63,7 +64,7 @@ export default function TrackThumbnail({ title, artist, youtubeId, artwork }) {
         />
       ) : (
         <div className="thumbnail-disk-img thumbnail-disk-fallback" title={`${title} - ${artist}`}>
-          <span className="thumbnail-disk-fallback-title">{(title || 'M')[0]}</span>
+          <Music size={14} className="empty-cell-icon" />
         </div>
       )}
     </div>

@@ -6,6 +6,7 @@ export default function SharedPlaylistsSection() {
   const {
     sharedPlaylists,
     playTrack,
+    addToQueue,
     setQueue,
     showToast,
     activeSharedPlaylist,
@@ -33,8 +34,9 @@ export default function SharedPlaylistsSection() {
   const handleAddPlaylistToQueue = (pl) => {
     const tracks = pl.tracks || [];
     if (tracks.length > 0) {
-      setQueue(prev => [...prev, ...tracks]);
-      showToast(`'${pl.title}' ${tracks.length}곡을 대기열에 추가했습니다.`);
+      addToQueue(tracks, 'end');
+    } else {
+      showToast('대기열에 추가할 곡이 없습니다.');
     }
   };
 

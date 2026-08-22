@@ -54,7 +54,9 @@ export default function Player() {
     toggleMute,
     playlist,
     setPlaylist,
+    queue,
     setQueue,
+    addToQueue,
     showToast,
     reportMatchFeedback
   } = useAudio();
@@ -121,8 +123,7 @@ export default function Player() {
 
   const handleAddToQueue = () => {
     if (!currentTrack) return;
-    setQueue(prev => [...prev, currentTrack]);
-    showToast('대기열에 곡을 추가했습니다.');
+    addToQueue(currentTrack, 'end');
   };
 
   const handleAddToPlaylist = async (targetPlaylist) => {

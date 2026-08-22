@@ -7,6 +7,7 @@ export function useHomePanel() {
   const {
     playTrack,
     addToQueue,
+    openQueueInSidebar,
     setQueue,
     showToast,
     currentTrack,
@@ -91,5 +92,6 @@ export function useHomePanel() {
     setActiveSharedPlaylist,
     setPlayingSource,
     openSharedPlaylistInSidebar,
+    openQueueInSidebar,
   };
 }

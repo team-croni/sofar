@@ -587,9 +587,15 @@ export default function PlaylistManager() {
       }, 200);
     };
 
+    const handleOpenQueue = () => {
+      setActiveTab('queue');
+    };
+
     window.addEventListener('trigger-open-shared-playlist', handleOpenSharedPlaylist);
+    window.addEventListener('trigger-open-queue', handleOpenQueue);
     return () => {
       window.removeEventListener('trigger-open-shared-playlist', handleOpenSharedPlaylist);
+      window.removeEventListener('trigger-open-queue', handleOpenQueue);
     };
   }, [setActiveSharedPlaylist, playlists, user]);
 
@@ -856,6 +862,7 @@ export default function PlaylistManager() {
     }
 
     setQueue(prev => [...prev, ...tracks]);
+    setActiveTab('queue');
     const targetPl = playlists.find(p => p.id === playlistId);
     showToast(`'${targetPl?.title || '플레이리스트'}' ${tracks.length}곡을 대기열에 추가했습니다.`);
   };
@@ -1181,6 +1188,7 @@ export default function PlaylistManager() {
         return [...filtered, normalizedTrack];
       }
     });
+    setActiveTab('queue');
     showToast(action === 'next' ? '대기열 다음 재생 목록에 추가했습니다.' : '대기열 뒤에 추가했습니다.');
   };
 
@@ -1724,6 +1732,7 @@ export default function PlaylistManager() {
                             const tracks = getCurrentDetailTracks();
                             if (tracks.length > 0) {
                               setQueue(prev => [...prev, ...tracks]);
+                              setActiveTab('queue');
                               showToast(`'${activeSharedPlaylist.title}' ${tracks.length}곡을 대기열에 추가했습니다.`);
                             } else {
                               showToast('대기열에 추가할 곡이 없습니다.');

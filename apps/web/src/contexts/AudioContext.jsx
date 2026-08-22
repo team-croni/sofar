@@ -636,35 +636,64 @@ export function AudioProvider({ children }) {
     setIsShuffle((prev) => !prev);
   }, []);
 
-  const addToQueue = useCallback((track, position = 'end') => {
-    if (!track) return;
+  const openQueueInSidebar = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('trigger-open-queue'));
+  }, []);
+
+  const addToQueue = useCallback((trackOrTracks, position = 'end', options = {}) => {
+    if (!trackOrTracks) return;
+    const isArray = Array.isArray(trackOrTracks);
+    const tracksToAdd = isArray ? trackOrTracks.filter(Boolean) : [trackOrTracks];
+    if (tracksToAdd.length === 0) return;
+
     setQueue((prevQueue) => {
-      const existingIndex = prevQueue.findIndex(t => isMatchTrack(t, track));
       let updatedQueue = [...prevQueue];
 
-      if (existingIndex !== -1) {
-        updatedQueue.splice(existingIndex, 1);
-      }
+      // 기존 큐에서 추가하려는 트랙들과 매칭되는 항목들 제거 (중복 방지)
+      tracksToAdd.forEach((newTrack) => {
+        const existingIndex = updatedQueue.findIndex(t => isMatchTrack(t, newTrack));
+        if (existingIndex !== -1) {
+          updatedQueue.splice(existingIndex, 1);
+        }
+      });
 
       if (position === 'next') {
         if (currentTrackRef.current) {
           const currentIndex = updatedQueue.findIndex(t => isMatchTrack(t, currentTrackRef.current));
           if (currentIndex !== -1) {
-            updatedQueue.splice(currentIndex + 1, 0, track);
+            updatedQueue.splice(currentIndex + 1, 0, ...tracksToAdd);
           } else {
-            updatedQueue.unshift(track);
+            updatedQueue.unshift(...tracksToAdd);
           }
         } else {
-          updatedQueue.unshift(track);
+          updatedQueue.unshift(...tracksToAdd);
         }
-        showToast(`'${track.custom_title || '트랙'}'을(를) 다음에 재생하도록 대기열에 추가했습니다.`);
       } else {
-        updatedQueue.push(track);
-        showToast(`'${track.custom_title || '트랙'}'을(를) 대기열 맨 뒤에 추가했습니다.`);
+        updatedQueue.push(...tracksToAdd);
       }
 
       return updatedQueue;
     });
+
+    if (!options?.noOpenQueue) {
+      window.dispatchEvent(new CustomEvent('trigger-open-queue'));
+    }
+
+    if (!options?.silent) {
+      if (isArray) {
+        if (tracksToAdd.length === 1) {
+          const single = tracksToAdd[0];
+          const posText = position === 'next' ? '다음에 재생하도록 대기열에' : '대기열 맨 뒤에';
+          showToast(`'${single.custom_title || single.title || '트랙'}'을(를) ${posText} 추가했습니다.`);
+        } else {
+          const posText = position === 'next' ? '다음에 재생하도록 대기열에' : '대기열에';
+          showToast(`음악 ${tracksToAdd.length}곡을 ${posText} 추가했습니다.`);
+        }
+      } else {
+        const posText = position === 'next' ? '다음에 재생하도록 대기열에' : '대기열 맨 뒤에';
+        showToast(`'${trackOrTracks.custom_title || trackOrTracks.title || '트랙'}'을(를) ${posText} 추가했습니다.`);
+      }
+    }
   }, [showToast]);
 
   // 트랙 매칭 피드백 기록 및 즉각 대체 음원 자동 전환 (어뷰징 방지 대책 및 지속적 평가 팝업 노출 포함)
@@ -811,6 +840,7 @@ export function AudioProvider({ children }) {
     queue,
     setQueue,
     addToQueue,
+    openQueueInSidebar,
     currentTrack,
     setCurrentTrack,
     repeatMode,

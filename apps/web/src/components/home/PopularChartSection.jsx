@@ -11,6 +11,7 @@ export default function PopularChartSection() {
     handleAddQueue,
     showToast,
     playTrack,
+    addToQueue,
     setQueue,
     isShuffle,
     setIsShuffle,
@@ -129,8 +130,7 @@ export default function PopularChartSection() {
       showToast('대기열에 추가할 곡이 없습니다.');
       return;
     }
-    setQueue(prev => [...prev, ...statTracks]);
-    showToast(`'실시간 인기 순위' ${statTracks.length}곡을 대기열에 추가했습니다.`);
+    addToQueue(statTracks, 'end');
   };
 
   const handleTitleClick = () => {
