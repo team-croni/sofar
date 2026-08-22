@@ -123,9 +123,6 @@ export function useAddTrackMutation() {
           custom_artist: artist || '알 수 없는 아티스트',
           sequence: cleanSequence,
         };
-        if (validDuration > 0) {
-          insertPayload.duration = validDuration;
-        }
 
         const { data, error } = await supabase
           .from('tracks')
@@ -137,23 +134,6 @@ export function useAddTrackMutation() {
             const err = new Error('ALREADY_EXISTS');
             err.code = 'ALREADY_EXISTS';
             throw err;
-          }
-          if (insertPayload.duration) {
-            delete insertPayload.duration;
-            const { data: retryData, error: retryErr } = await supabase
-              .from('tracks')
-              .insert(insertPayload)
-              .select()
-              .single();
-            if (retryErr) {
-              if (retryErr.code === '23505') {
-                const err = new Error('ALREADY_EXISTS');
-                err.code = 'ALREADY_EXISTS';
-                throw err;
-              }
-              throw retryErr;
-            }
-            return retryData;
           }
           throw error;
         }
@@ -207,20 +187,75 @@ export function useAddTracksMutation() {
     mutationFn: async ({ playlistId, tracks }) => {
       if (!tracks || tracks.length === 0) return { inserted: [], skippedCount: 0 };
 
+      // 0. 각 트랙의 videoId 사전 확보 (비어있는 경우 검색 쿼리로 병렬 매칭하여 동일 빈 문자열 충돌 방지)
+      const resolvedTracks = await Promise.all(
+        tracks.map(async (t) => {
+          let videoId = t.youtube_video_id 
+            || t.videoId 
+            || (typeof t.id === 'string' && !t.id.startsWith('tr-') && t.id.length === 11 ? t.id : '');
+
+          if (!videoId) {
+            const title = t.custom_title || t.title || '';
+            const artist = t.custom_artist || t.artist || '';
+            const query = t.searchQuery || `${title} ${artist}`.trim();
+            if (query) {
+              try {
+                const results = await searchYoutube(query);
+                if (results && results.length > 0) {
+                  videoId = results[0].youtube_video_id || results[0].id || '';
+                }
+              } catch (e) {
+                console.warn('YouTube search failed for track:', title, e);
+              }
+            }
+          }
+
+          if (!videoId) {
+            const title = (t.custom_title || t.title || 'track').trim().toLowerCase();
+            const artist = (t.custom_artist || t.artist || 'artist').trim().toLowerCase();
+            videoId = t.id && !t.id.startsWith('tr-') ? t.id : `trk_${encodeURIComponent(title)}_${encodeURIComponent(artist)}`;
+          }
+
+          return {
+            ...t,
+            youtube_video_id: videoId,
+          };
+        })
+      );
+
       if (user && !user.isGuest && supabase && UUID_REGEX.test(playlistId)) {
-        // 단일 쿼리로 대상 플레이리스트의 기존 트랙 목록 조회하여 중복 사전 필터링
+        // 1. 단일 쿼리로 대상 플레이리스트의 기존 트랙 목록 조회 (유튜브 ID + 제목/가수 복합 키)
         const { data: existingData } = await supabase
           .from('tracks')
-          .select('youtube_video_id')
+          .select('youtube_video_id, custom_title, custom_artist')
           .eq('playlist_id', playlistId);
 
-        const existingSet = new Set(
+        const existingVideoSet = new Set(
           (existingData || []).map(t => t.youtube_video_id).filter(Boolean)
         );
+        const existingTitleArtistSet = new Set(
+          (existingData || []).map(t => `${(t.custom_title || '').trim().toLowerCase()}::${(t.custom_artist || '').trim().toLowerCase()}`)
+        );
 
-        const nonDuplicates = tracks.filter(t => {
+        // 들어오는 일괄 tracks 내부의 중복도 함께 필터링
+        const seenInBatchVideo = new Set();
+        const seenInBatchTitleArtist = new Set();
+
+        const nonDuplicates = resolvedTracks.filter(t => {
           const vId = t.youtube_video_id || t.videoId;
-          return vId ? !existingSet.has(vId) : true;
+          const title = (t.custom_title || t.title || '').trim().toLowerCase();
+          const artist = (t.custom_artist || t.artist || '').trim().toLowerCase();
+          const titleArtistKey = `${title}::${artist}`;
+
+          if (vId && existingVideoSet.has(vId)) return false;
+          if (title && artist && existingTitleArtistSet.has(titleArtistKey)) return false;
+
+          if (vId && seenInBatchVideo.has(vId)) return false;
+          if (title && artist && seenInBatchTitleArtist.has(titleArtistKey)) return false;
+
+          if (vId) seenInBatchVideo.add(vId);
+          if (title && artist) seenInBatchTitleArtist.add(titleArtistKey);
+          return true;
         });
 
         if (nonDuplicates.length === 0) {
@@ -241,28 +276,73 @@ export function useAddTracksMutation() {
           youtube_video_id: t.youtube_video_id || t.videoId || '',
           custom_title: t.custom_title || t.title || '알 수 없는 곡',
           custom_artist: t.custom_artist || t.artist || '알 수 없는 아티스트',
-          duration: t.durationSec || t.duration || 0,
           sequence: baseSeq + idx,
         }));
 
-        const { data, error } = await supabase
+        const insertedList = [];
+        let skippedInInsert = 0;
+
+        // 속도를 위해 먼저 일괄 삽입 시도
+        const { data: batchData, error: batchErr } = await supabase
           .from('tracks')
           .insert(insertPayloads)
           .select();
-        if (error) throw error;
-        return { inserted: data || [], skippedCount: tracks.length - nonDuplicates.length };
+
+        if (!batchErr && batchData) {
+          insertedList.push(...batchData);
+        } else {
+          // 일괄 삽입 중 일부 충돌 발생 시 개별 삽입으로 fallback 하여 중복이 아닌 나머지 곡들은 정상 추가
+          for (let i = 0; i < insertPayloads.length; i++) {
+            const item = { ...insertPayloads[i], sequence: baseSeq + insertedList.length };
+            const { data: singleData, error: singleErr } = await supabase
+              .from('tracks')
+              .insert(item)
+              .select()
+              .single();
+
+            if (!singleErr && singleData) {
+              insertedList.push(singleData);
+            } else {
+              skippedInInsert++;
+            }
+          }
+        }
+
+        return { 
+          inserted: insertedList, 
+          skippedCount: (tracks.length - nonDuplicates.length) + skippedInInsert 
+        };
       } else {
+        // 게스트 모드 (LocalStorage)
         const localTr = localStorage.getItem('sofar_tracks');
         const allTracks = localTr ? JSON.parse(localTr) : [];
 
         const existingPlaylistTracks = allTracks.filter(t => t.playlist_id === playlistId);
-        const existingSet = new Set(
+        const existingVideoSet = new Set(
           existingPlaylistTracks.map(t => t.youtube_video_id).filter(Boolean)
         );
+        const existingTitleArtistSet = new Set(
+          existingPlaylistTracks.map(t => `${(t.custom_title || '').trim().toLowerCase()}::${(t.custom_artist || '').trim().toLowerCase()}`)
+        );
 
-        const nonDuplicates = tracks.filter(t => {
+        const seenInBatchVideo = new Set();
+        const seenInBatchTitleArtist = new Set();
+
+        const nonDuplicates = resolvedTracks.filter(t => {
           const vId = t.youtube_video_id || t.videoId;
-          return vId ? !existingSet.has(vId) : true;
+          const title = (t.custom_title || t.title || '').trim().toLowerCase();
+          const artist = (t.custom_artist || t.artist || '').trim().toLowerCase();
+          const titleArtistKey = `${title}::${artist}`;
+
+          if (vId && existingVideoSet.has(vId)) return false;
+          if (title && artist && existingTitleArtistSet.has(titleArtistKey)) return false;
+
+          if (vId && seenInBatchVideo.has(vId)) return false;
+          if (title && artist && seenInBatchTitleArtist.has(titleArtistKey)) return false;
+
+          if (vId) seenInBatchVideo.add(vId);
+          if (title && artist) seenInBatchTitleArtist.add(titleArtistKey);
+          return true;
         });
 
         if (nonDuplicates.length === 0) {

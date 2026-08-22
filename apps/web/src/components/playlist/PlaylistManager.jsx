@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAudio } from '../../contexts/AudioContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../contexts/AuthContext';
-import { Trash2, Plus, ChevronLeft, Music, MoreVertical, MoreHorizontal, Pencil, ListPlus, ListMusic, Search, Home, Headphones, Share2, Play, Shuffle, TvMinimal, LayoutGrid } from 'lucide-react';
+import { Trash2, Plus, ChevronLeft, Music, MoreVertical, MoreHorizontal, Pencil, ListPlus, ListMusic, Search, Home, Headphones, Share2, Play, Shuffle, TvMinimal, LayoutGrid, Loader2 } from 'lucide-react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -88,6 +88,9 @@ export default function PlaylistManager() {
   const addTracksMutation = useAddTracksMutation();
   const deleteTrackMutation = useDeleteTrackMutation();
   const clearPlaylistTracksMutation = useClearPlaylistTracksMutation();
+
+  const isAddingBatchTracks = addTracksMutation.isPending;
+  const [pendingFolderId, setPendingFolderId] = useState(null);
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('playlists');
@@ -296,26 +299,37 @@ export default function PlaylistManager() {
       const tracks = extractTracksFromDragData(rawData);
       if (!tracks || tracks.length === 0) return;
 
+      setPendingFolderId(folder.id);
       const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
         playlistId: folder.id,
         tracks,
       });
 
       if (inserted.length === 0 && skippedCount > 0) {
-        showToast(`이미 '${folder.title}' 플레이리스트에 담긴 곡입니다.`);
+        showToast(`'${folder.title}'에 이미 모두 담겨있는 곡입니다.`);
         return;
       }
 
       if (inserted.length === 1) {
         const title = inserted[0].custom_title || inserted[0].title || '제목 없음';
-        showToast(`'${title}' 곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+        if (skippedCount > 0) {
+          showToast(`'${title}' 1곡을 추가했습니다. (중복 ${skippedCount}곡 제외)`);
+        } else {
+          showToast(`'${title}' 곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+        }
       } else if (inserted.length > 1) {
         const label = rawData.name || rawData.title || `${inserted.length}곡`;
-        showToast(`'${label}' ${inserted.length}곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+        if (skippedCount > 0) {
+          showToast(`'${label}' ${inserted.length}곡을 추가했습니다. (중복 ${skippedCount}곡 제외)`);
+        } else {
+          showToast(`'${label}' ${inserted.length}곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+        }
       }
     } catch (err) {
       console.warn('Drop to folder failed:', err);
       showToast('플레이리스트 추가 중 오류가 발생했습니다.');
+    } finally {
+      setPendingFolderId(null);
     }
   };
 
@@ -442,16 +456,24 @@ export default function PlaylistManager() {
       });
 
       if (inserted.length === 0 && skippedCount > 0) {
-        showToast(`이미 '${currentPl?.title || '플레이리스트'}'에 담긴 곡입니다.`);
+        showToast(`'${currentPl?.title || '플레이리스트'}'에 이미 모두 담겨있는 곡입니다.`);
         return;
       }
 
       if (inserted.length === 1) {
         const title = inserted[0].custom_title || inserted[0].title || '제목 없음';
-        showToast(`'${title}' 곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+        if (skippedCount > 0) {
+          showToast(`'${title}' 1곡을 추가했습니다. (중복 ${skippedCount}곡 제외)`);
+        } else {
+          showToast(`'${title}' 곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+        }
       } else if (inserted.length > 1) {
         const label = rawData.name || rawData.title || `${inserted.length}곡`;
-        showToast(`'${label}' ${inserted.length}곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+        if (skippedCount > 0) {
+          showToast(`'${label}' ${inserted.length}곡을 추가했습니다. (중복 ${skippedCount}곡 제외)`);
+        } else {
+          showToast(`'${label}' ${inserted.length}곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+        }
       }
     } catch (err) {
       console.warn('Drop to detail failed:', err);
@@ -1743,15 +1765,20 @@ export default function PlaylistManager() {
                         return (
                           <div 
                             key={pl.id} 
-                            className={`folder-card stagger-fade-item ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'drag-over' : ''}`}
+                            className={`folder-card stagger-fade-item ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'drag-over' : ''} ${pendingFolderId === pl.id && isAddingBatchTracks ? 'is-processing' : ''}`}
                             style={getStaggerStyle(plIdx)}
-                            onClick={() => handleSelectPlaylistFolder(pl.id)}
-                            onDragOver={(e) => handleFolderDragOver(e, pl.id)}
-                            onDragLeave={(e) => handleFolderDragLeave(e, pl.id)}
-                            onDrop={(e) => handleFolderDrop(e, pl)}
+                            onClick={() => !isAddingBatchTracks && handleSelectPlaylistFolder(pl.id)}
+                            onDragOver={(e) => !isAddingBatchTracks && handleFolderDragOver(e, pl.id)}
+                            onDragLeave={(e) => !isAddingBatchTracks && handleFolderDragLeave(e, pl.id)}
+                            onDrop={(e) => !isAddingBatchTracks && handleFolderDrop(e, pl)}
                           >
                             <div className="folder-card-cover-wrapper">
                               {render2x2Cover(pl)}
+                              {pendingFolderId === pl.id && isAddingBatchTracks && (
+                                <div className="folder-card-processing-overlay">
+                                  <Loader2 size={24} className="spin-icon" />
+                                </div>
+                              )}
                             </div>
                             <div className="folder-card-info">
                               <div className="folder-card-header-row">
@@ -1844,10 +1871,10 @@ export default function PlaylistManager() {
                 {/* 본문 곡 목록 (줌 & 페이드 애니메이션) */}
                 <div 
                   key={activeSharedPlaylist ? activeSharedPlaylist.id : (selectedPlaylistId || 'detail-tracks')}
-                  className={`track-item-list scrollbar-none ${isEnteringDetail ? 'detail-enter-zoom' : ''} ${isExitingDetail ? 'detail-exit-zoom' : ''} ${isDetailDragOver ? 'drag-over' : ''} ${!isTrackListVisible ? 'track-list-pre-scroll' : ''}`}
-                  onDragOver={handleDetailDragOver}
-                  onDragLeave={handleDetailDragLeave}
-                  onDrop={handleDetailDrop}
+                  className={`track-item-list scrollbar-none ${isEnteringDetail ? 'detail-enter-zoom' : ''} ${isExitingDetail ? 'detail-exit-zoom' : ''} ${isDetailDragOver ? 'drag-over' : ''} ${!isTrackListVisible ? 'track-list-pre-scroll' : ''} ${isAddingBatchTracks ? 'is-processing' : ''}`}
+                  onDragOver={isAddingBatchTracks ? undefined : handleDetailDragOver}
+                  onDragLeave={isAddingBatchTracks ? undefined : handleDetailDragLeave}
+                  onDrop={isAddingBatchTracks ? undefined : handleDetailDrop}
                 >
                   {(!activeSharedPlaylist && isTracksLoading && fetchedTracks.length === 0) ? (
                     <div className="track-loading-skeleton-list delayed-skeleton-container">

@@ -608,23 +608,19 @@
   position: relative;
 }
 
-.track-item-list:has(.empty-list-message.queue) {
+.track-item-list:has(.empty-list-message) {
   padding-bottom: 0;
 }
 
 .empty-list-message {
-  text-align: center;
-  padding: 5rem 0;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
-.empty-list-message.queue {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 4rem 0;
+  text-align: center;
+  padding: 5rem 0;
+  color: var(--text-muted);
+  font-size: 0.75rem;
 }
 
 .queue-clear-btn {
@@ -940,4 +936,64 @@
 
 .drag-over-btn * {
   pointer-events: none !important;
+}
+
+/* --- Batch Addition Processing & Disabled States --- */
+.track-item-list.is-processing {
+  pointer-events: none !important;
+  opacity: 0.45;
+  user-select: none;
+  filter: grayscale(0.2);
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.track-list-processing-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  margin: 0 1.25rem 0.5rem 1.25rem;
+  background: rgba(212, 163, 115, 0.1);
+  border: 1px solid rgba(212, 163, 115, 0.25);
+  border-radius: 12px;
+  color: var(--primary-warm, #d4a373);
+  font-size: 0.78rem;
+  font-weight: 500;
+  animation: fadeIn 0.2s ease forwards;
+  flex-shrink: 0;
+}
+
+.track-list-processing-bar .spin-icon,
+.folder-card-processing-overlay .spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+.folder-card.is-processing {
+  pointer-events: none !important;
+  user-select: none;
+}
+
+.folder-card-processing-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border-radius: inherit;
+  color: var(--primary-warm, #d4a373);
+  z-index: 5;
+  animation: fadeIn 0.15s ease forwards;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
