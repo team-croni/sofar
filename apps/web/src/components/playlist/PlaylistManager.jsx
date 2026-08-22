@@ -2041,12 +2041,18 @@ export default function PlaylistManager() {
                 >
                   {(!activeSharedPlaylist && isTracksLoading && fetchedTracks.length === 0) ? (
                     <div className="track-loading-skeleton-list delayed-skeleton-container">
-                      {[1, 2, 3, 4].map((num) => (
+                      {[1, 2, 3, 4, 5, 6].map((num) => (
                         <div key={num} className="track-skeleton-row">
-                          <div className="track-skeleton-thumb" />
-                          <div className="track-skeleton-info">
-                            <div className="track-skeleton-title" />
-                            <div className="track-skeleton-artist" />
+                          <div className="track-skeleton-meta">
+                            <div className="track-skeleton-thumb skeleton-pulse" />
+                            <div className="track-skeleton-texts">
+                              <div className="track-skeleton-title skeleton-pulse" style={{ width: num % 2 === 0 ? '65%' : '50%' }} />
+                              <div className="track-skeleton-artist skeleton-pulse" style={{ width: num % 2 === 0 ? '40%' : '32%' }} />
+                            </div>
+                          </div>
+                          <div className="track-skeleton-actions">
+                            <div className="track-skeleton-duration skeleton-pulse" />
+                            <div className="track-skeleton-btn skeleton-pulse" />
                           </div>
                         </div>
                       ))}

@@ -670,71 +670,88 @@
 .track-loading-skeleton-list {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.75rem 1rem;
-  opacity: 0;
-  animation: skeletonFadeIn 0.25s ease-out 0.12s forwards;
-}
-
-@keyframes skeletonFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  width: 100%;
+  padding: 0;
+  gap: 0;
 }
 
 .track-skeleton-row {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  gap: 1rem;
+  background: transparent;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  user-select: none;
+}
+
+.track-skeleton-meta {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  animation: trackSkeletonPulse 1.4s infinite ease-in-out;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .track-skeleton-thumb {
-  width: 40px;
-  height: 40px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
-.track-skeleton-info {
+@supports (corner-shape: squircle) {
+  .track-skeleton-thumb {
+    border-radius: 100%;
+    corner-shape: squircle;
+  }
+}
+
+.track-skeleton-texts {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 0;
   flex: 1;
 }
 
 .track-skeleton-title {
-  height: 12px;
-  width: 60%;
+  height: 14px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .track-skeleton-artist {
-  height: 10px;
-  width: 35%;
+  height: 11px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  margin-top: 0.1rem;
 }
 
-@keyframes trackSkeletonPulse {
-  0% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 0.75;
-  }
-  100% {
-    opacity: 0.35;
-  }
+.track-skeleton-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: -4px;
+  flex-shrink: 0;
 }
+
+.track-skeleton-duration {
+  width: 28px;
+  height: 12px;
+  border-radius: 4px;
+  margin-right: 0.35rem;
+}
+
+.track-skeleton-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
 
 .tracks-loading-center {
   display: flex;
