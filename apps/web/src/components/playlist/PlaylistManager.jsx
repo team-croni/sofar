@@ -313,7 +313,12 @@ export default function PlaylistManager() {
       });
 
       if (inserted.length === 0 && skippedCount > 0) {
-        showToast(`'${folder.title}'에 이미 모두 담겨있는 곡입니다.`);
+        if (tracks.length === 1) {
+          const singleTitle = tracks[0].custom_title || tracks[0].title || tracks[0].name || tracks[0].trackName || '';
+          showToast(singleTitle ? `'${singleTitle}' 곡은 '${folder.title}'에 이미 추가된 곡입니다.` : `'${folder.title}'에 이미 추가된 곡입니다.`);
+        } else {
+          showToast(`'${folder.title}'에 이미 모두 담겨있는 곡들입니다.`);
+        }
         return;
       }
 
@@ -585,7 +590,13 @@ export default function PlaylistManager() {
       });
 
       if (inserted.length === 0 && skippedCount > 0) {
-        showToast(`'${currentPl?.title || '플레이리스트'}'에 이미 모두 담겨있는 곡입니다.`);
+        const plTitle = currentPl?.title || '플레이리스트';
+        if (tracks.length === 1) {
+          const singleTitle = tracks[0].custom_title || tracks[0].title || tracks[0].name || tracks[0].trackName || '';
+          showToast(singleTitle ? `'${singleTitle}' 곡은 '${plTitle}'에 이미 추가된 곡입니다.` : `'${plTitle}'에 이미 추가된 곡입니다.`);
+        } else {
+          showToast(`'${plTitle}'에 이미 모두 담겨있는 곡들입니다.`);
+        }
         return;
       }
 
@@ -638,7 +649,13 @@ export default function PlaylistManager() {
       });
 
       if (inserted.length === 0 && skippedCount > 0) {
-        showToast(`'${currentPl?.title || '플레이리스트'}'에 이미 모두 담겨있는 곡입니다.`);
+        const plTitle = currentPl?.title || '플레이리스트';
+        if (tracks.length === 1) {
+          const singleTitle = tracks[0].custom_title || tracks[0].title || tracks[0].name || tracks[0].trackName || '';
+          showToast(singleTitle ? `'${singleTitle}' 곡은 '${plTitle}'에 이미 추가된 곡입니다.` : `'${plTitle}'에 이미 추가된 곡입니다.`);
+        } else {
+          showToast(`'${plTitle}'에 이미 모두 담겨있는 곡들입니다.`);
+        }
         return;
       }
 

@@ -189,18 +189,20 @@ export function useAddTracksMutation() {
 
       // 0. 각 트랙의 videoId 사전 확보 (비어있는 경우 검색 쿼리로 병렬 매칭하여 동일 빈 문자열 충돌 방지)
       const resolvedTracks = await Promise.all(
-        tracks.map(async (t) => {
+        tracks.map(async (t, idx) => {
           let videoId = t.youtube_video_id 
             || t.videoId 
             || (typeof t.id === 'string' && !t.id.startsWith('tr-') && t.id.length === 11 ? t.id : '');
 
+          const title = t.custom_title || t.title || t.name || t.trackName || '';
+          const artist = t.custom_artist || t.artist || t.artistName || t.singer || '';
+          const durationSec = t.durationSec || t.duration || 0;
+
           if (!videoId) {
-            const title = t.custom_title || t.title || '';
-            const artist = t.custom_artist || t.artist || '';
             const query = t.searchQuery || `${title} ${artist}`.trim();
             if (query) {
               try {
-                const results = await searchYoutube(query);
+                const results = await searchYoutube(query, durationSec);
                 if (results && results.length > 0) {
                   videoId = results[0].youtube_video_id || results[0].id || '';
                 }
@@ -211,14 +213,19 @@ export function useAddTracksMutation() {
           }
 
           if (!videoId) {
-            const title = (t.custom_title || t.title || 'track').trim().toLowerCase();
-            const artist = (t.custom_artist || t.artist || 'artist').trim().toLowerCase();
-            videoId = t.id && !t.id.startsWith('tr-') ? t.id : `trk_${encodeURIComponent(title)}_${encodeURIComponent(artist)}`;
+            const cleanTitle = (title || 'track').trim().toLowerCase();
+            const cleanArtist = (artist || 'artist').trim().toLowerCase();
+            videoId = t.id && !t.id.startsWith('tr-') 
+              ? t.id 
+              : `trk_${encodeURIComponent(cleanTitle)}_${encodeURIComponent(cleanArtist)}_${Date.now()}_${idx}`;
           }
 
           return {
             ...t,
+            custom_title: title || t.custom_title || t.title || '알 수 없는 곡',
+            custom_artist: artist || t.custom_artist || t.artist || '알 수 없는 아티스트',
             youtube_video_id: videoId,
+            durationSec,
           };
         })
       );
@@ -432,13 +439,14 @@ export function useAddTrackToPlaylist() {
       let videoId = track.youtube_video_id 
         || track.videoId 
         || (typeof track.id === 'string' && !track.id.startsWith('tr-') && track.id.length === 11 ? track.id : '');
-      const title = track.custom_title || track.title || '유튜브 동영상';
-      const artist = track.custom_artist || track.artist || '알 수 없는 아티스트';
+      const title = track.custom_title || track.title || track.name || track.trackName || '유튜브 동영상';
+      const artist = track.custom_artist || track.artist || track.artistName || track.singer || '알 수 없는 아티스트';
+      const durationSec = track.durationSec || track.duration || 0;
 
       if (!videoId) {
-        const query = track.searchQuery || `${title} ${artist}`;
+        const query = track.searchQuery || `${title} ${artist}`.trim();
         try {
-          const results = await searchYoutube(query);
+          const results = await searchYoutube(query, durationSec);
           if (results && results.length > 0) {
             videoId = results[0].youtube_video_id || results[0].id || '';
           }
@@ -452,7 +460,7 @@ export function useAddTrackToPlaylist() {
         videoId: videoId || '',
         title,
         artist,
-        durationSec: track.durationSec || track.duration || 0,
+        durationSec,
       });
 
       if (!silent) {

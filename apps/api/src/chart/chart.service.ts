@@ -496,7 +496,53 @@ export class ChartService implements OnModuleInit {
     const cleanSearchQuery = (searchQuery || '').toLowerCase();
 
     let score = 0;
-    // 1) Topic 및 Official Audio 원곡 음원 가산점 강화
+
+    // 0) 검색 쿼리(곡명/아티스트) 키워드 토큰 매칭 점수 산출
+    if (cleanSearchQuery) {
+      const stopWords = new Set(['official', 'audio', 'mv', 'm/v', 'topic', 'feat', 'ft', 'prod', 'lyrics', '가사', '음원', 'music', 'video']);
+      const queryTokens = cleanSearchQuery
+        .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
+        .replace(/[\-_/\\#,.\+~]/g, ' ')
+        .split(/\s+/)
+        .map(t => t.trim())
+        .filter(t => t.length >= 1 && !stopWords.has(t));
+
+      if (queryTokens.length > 0) {
+        const normalizedTitle = title.replace(/[\-_/\\#,.\+~]/g, ' ');
+        const normalizedChannel = channel.replace(/[\-_/\\#,.\+~]/g, ' ');
+
+        let matchedTitleTokens = 0;
+        let matchedChannelTokens = 0;
+
+        queryTokens.forEach(token => {
+          if (normalizedTitle.includes(token)) {
+            matchedTitleTokens++;
+          }
+          if (normalizedChannel.includes(token)) {
+            matchedChannelTokens++;
+          }
+        });
+
+        const titleMatchRatio = matchedTitleTokens / queryTokens.length;
+
+        if (titleMatchRatio >= 0.8) {
+          score += 4500; // 검색어 대부분이 제목에 포함됨 (최우선)
+        } else if (titleMatchRatio >= 0.5) {
+          score += 2500;
+        } else if (matchedTitleTokens > 0) {
+          score += matchedTitleTokens * 1000;
+        } else {
+          // 검색어의 어떤 핵심 단어도 제목에 포함되지 않은 경우 대폭 감점 (같은 가수의 다른 곡 Topic 1위 가로채기 방지)
+          score -= 5000;
+        }
+
+        if (matchedChannelTokens > 0) {
+          score += matchedChannelTokens * 800;
+        }
+      }
+    }
+
+    // 1) Topic 및 Official Audio 원곡 음원 가산점 강화 (제목 매칭 점수와 결합)
     if (
       channel.endsWith('- topic') ||
       channel.endsWith(' topic') ||
