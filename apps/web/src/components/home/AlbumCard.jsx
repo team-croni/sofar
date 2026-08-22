@@ -37,7 +37,15 @@ export default function AlbumCard({ track, isPlaying, onPlay, isSearching, onAdd
       <div className="album-card__meta">
         <div className="album-card__meta-header">
           <span className="album-card__title" title={track.custom_title}>{track.custom_title}</span>
-          <div className="album-card__actions" onClick={(e) => e.stopPropagation()}>
+          <div 
+            className="album-card__actions" 
+            draggable={false}
+            onDragStart={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <TrackActionDropdown
               track={track}
               onPlay={onPlay}

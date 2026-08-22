@@ -608,6 +608,10 @@
   position: relative;
 }
 
+.track-item-list:has(.empty-list-message.queue) {
+  padding-bottom: 0;
+}
+
 .empty-list-message {
   text-align: center;
   padding: 5rem 0;
@@ -616,6 +620,10 @@
 }
 
 .empty-list-message.queue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
   padding: 4rem 0;
 }
 
@@ -914,11 +922,8 @@
 }
 
 .empty-list-message.queue.drag-over {
-  border: 1.5px dashed var(--primary-warm, #d4a373);
   background: rgba(212, 163, 115, 0.08);
   color: var(--primary-warm, #d4a373);
-  border-radius: 12px;
-  padding: 2rem 1rem;
   transition: var(--transition-fast);
 }
 
@@ -928,12 +933,9 @@
 }
 
 .drag-over-btn {
-  border-color: var(--primary-warm, #d4a373) !important;
-  background: rgba(212, 163, 115, 0.22) !important;
-  color: var(--primary-warm, #d4a373) !important;
-  transform: scale(1.12) !important;
-  box-shadow: 0 0 12px rgba(212, 163, 115, 0.35) !important;
-  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  color: var(--text-primary) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  transform: scale(1.08) translateZ(0) !important;
 }
 
 .drag-over-btn * {

@@ -1,6 +1,8 @@
 .sofar-dropdown {
   position: relative;
   display: inline-flex;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .sofar-dropdown-trigger-btn {
@@ -16,6 +18,8 @@
   justify-content: center;
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .sofar-dropdown-trigger-btn:hover {
@@ -90,6 +94,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.dropdown-item-label {
+  flex: 1;
+}
+
+.dropdown-item-arrow {
+  margin-left: 4px;
+  opacity: 0.5;
   flex-shrink: 0;
 }
 

@@ -127,7 +127,7 @@ image {
 /* Desktop 2-Column Main Dashboard Layout */
 .app-main {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
   height: 100%; /* 헤더가 플로팅이므로 화면 전체 높이 사용 */
   width: 100%;
   overflow: hidden;
@@ -139,7 +139,7 @@ image {
 }
 
 .left-panel-column {
-  width: 340px;
+  width: var(--sidebar-width);
   height: 100%;
   overflow: hidden;
   padding: 0;
@@ -274,23 +274,30 @@ image {
 
 /* Custom Drag Ghost Element Style (Compact Drag Preview) */
 .custom-drag-ghost {
-  position: absolute;
+  position: fixed;
   top: -9999px;
   left: -9999px;
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.45rem 0.85rem 0.45rem 0.45rem;
-  background: var(--bg-popover);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 0.4rem 0.85rem 0.4rem 0.4rem;
+  background: #1e2024;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  overflow: visible;
   color: #ffffff;
   font-family: var(--font-sans);
   pointer-events: none;
   z-index: 10000;
-  max-width: 220px;
+  max-width: 230px;
   width: max-content;
+  box-sizing: border-box;
+}
+
+.drag-ghost-cover-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
 }
 
 .drag-ghost-cover {
@@ -299,20 +306,45 @@ image {
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.drag-ghost-cover.is-artist-cover {
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .drag-ghost-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .drag-ghost-placeholder {
   font-size: 14px;
+}
+
+.drag-ghost-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: black;
+  color: #ffffff;
+  font-size: 0.625rem;
+  min-width: 17px;
+  height: 17px;
+  padding: 2px 4px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
+  z-index: 2;
 }
 
 .drag-ghost-info {
@@ -324,8 +356,7 @@ image {
 }
 
 .drag-ghost-title {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 0.75rem;
   color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
@@ -334,13 +365,25 @@ image {
 }
 
 .drag-ghost-artist {
-  font-size: 10.5px;
+  font-size: 0.75rem;
   font-weight: 400;
   color: var(--text-secondary, #909294);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
+}
+
+/* Action buttons / Interactive controls DnD prevention */
+.track-actions,
+.track-action-dropdown,
+.popular-row__actions,
+.album-card__actions,
+.top-result-actions,
+.sofar-dropdown,
+.sofar-dropdown-trigger-btn {
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 /* Migration Overlay Modal */

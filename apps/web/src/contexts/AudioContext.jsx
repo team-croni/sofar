@@ -640,10 +640,37 @@ export function AudioProvider({ children }) {
     window.dispatchEvent(new CustomEvent('trigger-open-queue'));
   }, []);
 
+  const normalizeQueueTrack = (track, idx = 0) => {
+    if (!track) return null;
+    const customTitle = track.custom_title || track.title || track.name || '제목 없음';
+    const customArtist = track.custom_artist || track.artist || '아티스트 미상';
+    const artwork = track.artwork || track.thumbnail || track.coverUrl || track.cover || track.album_cover || null;
+    const youtubeId = track.youtube_video_id || track.videoId || null;
+
+    return {
+      ...track,
+      id: track.id && String(track.id).startsWith('tr-queue-') 
+        ? track.id 
+        : `tr-queue-${track.id || 'track'}-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 6)}`,
+      custom_title: customTitle,
+      custom_artist: customArtist,
+      artwork: artwork,
+      thumbnail: artwork || track.thumbnail,
+      youtube_video_id: youtubeId,
+      durationSec: track.durationSec || track.duration || 0,
+      searchQuery: track.searchQuery || `${customArtist} ${customTitle}`.trim(),
+      lyric_offset: track.lyric_offset ?? 0,
+      custom_lyrics: track.custom_lyrics ?? ''
+    };
+  };
+
   const addToQueue = useCallback((trackOrTracks, position = 'end', options = {}) => {
     if (!trackOrTracks) return;
     const isArray = Array.isArray(trackOrTracks);
-    const tracksToAdd = isArray ? trackOrTracks.filter(Boolean) : [trackOrTracks];
+    const rawList = isArray ? trackOrTracks.filter(Boolean) : [trackOrTracks];
+    if (rawList.length === 0) return;
+
+    const tracksToAdd = rawList.map((t, idx) => normalizeQueueTrack(t, idx)).filter(Boolean);
     if (tracksToAdd.length === 0) return;
 
     setQueue((prevQueue) => {
@@ -684,14 +711,14 @@ export function AudioProvider({ children }) {
         if (tracksToAdd.length === 1) {
           const single = tracksToAdd[0];
           const posText = position === 'next' ? '다음에 재생하도록 대기열에' : '대기열 맨 뒤에';
-          showToast(`'${single.custom_title || single.title || '트랙'}'을(를) ${posText} 추가했습니다.`);
+          showToast(`'${single.custom_title}'을(를) ${posText} 추가했습니다.`);
         } else {
           const posText = position === 'next' ? '다음에 재생하도록 대기열에' : '대기열에';
           showToast(`음악 ${tracksToAdd.length}곡을 ${posText} 추가했습니다.`);
         }
       } else {
         const posText = position === 'next' ? '다음에 재생하도록 대기열에' : '대기열 맨 뒤에';
-        showToast(`'${trackOrTracks.custom_title || trackOrTracks.title || '트랙'}'을(를) ${posText} 추가했습니다.`);
+        showToast(`'${tracksToAdd[0].custom_title}'을(를) ${posText} 추가했습니다.`);
       }
     }
   }, [showToast]);

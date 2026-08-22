@@ -86,7 +86,15 @@ export default function SearchTopResult({ track }) {
       </div>
 
       {/* 3. 공통 트랙 케밥 액션 메뉴 (TrackActionDropdown) */}
-      <div className="top-result-actions" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="top-result-actions" 
+        draggable={false}
+        onDragStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <TrackActionDropdown
           track={track}
           onPlay={() => playTrack(track)}

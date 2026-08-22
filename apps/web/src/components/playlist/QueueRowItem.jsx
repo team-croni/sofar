@@ -37,6 +37,16 @@ export default function QueueRowItem({
   });
 
   useEffect(() => {
+    const explicitDuration = track?.duration || track?.durationSec;
+    if (explicitDuration && explicitDuration > 0) {
+      setTrackDurationSec(explicitDuration);
+      if (track?.youtube_video_id) {
+        durationCache.set(track.youtube_video_id, explicitDuration);
+        saveDurationCache();
+      }
+      return;
+    }
+
     const cached = durationCache.get(track?.youtube_video_id);
     if (cached) {
       setTrackDurationSec(cached);
@@ -45,15 +55,17 @@ export default function QueueRowItem({
 
     if (isCurrent && audioDuration > 0) {
       setTrackDurationSec(audioDuration);
-      durationCache.set(track?.youtube_video_id, audioDuration);
-      saveDurationCache();
+      if (track?.youtube_video_id) {
+        durationCache.set(track.youtube_video_id, audioDuration);
+        saveDurationCache();
+      }
       return;
     }
 
     if (track?.youtube_video_id) {
       fetchVideoDurations([track.youtube_video_id]);
     }
-  }, [track?.youtube_video_id, isCurrent, audioDuration]);
+  }, [track?.id, track?.duration, track?.durationSec, track?.youtube_video_id, isCurrent, audioDuration]);
 
   useEffect(() => {
     const handleDurationCached = (e) => {
@@ -125,14 +137,14 @@ export default function QueueRowItem({
           <GripVertical size={16} strokeWidth={1.5} />
         </div>
         <TrackThumbnail 
-          title={track.custom_title} 
-          artist={track.custom_artist} 
+          title={track.custom_title || track.title} 
+          artist={track.custom_artist || track.artist} 
           youtubeId={track.youtube_video_id} 
-          artwork={track.artwork}
+          artwork={track.artwork || track.thumbnail || track.coverUrl || track.cover}
         />
         <div className="track-meta-texts">
-          <TrackTitleMarquee title={track.custom_title} isActive={isCurrent} />
-          <p className="track-meta-artist">{formatArtistName(track.custom_artist)}</p>
+          <TrackTitleMarquee title={track.custom_title || track.title} isActive={isCurrent} />
+          <p className="track-meta-artist">{formatArtistName(track.custom_artist || track.artist)}</p>
         </div>
       </div>
       

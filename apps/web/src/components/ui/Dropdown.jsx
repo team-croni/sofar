@@ -150,15 +150,35 @@ export default function Dropdown({ options, trigger, align = 'right', children }
   };
 
   return (
-    <div className="sofar-dropdown">
-      <div ref={triggerRef} style={{ display: 'inline-flex' }}>
+    <div 
+      className="sofar-dropdown"
+      draggable={false}
+      onMouseDown={(e) => e.stopPropagation()}
+      onDragStart={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+    >
+      <div 
+        ref={triggerRef} 
+        style={{ display: 'inline-flex' }}
+        draggable={false}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {trigger ? (
-          <div onClick={handleTriggerClick} style={{ display: 'inline-flex' }}>
+          <div 
+            onClick={handleTriggerClick} 
+            onMouseDown={(e) => e.stopPropagation()}
+            draggable={false}
+            style={{ display: 'inline-flex' }}
+          >
             {trigger(isOpen)}
           </div>
         ) : (
           <button 
             onClick={handleTriggerClick} 
+            onMouseDown={(e) => e.stopPropagation()}
+            draggable={false}
             className={`sofar-dropdown-trigger-btn ${isOpen ? 'active' : ''}`}
             title="더보기"
           >

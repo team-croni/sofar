@@ -1,6 +1,7 @@
 import React from 'react';
 import { User } from 'lucide-react';
 import { formatArtistName } from '../../utils/trackUtils';
+import { handleArtistDragStart } from '../../utils/dragUtils';
 
 export default function SearchArtistCard({ artistItem, isSelected, onSelectArtist }) {
   const displayName = formatArtistName(artistItem.name);
@@ -8,7 +9,10 @@ export default function SearchArtistCard({ artistItem, isSelected, onSelectArtis
   return (
     <div 
       className={`search-artist-profile-card ${isSelected ? 'is-selected' : ''}`}
+      draggable={true}
+      onDragStart={(e) => handleArtistDragStart(e, artistItem)}
       onClick={() => onSelectArtist(artistItem)}
+      title={`${displayName} - 클릭하여 곡 필터링 또는 드래그하여 플레이리스트/대기열에 추가`}
     >
       {/* 1. 원형 아티스트 아바타 커버 */}
       <div className="artist-profile-avatar-wrap">

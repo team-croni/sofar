@@ -40,7 +40,15 @@ const StatRankRow = React.forwardRef(function StatRankRow({ track, rank, isCurre
       <div className="popular-row__col-change">
         <RankChangeBadge type={track.changeType} val={track.changeVal} />
       </div>
-      <div className="popular-row__actions" onClick={e => e.stopPropagation()}>
+      <div 
+        className="popular-row__actions" 
+        draggable={false}
+        onDragStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={e => e.stopPropagation()}
+      >
         <TrackActionDropdown
           track={track}
           onPlay={onPlay}

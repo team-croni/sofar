@@ -34,7 +34,7 @@ export function saveDurationCache() {
  * @returns {string}
  */
 export function formatDuration(seconds) {
-  if (!seconds || isNaN(seconds) || seconds <= 0) return '--:--';
+  if (!seconds || isNaN(seconds) || seconds <= 0) return '-';
   const s = Math.floor(seconds);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);

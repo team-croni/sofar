@@ -25,7 +25,7 @@
   --font-sans: 'Outfit', 'Noto Sans KR', sans-serif;
   --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
   --transition-fast: all 0.1s ease;
-  --sidebar-width: 340px;
+  --sidebar-width: 360px;
 
   /* Standardized UI Control Heights & Radius Tokens (Modern Web UI Standard) */
   --control-height-sm: 36px;

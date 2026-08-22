@@ -31,6 +31,16 @@ export default function TrackRowItem({
   });
 
   useEffect(() => {
+    const explicitDuration = track?.duration || track?.durationSec;
+    if (explicitDuration && explicitDuration > 0) {
+      setTrackDurationSec(explicitDuration);
+      if (track?.youtube_video_id) {
+        durationCache.set(track.youtube_video_id, explicitDuration);
+        saveDurationCache();
+      }
+      return;
+    }
+
     const cached = durationCache.get(track?.youtube_video_id);
     if (cached) {
       setTrackDurationSec(cached);
@@ -49,7 +59,7 @@ export default function TrackRowItem({
     if (track?.youtube_video_id) {
       fetchVideoDurations([track.youtube_video_id]);
     }
-  }, [track?.youtube_video_id, isCurrent, audioDuration]);
+  }, [track?.id, track?.duration, track?.durationSec, track?.youtube_video_id, isCurrent, audioDuration]);
 
   useEffect(() => {
     const handleDurationCached = (e) => {
@@ -94,32 +104,39 @@ export default function TrackRowItem({
     >
       <div className="track-item-meta">
         <TrackThumbnail 
-          title={track.custom_title} 
-          artist={track.custom_artist} 
+          title={track.custom_title || track.title} 
+          artist={track.custom_artist || track.artist} 
           youtubeId={track.youtube_video_id} 
-          artwork={track.artwork}
+          artwork={track.artwork || track.thumbnail || track.coverUrl || track.cover}
         />
         <div className="track-meta-texts">
           <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0 }}>
-            <TrackTitleMarquee title={track.custom_title} isActive={isCurrent} />
+            <TrackTitleMarquee title={track.custom_title || track.title} isActive={isCurrent} />
             {track.isRefining && (
               <span className="refining-badge" style={{ fontSize: '8px', marginLeft: '0.35rem', whiteSpace: 'nowrap' }}>
                 정리 중...
               </span>
             )}
           </div>
-          <p className="track-meta-artist">{formatArtistName(track.custom_artist)}</p>
+          <p className="track-meta-artist">{formatArtistName(track.custom_artist || track.artist)}</p>
         </div>
       </div>
       
-      <div className="track-actions">
+      <div 
+        className="track-actions"
+        draggable={false}
+        onDragStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+      >
         <div className={`track-status-badge ${isPlayingCurrent ? 'is-playing' : ''}`}>
           <span className="track-playing-indicator" title="재생 중">
             <Headphones size={14} />
           </span>
           <span className="track-duration">{formatDuration(displayDurationSec)}</span>
         </div>
-        <div onClick={(e) => e.stopPropagation()}>
+        <div onClick={(e) => e.stopPropagation()} draggable={false}>
           <TrackActionDropdown
             track={track}
             onPlay={isCurrent ? togglePlay : () => playTrack(track)}

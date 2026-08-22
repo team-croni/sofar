@@ -131,8 +131,8 @@ function TrackActionDropdownContent({
         }}
       >
         <span className="dropdown-item-icon"><FolderPlus size={14} /></span>
-        <span className="dropdown-item-label" style={{ flex: 1 }}>플레이리스트에 추가</span>
-        <ChevronRight size={14} style={{ opacity: 0.5, flexShrink: 0 }} />
+        <span className="dropdown-item-label">플레이리스트에 추가</span>
+        <ChevronRight size={16} className="dropdown-item-arrow" />
       </button>
 
       {extraOptions.map((opt, idx) => {

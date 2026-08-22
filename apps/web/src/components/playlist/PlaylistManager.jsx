@@ -13,6 +13,8 @@ import QueueRowItem from './QueueRowItem';
 import TrackThumbnail from './TrackThumbnail';
 import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube } from '../../utils/youtube';
 import { durationCache } from '../../utils/durationCache';
+import { extractTracksFromDragData } from '../../utils/dragUtils';
+import { isMatchTrack } from '../../utils/trackUtils';
 import { Button, Logo, Dropdown } from '../ui';
 import './PlaylistManager.css';
 
@@ -222,6 +224,7 @@ export default function PlaylistManager() {
   const [dragOverFolderId, setDragOverFolderId] = useState(null);
   const [isQueueDragOver, setIsQueueDragOver] = useState(false);
   const [isBackDragOver, setIsBackDragOver] = useState(false);
+  const [isDetailDragOver, setIsDetailDragOver] = useState(false);
 
   // 스프링 로드 폴더/대기열 자동 진입 지연 시간 (0.9초: 바로 드롭할 여유를 충분히 주며 의도적 호버 시 진입)
   const SPRING_LOAD_HOVER_DELAY_MS = 900;
@@ -234,21 +237,36 @@ export default function PlaylistManager() {
     }
   }, []);
 
+  // 모든 드래그 하이라이트 상태 일괄 초기화 함수
+  const resetAllDragOverStates = useCallback(() => {
+    clearDragHoverTimer();
+    setDragOverFolderId(null);
+    setIsQueueDragOver(false);
+    setIsDetailDragOver(false);
+    setIsBackDragOver(false);
+    setDragOverInfo(null);
+  }, [clearDragHoverTimer]);
+
+  // 화면 전환(탭, 선택 플레이리스트, 공유 플레이리스트 등) 발생 시 모든 dragover 잔여 스타일 즉시 클리어
+  useEffect(() => {
+    resetAllDragOverStates();
+  }, [activeTab, selectedPlaylistId, activeSharedPlaylist, resetAllDragOverStates]);
+
   const handleFolderDragOver = (e, folderId) => {
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
     if (dragOverFolderId !== folderId) {
       setDragOverFolderId(folderId);
       clearDragHoverTimer();
       dragHoverTimerRef.current = setTimeout(() => {
+        resetAllDragOverStates();
         handleSelectPlaylistFolder(folderId);
-        clearDragHoverTimer();
       }, SPRING_LOAD_HOVER_DELAY_MS);
     } else if (!dragHoverTimerRef.current && !selectedPlaylistId && !enteringFolderId) {
       dragHoverTimerRef.current = setTimeout(() => {
+        resetAllDragOverStates();
         handleSelectPlaylistFolder(folderId);
-        clearDragHoverTimer();
       }, SPRING_LOAD_HOVER_DELAY_MS);
     }
   };
@@ -265,6 +283,44 @@ export default function PlaylistManager() {
     }
   };
 
+  const getPlaylistTracks = async (playlistId) => {
+    if (!playlistId) return [];
+    if (selectedPlaylistId === playlistId && fetchedTracks) {
+      return fetchedTracks;
+    }
+    const cached = queryClient.getQueryData(['tracks', playlistId, user?.id || 'guest']);
+    if (cached && cached.length > 0) {
+      return cached;
+    }
+    if (user && !user.isGuest && supabase) {
+      const { data } = await supabase
+        .from('tracks')
+        .select('*')
+        .eq('playlist_id', playlistId)
+        .order('sequence', { ascending: true });
+      if (data && data.length > 0) return data;
+    } else {
+      const localTr = localStorage.getItem('sofar_tracks');
+      if (localTr) {
+        try {
+          const parsed = JSON.parse(localTr);
+          return parsed.filter(t => t.playlist_id === playlistId).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+        } catch (e) {}
+      }
+    }
+    return playlistPreviews[playlistId] || [];
+  };
+
+  const isTrackAlreadyInList = (track, existingTracks) => {
+    if (!track || !existingTracks || existingTracks.length === 0) return false;
+    return existingTracks.some(existing => {
+      if (track.playlist_id && track.playlist_id === existing.playlist_id && track.id === existing.id) {
+        return true;
+      }
+      return isMatchTrack(track, existing);
+    });
+  };
+
   const handleFolderDrop = async (e, folder) => {
     e.preventDefault();
     e.stopPropagation();
@@ -273,21 +329,39 @@ export default function PlaylistManager() {
     try {
       const jsonStr = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
       if (!jsonStr) return;
-      const track = JSON.parse(jsonStr);
-      if (!track || (!track.youtube_video_id && !track.custom_title)) return;
+      const rawData = JSON.parse(jsonStr);
+      const tracks = extractTracksFromDragData(rawData);
+      if (!tracks || tracks.length === 0) return;
 
-      const videoId = track.youtube_video_id || '';
-      const title = track.custom_title || track.title || '제목 없음';
-      const artist = track.custom_artist || track.artist || '아티스트 미상';
+      const existingTracks = await getPlaylistTracks(folder.id);
+      const tracksToAdd = tracks.filter(t => !isTrackAlreadyInList(t, existingTracks));
 
-      await addTrackMutation.mutateAsync({
-        playlistId: folder.id,
-        videoId,
-        title,
-        artist,
-      });
+      if (tracksToAdd.length === 0) {
+        return;
+      }
 
-      showToast(`'${title}' 곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+      for (const track of tracksToAdd) {
+        const videoId = track.youtube_video_id || '';
+        const title = track.custom_title || track.title || '제목 없음';
+        const artist = track.custom_artist || track.artist || '아티스트 미상';
+        const durationSec = track.durationSec || track.duration || 0;
+
+        await addTrackMutation.mutateAsync({
+          playlistId: folder.id,
+          videoId,
+          title,
+          artist,
+          durationSec,
+        });
+      }
+
+      if (tracksToAdd.length === 1) {
+        const title = tracksToAdd[0].custom_title || tracksToAdd[0].title || '제목 없음';
+        showToast(`'${title}' 곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+      } else {
+        const label = rawData.name || rawData.title || `${tracksToAdd.length}곡`;
+        showToast(`'${label}' ${tracksToAdd.length}곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+      }
     } catch (err) {
       console.warn('Drop to folder failed:', err);
       showToast('플레이리스트 추가 중 오류가 발생했습니다.');
@@ -297,24 +371,24 @@ export default function PlaylistManager() {
   const handleQueueDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
     if (!isQueueDragOver) {
       setIsQueueDragOver(true);
       if (activeTab !== 'queue') {
         clearDragHoverTimer();
         dragHoverTimerRef.current = setTimeout(() => {
+          resetAllDragOverStates();
           if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
           setSelectedPlaylistId(null);
           setActiveTab('queue');
-          clearDragHoverTimer();
         }, SPRING_LOAD_HOVER_DELAY_MS);
       }
     } else if (!dragHoverTimerRef.current && activeTab !== 'queue') {
       dragHoverTimerRef.current = setTimeout(() => {
+        resetAllDragOverStates();
         if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
         setSelectedPlaylistId(null);
         setActiveTab('queue');
-        clearDragHoverTimer();
       }, SPRING_LOAD_HOVER_DELAY_MS);
     }
   };
@@ -332,16 +406,15 @@ export default function PlaylistManager() {
   const handleQueueDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    clearDragHoverTimer();
-    setIsQueueDragOver(false);
-    setDragOverInfo(null);
+    resetAllDragOverStates();
     try {
       const jsonStr = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
       if (!jsonStr) return;
-      const track = JSON.parse(jsonStr);
-      if (!track || (!track.youtube_video_id && !track.custom_title && !track.title)) return;
+      const rawData = JSON.parse(jsonStr);
+      const tracks = extractTracksFromDragData(rawData);
+      if (!tracks || tracks.length === 0) return;
 
-      addToQueue(track, 'end');
+      addToQueue(tracks, 'end');
     } catch (err) {
       console.warn('Drop to queue failed:', err);
     }
@@ -350,16 +423,15 @@ export default function PlaylistManager() {
   const handleBackDragOver = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
     if (!isBackDragOver) {
       setIsBackDragOver(true);
     }
     if (!dragHoverTimerRef.current) {
       dragHoverTimerRef.current = setTimeout(() => {
-        setIsBackDragOver(false);
-        clearDragHoverTimer();
+        resetAllDragOverStates();
         handleSidebarBack();
-      }, 550);
+      }, SPRING_LOAD_HOVER_DELAY_MS);
     }
   };
 
@@ -376,18 +448,15 @@ export default function PlaylistManager() {
   const handleBackDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    clearDragHoverTimer();
-    setIsBackDragOver(false);
+    resetAllDragOverStates();
     handleSidebarBack();
   };
-
-  const [isDetailDragOver, setIsDetailDragOver] = useState(false);
 
   const handleDetailDragOver = (e) => {
     if (!selectedPlaylistId || activeSharedPlaylist) return;
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
     if (!isDetailDragOver) {
       setIsDetailDragOver(true);
     }
@@ -407,26 +476,44 @@ export default function PlaylistManager() {
     if (!selectedPlaylistId || activeSharedPlaylist) return;
     e.preventDefault();
     e.stopPropagation();
-    clearDragHoverTimer();
-    setIsDetailDragOver(false);
+    resetAllDragOverStates();
     try {
       const jsonStr = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
       if (!jsonStr) return;
-      const track = JSON.parse(jsonStr);
-      if (!track || (!track.youtube_video_id && !track.custom_title)) return;
+      const rawData = JSON.parse(jsonStr);
+      const tracks = extractTracksFromDragData(rawData);
+      if (!tracks || tracks.length === 0) return;
 
       const currentPl = playlists.find(p => p.id === selectedPlaylistId);
-      const title = track.custom_title || track.title || '제목 없음';
-      const artist = track.custom_artist || track.artist || '아티스트 미상';
+      const existingTracks = fetchedTracks || [];
+      const tracksToAdd = tracks.filter(t => !isTrackAlreadyInList(t, existingTracks));
 
-      await addTrackMutation.mutateAsync({
-        playlistId: selectedPlaylistId,
-        videoId: track.youtube_video_id || '',
-        title,
-        artist,
-      });
+      if (tracksToAdd.length === 0) {
+        return;
+      }
 
-      showToast(`'${title}' 곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+      for (const track of tracksToAdd) {
+        const videoId = track.youtube_video_id || '';
+        const title = track.custom_title || track.title || '제목 없음';
+        const artist = track.custom_artist || track.artist || '아티스트 미상';
+        const durationSec = track.durationSec || track.duration || 0;
+
+        await addTrackMutation.mutateAsync({
+          playlistId: selectedPlaylistId,
+          videoId,
+          title,
+          artist,
+          durationSec,
+        });
+      }
+
+      if (tracksToAdd.length === 1) {
+        const title = tracksToAdd[0].custom_title || tracksToAdd[0].title || '제목 없음';
+        showToast(`'${title}' 곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+      } else {
+        const label = rawData.name || rawData.title || `${tracksToAdd.length}곡`;
+        showToast(`'${label}' ${tracksToAdd.length}곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+      }
     } catch (err) {
       console.warn('Drop to detail failed:', err);
       showToast('플레이리스트 추가 중 오류가 발생했습니다.');
@@ -435,19 +522,15 @@ export default function PlaylistManager() {
 
   const sidebarRef = useRef(null);
 
-  // 모든 드래그 하이라이트 상태 일괄 초기화 함수
-  const resetAllDragOverStates = useCallback(() => {
-    clearDragHoverTimer();
-    setDragOverFolderId(null);
-    setIsQueueDragOver(false);
-    setIsDetailDragOver(false);
-    setIsBackDragOver(false);
-    setDragOverInfo(null);
-  }, [clearDragHoverTimer]);
-
-  // 전역 dragover/dragend/drop 이벤트 감지: 마우스 좌표가 사이드바 영역 밖이면 즉시 border/하이라이트 초기화
+  // 전역 dragover/dragend/drop 이벤트 감지: 마우스 좌표가 사이드바 영역 밖이면 즉시 border/하이라이트 초기화 및 OS 네이티브 스냅백 애니메이션 차단
   useEffect(() => {
     const handleGlobalDragOver = (e) => {
+      // 전역 dragover에서 preventDefault를 호출하면 빈 공간에 놓았을 때 고스트가 원위치로 날아가는 OS 네이티브 스냅백 모션을 차단합니다.
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+      }
+
       if (sidebarRef.current) {
         const rect = sidebarRef.current.getBoundingClientRect();
         const x = e.clientX;
@@ -1206,7 +1289,7 @@ export default function PlaylistManager() {
   const handleDragOver = (e, index) => {
     e.preventDefault();
     e.stopPropagation();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = 'move';
 
     const rect = e.currentTarget.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
@@ -1254,15 +1337,15 @@ export default function PlaylistManager() {
       if (dragOverInfo) {
         const boundaryIndex = dragOverInfo.position === 'top' ? dragOverInfo.index : dragOverInfo.index + 1;
         insertIndex = draggedIndex < boundaryIndex ? boundaryIndex - 1 : boundaryIndex;
-      } else {
-        const boundaryIndex = targetIndex;
-        insertIndex = draggedIndex < boundaryIndex ? boundaryIndex - 1 : boundaryIndex;
+      } else if (targetIndex !== undefined && targetIndex !== null) {
+        insertIndex = targetIndex;
       }
 
       if (draggedIndex !== insertIndex) {
         const newQueue = [...queue];
         const [movedItem] = newQueue.splice(draggedIndex, 1);
-        newQueue.splice(insertIndex, 0, movedItem);
+        const finalInsert = Math.max(0, Math.min(insertIndex, newQueue.length));
+        newQueue.splice(finalInsert, 0, movedItem);
         setQueue(newQueue);
       }
 
@@ -1271,53 +1354,75 @@ export default function PlaylistManager() {
       return;
     }
 
-    // 2) 외부 트랙(홈 화면 곡, 검색 곡, 플레이리스트 곡 등)을 대기열 특정 위치로 드롭한 경우
+    // 2) 외부 트랙 / 아티스트 트랙들을 대기열 특정 위치로 드롭한 경우
     try {
       const jsonStr = e.dataTransfer.getData('application/json') || e.dataTransfer.getData('text/plain');
       if (!jsonStr) return;
-      const track = JSON.parse(jsonStr);
-      if (!track || (!track.youtube_video_id && !track.custom_title && !track.title)) return;
+      const rawData = JSON.parse(jsonStr);
+      const rawTracks = extractTracksFromDragData(rawData);
+      if (!rawTracks || rawTracks.length === 0) return;
 
-      const normalizedTrack = {
-        ...track,
-        id: track.id && !queue.some(t => t.id === track.id) 
-          ? track.id 
-          : `tr-queue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        lyric_offset: track.lyric_offset ?? 0,
-        custom_lyrics: track.custom_lyrics ?? ''
-      };
+      const normalizedTracks = rawTracks.map((track, idx) => {
+        const customTitle = track.custom_title || track.title || track.name || '제목 없음';
+        const customArtist = track.custom_artist || track.artist || '아티스트 미상';
+        const artwork = track.artwork || track.thumbnail || track.coverUrl || track.cover || null;
+        return {
+          ...track,
+          id: track.id && String(track.id).startsWith('tr-queue-')
+            ? track.id
+            : `tr-queue-${track.id || 'track'}-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 6)}`,
+          custom_title: customTitle,
+          custom_artist: customArtist,
+          artwork: artwork,
+          thumbnail: artwork || track.thumbnail,
+          youtube_video_id: track.youtube_video_id || track.videoId || null,
+          durationSec: track.durationSec || track.duration || 0,
+          searchQuery: track.searchQuery || `${customArtist} ${customTitle}`.trim(),
+          lyric_offset: track.lyric_offset ?? 0,
+          custom_lyrics: track.custom_lyrics ?? ''
+        };
+      });
 
       let insertIndex = queue.length;
       if (dragOverInfo) {
         insertIndex = dragOverInfo.position === 'top' ? dragOverInfo.index : dragOverInfo.index + 1;
       } else if (targetIndex !== undefined && targetIndex !== null) {
-        insertIndex = targetIndex;
+        const rect = e.currentTarget?.getBoundingClientRect?.();
+        if (rect) {
+          const offset = e.clientY - rect.top;
+          const pos = offset < rect.height / 2 ? 'top' : 'bottom';
+          insertIndex = pos === 'top' ? targetIndex : targetIndex + 1;
+        } else {
+          insertIndex = targetIndex;
+        }
       }
 
       setQueue(prev => {
-        const existingIdx = prev.findIndex(t => 
-          (t.youtube_video_id && normalizedTrack.youtube_video_id && t.youtube_video_id === normalizedTrack.youtube_video_id) ||
-          (t.id && normalizedTrack.id && t.id === normalizedTrack.id)
-        );
-        
-        const filtered = prev.filter(t => 
-          !(t.youtube_video_id && normalizedTrack.youtube_video_id && t.youtube_video_id === normalizedTrack.youtube_video_id) &&
-          !(t.id && normalizedTrack.id && t.id === normalizedTrack.id)
-        );
+        let filtered = [...prev];
+        normalizedTracks.forEach(newTrack => {
+          const existingIdx = filtered.findIndex(t => isMatchTrack(t, newTrack));
+          if (existingIdx !== -1) {
+            filtered.splice(existingIdx, 1);
+            if (existingIdx < insertIndex) {
+              insertIndex = Math.max(0, insertIndex - 1);
+            }
+          }
+        });
 
-        let adjustedIndex = insertIndex;
-        if (existingIdx !== -1 && existingIdx < insertIndex) {
-          adjustedIndex = Math.max(0, insertIndex - 1);
-        }
-        adjustedIndex = Math.min(adjustedIndex, filtered.length);
-
+        const clampedIndex = Math.max(0, Math.min(insertIndex, filtered.length));
         const nextQueue = [...filtered];
-        nextQueue.splice(adjustedIndex, 0, normalizedTrack);
+        nextQueue.splice(clampedIndex, 0, ...normalizedTracks);
         return nextQueue;
       });
 
-      const title = track.custom_title || track.title || '제목 없음';
-      showToast(`'${title}' 곡을 대기열에 추가했습니다.`);
+      setActiveTab('queue');
+
+      if (normalizedTracks.length === 1) {
+        showToast(`'${normalizedTracks[0].custom_title}' 곡을 대기열에 추가했습니다.`);
+      } else {
+        const label = rawData.name || rawData.title || `${normalizedTracks.length}곡`;
+        showToast(`'${label}' ${normalizedTracks.length}곡을 대기열에 추가했습니다.`);
+      }
     } catch (err) {
       console.warn('Drop to queue item failed:', err);
     } finally {
@@ -1329,11 +1434,7 @@ export default function PlaylistManager() {
 
   const handleContainerDragOver = (e) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-
-    // 이벤트 타겟이 리스트 본체(빈 영역)이거나 빈 리스트 메시지일 때만 컨테이너 레벨 처리
-    const isDirectContainer = e.target === e.currentTarget || e.target.classList?.contains('empty-list-message');
-    if (!isDirectContainer) return;
+    e.dataTransfer.dropEffect = 'move';
 
     // 1) 내부 대기열 아이템 이동 중인 경우
     if (draggedIndex !== null) {
@@ -1343,11 +1444,7 @@ export default function PlaylistManager() {
         if (dragOverInfo !== null) setDragOverInfo(null);
         return;
       }
-      const targetIndex = lastIndex;
-      const targetPosition = 'bottom';
-      if (!dragOverInfo || dragOverInfo.index !== targetIndex || dragOverInfo.position !== targetPosition) {
-        setDragOverInfo({ index: targetIndex, position: targetPosition });
-      }
+      setDragOverInfo({ index: lastIndex, position: 'bottom' });
       return;
     }
 
@@ -1357,10 +1454,7 @@ export default function PlaylistManager() {
       if (dragOverInfo !== null) setDragOverInfo(null);
     } else {
       const lastIndex = queue.length - 1;
-      const targetPosition = 'bottom';
-      if (!dragOverInfo || dragOverInfo.index !== lastIndex || dragOverInfo.position !== targetPosition) {
-        setDragOverInfo({ index: lastIndex, position: targetPosition });
-      }
+      setDragOverInfo({ index: lastIndex, position: 'bottom' });
       if (isQueueDragOver) setIsQueueDragOver(false);
     }
   };
@@ -1396,7 +1490,7 @@ export default function PlaylistManager() {
     }
 
     // 2) 외부 트랙을 대기열 끝 또는 빈 대기열에 드롭
-    handleQueueDrop(e);
+    handleDrop(e, queue.length);
   };
 
   const moveQueueItem = (index, direction) => {

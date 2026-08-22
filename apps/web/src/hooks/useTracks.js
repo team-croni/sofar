@@ -57,7 +57,10 @@ export function useAddTrackMutation() {
 
   return useMutation({
     mutationFn: async (trackData) => {
-      let { playlistId, videoId, title, artist, sequence } = trackData;
+      let { playlistId, videoId, title, artist, sequence, durationSec, duration } = trackData;
+      const validDuration = typeof durationSec === 'number' && durationSec > 0 
+        ? durationSec 
+        : (typeof duration === 'number' && duration > 0 ? duration : 0);
 
       if (user && !user.isGuest && supabase) {
         let validPlaylistId = playlistId;
@@ -95,18 +98,35 @@ export function useAddTrackMutation() {
 
         const cleanSequence = typeof sequence === 'number' && !isNaN(sequence) ? sequence : 0;
 
+        const insertPayload = {
+          playlist_id: validPlaylistId,
+          youtube_video_id: videoId || '',
+          custom_title: title || '알 수 없는 곡',
+          custom_artist: artist || '알 수 없는 아티스트',
+          sequence: cleanSequence,
+        };
+        if (validDuration > 0) {
+          insertPayload.duration = validDuration;
+        }
+
         const { data, error } = await supabase
           .from('tracks')
-          .insert({
-            playlist_id: validPlaylistId,
-            youtube_video_id: videoId || '',
-            custom_title: title || '알 수 없는 곡',
-            custom_artist: artist || '알 수 없는 아티스트',
-            sequence: cleanSequence,
-          })
+          .insert(insertPayload)
           .select()
           .single();
-        if (error) throw error;
+        if (error) {
+          if (insertPayload.duration) {
+            delete insertPayload.duration;
+            const { data: retryData, error: retryErr } = await supabase
+              .from('tracks')
+              .insert(insertPayload)
+              .select()
+              .single();
+            if (retryErr) throw retryErr;
+            return retryData;
+          }
+          throw error;
+        }
         return data;
       } else {
         const localTr = localStorage.getItem('sofar_tracks');
@@ -117,6 +137,8 @@ export function useAddTrackMutation() {
           youtube_video_id: videoId || '',
           custom_title: title || '알 수 없는 곡',
           custom_artist: artist || '알 수 없는 아티스트',
+          durationSec: validDuration,
+          duration: validDuration,
           sequence: typeof sequence === 'number' && !isNaN(sequence) 
             ? sequence 
             : tracks.filter(t => t.playlist_id === playlistId).length,

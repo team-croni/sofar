@@ -79,7 +79,15 @@ export default function SearchTrackRow({ track, index, contextList }) {
       </span>
 
       {/* 5. 공통 트랙 액션 드롭다운 (케밥 3점 메뉴) */}
-      <div className="popular-row__actions" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="popular-row__actions" 
+        draggable={false}
+        onDragStart={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <TrackActionDropdown
           track={track}
           onPlay={handlePlay}
