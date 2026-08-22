@@ -7,55 +7,54 @@ function formatArtworkUrl(url) {
   return url.replace('/100x100bb.jpg', '/600x600bb.jpg').replace('/100x100', '/600x600');
 }
 
+/**
+ * 백엔드 콜드 스타트(Cold Start) 대응 및 네트워크 재시도 헬퍼 함수
+ * @param {string} url 
+ * @param {RequestInit} [options] 
+ * @param {number} [timeoutMs=15000] - 기본 타임아웃 15초 (슬립 모드 기동 대기)
+ * @param {number} [maxRetries=1] - 실패 시 재시도 횟수
+ */
+async function fetchJsonWithRetry(url, options = {}, timeoutMs = 15000, maxRetries = 1) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          return json.data;
+        }
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      if (attempt < maxRetries) {
+        // 백엔드가 깨어나는 중일 수 있으므로 2초 후 재시도
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        continue;
+      }
+      console.warn(`[useHomeFeed] Fetch failed for ${url} (attempt ${attempt + 1}/${maxRetries + 1}):`, err.message);
+    }
+  }
+  return [];
+}
+
 // 섹션 1: 뜨고 있는 음악 (NestJS 백엔드 전용 수집)
 async function fetchHotChart() {
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    
-    const res = await fetch(`${backendUrl}/api/chart/top?limit=20`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        return json.data;
-      }
-    }
-  } catch (err) {
-    console.warn('Backend /api/chart/top unreachable:', err.message);
-  }
-  return [];
+  return fetchJsonWithRetry(`${backendUrl}/api/chart/top?limit=20`, {}, 15000, 1);
 }
 
 // 섹션 2: 최신 실시간 인기 순위 (NestJS 백엔드 전용 수집)
 async function fetchPopularRankings() {
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    
-    const res = await fetch(`${backendUrl}/api/chart/popular?limit=100`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        return json.data;
-      }
-    }
-  } catch (err) {
-    console.warn('Backend /api/chart/popular unreachable:', err.message);
-  }
-  return [];
+  return fetchJsonWithRetry(`${backendUrl}/api/chart/popular?limit=100`, {}, 15000, 1);
 }
-
-
 
 // Supabase DB / LocalStorage 공개 공유 플레이리스트 쿼리 (400 Bad Request 예방 및 커스텀 커버 우선 반영)
 async function fetchPublicPlaylists() {
@@ -178,69 +177,46 @@ async function fetchPublicPlaylists() {
     return Array.from(uniqueMap.values()).slice(0, 6);
   }
 
-  // 공유 탭은 실제 공개된 사용자 플레이리스트만 노출한다. 임의의 기본 목록을
-  // 공유 목록처럼 보여주지 않아 출처와 신뢰도를 혼동시키지 않는다.
+  // 공유 탭은 실제 공개된 사용자 플레이리스트만 노출한다.
   return [];
 }
 
 // 섹션 3: 테마별/카테고리별/장르별 큐레이션 플레이리스트 (NestJS 백엔드 수집)
 async function fetchCategoryPlaylists() {
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    
-    const res = await fetch(`${backendUrl}/api/chart/categories`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        return json.data;
-      }
-    }
-  } catch (err) {
-    console.warn('Backend /api/chart/categories unreachable:', err.message);
-  }
-  return [];
+  return fetchJsonWithRetry(`${backendUrl}/api/chart/categories`, {}, 15000, 1);
 }
 
 // 섹션 4: 비상업 단계의 한국 테마 후보 큐레이션 (NestJS 백엔드 수집)
 async function fetchYoutubeCuratedPlaylists() {
   const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    
-    const res = await fetch(`${backendUrl}/api/chart/theme-candidates`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-        return json.data;
-      }
-    }
-  } catch (err) {
-    console.warn('Backend /api/chart/theme-candidates unreachable:', err.message);
-  }
-  
-  return [];
+  return fetchJsonWithRetry(`${backendUrl}/api/chart/theme-candidates`, {}, 15000, 1);
 }
 
-const HOME_TOP_CACHE_KEY = 'sofar_home_top_feed_cache';
-const HOME_POPULAR_CACHE_KEY = 'sofar_home_popular_feed_cache';
+const HOME_TOP_CACHE_KEY = 'sofar_home_top_feed_cache_v2';
+const HOME_POPULAR_CACHE_KEY = 'sofar_home_popular_feed_cache_v2';
 
-function getSessionCache(key) {
+/**
+ * sessionStorage 및 localStorage를 아우르는 다계층 지속성 캐시 조회
+ * 1) sessionStorage 확인 (최근 세션)
+ * 2) localStorage 확인 (오랜만에 재방문한 사용자용 Fallback - 7일 이내 데이터)
+ */
+function getPersistentCache(key) {
   try {
-    const raw = sessionStorage.getItem(key);
-    if (raw) {
-      const parsed = JSON.parse(raw);
+    // 1. SessionStorage 우선 검사 (30분 이내)
+    const sessionRaw = sessionStorage.getItem(key);
+    if (sessionRaw) {
+      const parsed = JSON.parse(sessionRaw);
       if (parsed && Date.now() - parsed.timestamp < 1000 * 60 * 30) {
+        return parsed.data;
+      }
+    }
+
+    // 2. LocalStorage 영구 Fallback 검사 (7일 이내)
+    const localRaw = localStorage.getItem(key);
+    if (localRaw) {
+      const parsed = JSON.parse(localRaw);
+      if (parsed && parsed.data && Date.now() - parsed.timestamp < 1000 * 60 * 60 * 24 * 7) {
         return parsed.data;
       }
     }
@@ -248,12 +224,17 @@ function getSessionCache(key) {
   return undefined;
 }
 
-function setSessionCache(key, data) {
+/**
+ * sessionStorage 및 localStorage에 동시 저장하여 브라우저 재실행 시에도 데이터 즉시 복원
+ */
+function setPersistentCache(key, data) {
   try {
-    sessionStorage.setItem(key, JSON.stringify({
+    const payload = JSON.stringify({
       timestamp: Date.now(),
       data
-    }));
+    });
+    sessionStorage.setItem(key, payload);
+    localStorage.setItem(key, payload);
   } catch (e) {}
 }
 
@@ -261,7 +242,7 @@ export function useHomeFeed() {
   // 1) 뜨고 있는 음악 + 공개 공유 플레이리스트 + 장르/알고리즘 큐레이션
   const topFeedQuery = useQuery({
     queryKey: ['home-top-feed'],
-    initialData: () => getSessionCache(HOME_TOP_CACHE_KEY),
+    initialData: () => getPersistentCache(HOME_TOP_CACHE_KEY),
     queryFn: async () => {
       const [hotChartData, publicPls, catPlaylists, ytPlaylists] = await Promise.all([
         fetchHotChart(),
@@ -269,42 +250,70 @@ export function useHomeFeed() {
         fetchCategoryPlaylists(),
         fetchYoutubeCuratedPlaylists(),
       ]);
-      // "공유"는 사용자 공개 플레이리스트만, sofar 알고리즘 목록은 테마/상황 탭에만 둔다.
-      // 이 분리로 장르 탭과 공유 탭의 중복 노출을 방지한다.
+
       const mergedCategories = [...(catPlaylists || []), ...(ytPlaylists || [])];
-      const result = {
+      
+      // 서버에서 정상적으로 데이터를 가져온 경우
+      if (hotChartData && hotChartData.length > 0) {
+        const result = {
+          topTracks: hotChartData,
+          sharedPlaylists: publicPls || [],
+          categoryPlaylists: mergedCategories,
+        };
+        setPersistentCache(HOME_TOP_CACHE_KEY, result);
+        return result;
+      }
+
+      // 서버 요청이 실패했으나 기존 캐시가 있는 경우 기존 캐시 보존
+      const cached = getPersistentCache(HOME_TOP_CACHE_KEY);
+      if (cached && cached.topTracks?.length > 0) {
+        return {
+          ...cached,
+          sharedPlaylists: publicPls?.length > 0 ? publicPls : cached.sharedPlaylists,
+          categoryPlaylists: mergedCategories.length > 0 ? mergedCategories : cached.categoryPlaylists,
+        };
+      }
+
+      return {
         topTracks: hotChartData || [],
         sharedPlaylists: publicPls || [],
         categoryPlaylists: mergedCategories,
       };
-      if (hotChartData && hotChartData.length > 0) {
-        setSessionCache(HOME_TOP_CACHE_KEY, result);
-      }
-      return result;
     },
     staleTime: 1000 * 60 * 5, // 5분 동안 캐시된 피드 즉시 재사용
-    gcTime: 1000 * 60 * 15,
-    refetchInterval: false,
+    gcTime: 1000 * 60 * 60 * 24, // 24시간 가비지 컬렉션 유예
+    retry: 2, // 실패 시 2회 자동 재시도 (Cold Start 대기)
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    refetchOnMount: true,
   });
 
   // 2) 실시간 인기 순위 (주기적 갱신 유지: 3분 간격 폴링)
   const popularFeedQuery = useQuery({
     queryKey: ['home-popular-feed'],
-    initialData: () => getSessionCache(HOME_POPULAR_CACHE_KEY),
+    initialData: () => getPersistentCache(HOME_POPULAR_CACHE_KEY),
     queryFn: async () => {
       const popularRankingData = await fetchPopularRankings();
-      const result = popularRankingData || [];
-      if (result.length > 0) {
-        setSessionCache(HOME_POPULAR_CACHE_KEY, result);
+      if (popularRankingData && popularRankingData.length > 0) {
+        setPersistentCache(HOME_POPULAR_CACHE_KEY, popularRankingData);
+        return popularRankingData;
       }
-      return result;
+
+      // 서버 실패 시 캐시된 인기 순위 fallback 유지
+      const cached = getPersistentCache(HOME_POPULAR_CACHE_KEY);
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        return cached;
+      }
+
+      return popularRankingData || [];
     },
     staleTime: 1000 * 30,
+    gcTime: 1000 * 60 * 60 * 24,
+    retry: 2,
+    retryDelay: 3000,
     refetchInterval: 1000 * 60 * 3, // 3분마다 자동 갱신 (sofar 감상 횟수 반영)
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 
   return {

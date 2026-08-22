@@ -4,10 +4,11 @@
 .home-panel-container {
   display: flex;
   flex-direction: column;
+  min-height: 200vh;
   height: 100%;
   width: 100%;
   box-sizing: border-box;
-  padding: 5.5rem 2.5rem 14rem 2.5rem;
+  padding: 5.5rem 2.5rem 7.5rem 2.5rem;
   background: transparent;
   color: var(--text-primary, #fff);
   gap: 3rem;
