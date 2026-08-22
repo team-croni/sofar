@@ -432,6 +432,9 @@ export default function PlaylistManager() {
     if (!isDetailDragOver) {
       setIsDetailDragOver(true);
     }
+    if (dragOverPlaylistTrackInfo !== null) {
+      setDragOverPlaylistTrackInfo(null);
+    }
   };
 
   const handleDetailDragLeave = (e) => {
@@ -442,6 +445,7 @@ export default function PlaylistManager() {
       return;
     }
     setIsDetailDragOver(false);
+    setDragOverPlaylistTrackInfo(null);
   };
 
   const handlePlaylistTrackDragStart = (e, index, track) => {
@@ -459,6 +463,10 @@ export default function PlaylistManager() {
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = 'move';
+
+    if (isDetailDragOver) {
+      setIsDetailDragOver(false);
+    }
 
     const rect = e.currentTarget.getBoundingClientRect();
     const relativeY = e.clientY - rect.top;
@@ -496,14 +504,24 @@ export default function PlaylistManager() {
   const handlePlaylistTrackDragEnd = () => {
     setDraggedPlaylistTrackIndex(null);
     setDragOverPlaylistTrackInfo(null);
+    setIsDetailDragOver(false);
   };
 
   const handlePlaylistTrackDrop = async (e, targetIndex) => {
     if (isReadOnlyShared || !selectedPlaylistId) return;
     e.preventDefault();
     e.stopPropagation();
+    setIsDetailDragOver(false);
 
     const currentDetailTracks = getCurrentDetailTracks();
+
+    // 드롭 위치 계산 (dragOverPlaylistTrackInfo가 가리키는 정확한 위치 사용)
+    let calculatedTargetIndex = targetIndex;
+    if (dragOverPlaylistTrackInfo) {
+      calculatedTargetIndex = dragOverPlaylistTrackInfo.position === 'bottom'
+        ? dragOverPlaylistTrackInfo.index + 1
+        : dragOverPlaylistTrackInfo.index;
+    }
 
     // 1) 같은 플레이리스트 내부 아이템 순서 변경
     if (draggedPlaylistTrackIndex !== null) {
@@ -515,6 +533,9 @@ export default function PlaylistManager() {
         insertIndex = targetIndex;
       }
 
+      setDraggedPlaylistTrackIndex(null);
+      setDragOverPlaylistTrackInfo(null);
+
       if (draggedPlaylistTrackIndex !== insertIndex) {
         const newTracks = [...currentDetailTracks];
         const [movedItem] = newTracks.splice(draggedPlaylistTrackIndex, 1);
@@ -525,9 +546,6 @@ export default function PlaylistManager() {
         queryClient.setQueryData(['tracks', selectedPlaylistId], newTracks);
         reorderTracksMutation.mutate({ playlistId: selectedPlaylistId, reorderedTracks: newTracks });
       }
-
-      setDraggedPlaylistTrackIndex(null);
-      setDragOverPlaylistTrackInfo(null);
       return;
     }
 
@@ -543,7 +561,7 @@ export default function PlaylistManager() {
       // 같은 플레이리스트에서 온 곡인 경우 (순서 이동)
       if (rawData?._fromPlaylistId === selectedPlaylistId && typeof rawData?._fromIndex === 'number') {
         const fromIndex = rawData._fromIndex;
-        let insertIndex = targetIndex ?? fromIndex;
+        let insertIndex = calculatedTargetIndex ?? fromIndex;
         if (fromIndex !== insertIndex) {
           const newTracks = [...currentDetailTracks];
           const [movedItem] = newTracks.splice(fromIndex, 1);
@@ -563,6 +581,7 @@ export default function PlaylistManager() {
       const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
         playlistId: selectedPlaylistId,
         tracks,
+        targetIndex: calculatedTargetIndex,
       });
 
       if (inserted.length === 0 && skippedCount > 0) {
@@ -2032,71 +2051,82 @@ export default function PlaylistManager() {
                 </div>
 
                 {/* 본문 곡 목록 (줌 & 페이드 애니메이션) */}
-                <div 
-                  key={activeSharedPlaylist ? activeSharedPlaylist.id : (selectedPlaylistId || 'detail-tracks')}
-                  className={`track-item-list scrollbar-none ${isEnteringDetail ? 'detail-enter-zoom' : ''} ${isExitingDetail ? 'detail-exit-zoom' : ''} ${isDetailDragOver ? 'drag-over' : ''} ${!isTrackListVisible ? 'track-list-pre-scroll' : ''} ${isAddingBatchTracks ? 'is-processing' : ''}`}
-                  onDragOver={isAddingBatchTracks ? undefined : handleDetailDragOver}
-                  onDragLeave={isAddingBatchTracks ? undefined : handleDetailDragLeave}
-                  onDrop={isAddingBatchTracks ? undefined : handleDetailDrop}
-                >
-                  {(!activeSharedPlaylist && isTracksLoading && fetchedTracks.length === 0) ? (
-                    <div className="track-loading-skeleton-list delayed-skeleton-container">
-                      {[1, 2, 3, 4, 5, 6].map((num) => (
-                        <div key={num} className="track-skeleton-row">
-                          <div className="track-skeleton-meta">
-                            <div className="track-skeleton-thumb skeleton-pulse" />
-                            <div className="track-skeleton-texts">
-                              <div className="track-skeleton-title skeleton-pulse" style={{ width: num % 2 === 0 ? '65%' : '50%' }} />
-                              <div className="track-skeleton-artist skeleton-pulse" style={{ width: num % 2 === 0 ? '40%' : '32%' }} />
+                {(() => {
+                  const displayTracks = getCurrentDetailTracks();
+                  const isDetailEmpty = !displayTracks || displayTracks.length === 0;
+                  const listContextId = activeSharedPlaylist?.id || selectedPlaylistId || 'local';
+
+                  return (
+                    <div 
+                      key={activeSharedPlaylist ? activeSharedPlaylist.id : (selectedPlaylistId || 'detail-tracks')}
+                      className={`track-item-list scrollbar-none ${isEnteringDetail ? 'detail-enter-zoom' : ''} ${isExitingDetail ? 'detail-exit-zoom' : ''} ${isDetailDragOver && isDetailEmpty ? 'drag-over' : ''} ${!isTrackListVisible ? 'track-list-pre-scroll' : ''} ${isAddingBatchTracks ? 'is-processing' : ''}`}
+                      onDragOver={isAddingBatchTracks ? undefined : handleDetailDragOver}
+                      onDragLeave={isAddingBatchTracks ? undefined : handleDetailDragLeave}
+                      onDrop={isAddingBatchTracks ? undefined : handleDetailDrop}
+                    >
+                      {(!activeSharedPlaylist && isTracksLoading && isDetailEmpty) ? (
+                        <div className="track-loading-skeleton-list delayed-skeleton-container">
+                          {[1, 2, 3, 4, 5, 6].map((num) => (
+                            <div key={num} className="track-skeleton-row">
+                              <div className="track-skeleton-meta">
+                                <div className="track-skeleton-thumb skeleton-pulse" />
+                                <div className="track-skeleton-texts">
+                                  <div className="track-skeleton-title skeleton-pulse" style={{ width: num % 2 === 0 ? '65%' : '50%' }} />
+                                  <div className="track-skeleton-artist skeleton-pulse" style={{ width: num % 2 === 0 ? '40%' : '32%' }} />
+                                </div>
+                              </div>
+                              <div className="track-skeleton-actions">
+                                <div className="track-skeleton-duration skeleton-pulse" />
+                                <div className="track-skeleton-btn skeleton-pulse" />
+                              </div>
                             </div>
-                          </div>
-                          <div className="track-skeleton-actions">
-                            <div className="track-skeleton-duration skeleton-pulse" />
-                            <div className="track-skeleton-btn skeleton-pulse" />
-                          </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <>
-                      {(() => {
-                        const displayTracks = getCurrentDetailTracks();
-                        const listContextId = activeSharedPlaylist?.id || selectedPlaylistId || 'local';
-                        return displayTracks.map((track, idx) => (
-                          <TrackRowItem 
-                            key={`${listContextId}_${track.id || track.youtube_video_id || idx}_${idx}`}
-                            track={track}
-                            index={idx}
-                            currentTrack={currentTrack}
-                            isPlaying={isPlaying}
-                            togglePlay={togglePlay}
-                            playTrack={(t) => {
-                              playTrack(t, displayTracks);
-                              if (activeSharedPlaylist) {
-                                if (setPlayingSource) setPlayingSource({ type: 'shared', data: activeSharedPlaylist });
-                              } else if (selectedPlaylistId) {
-                                if (setPlayingSource) setPlayingSource({ type: 'my', playlistId: selectedPlaylistId });
-                              }
-                            }}
-                            addToQueue={addToQueue}
-                            onDeleteTrack={isReadOnlyShared ? null : handleDeleteTrack}
-                            handleDragStart={isReadOnlyShared ? null : handlePlaylistTrackDragStart}
-                            handleDragOver={isReadOnlyShared ? null : handlePlaylistTrackDragOver}
-                            handleDrop={isReadOnlyShared ? null : handlePlaylistTrackDrop}
-                            handleDragEnd={isReadOnlyShared ? null : handlePlaylistTrackDragEnd}
-                            dragOverPosition={dragOverPlaylistTrackInfo && dragOverPlaylistTrackInfo.index === idx ? dragOverPlaylistTrackInfo.position : null}
-                          />
-                        ));
-                      })()}
-                      
-                      {(activeSharedPlaylist ? (!activeSharedPlaylist.tracks || activeSharedPlaylist.tracks.length === 0) : (!fetchedTracks || fetchedTracks.length === 0)) && (
-                        <div className="empty-list-message">
-                          등록된 음악이 없습니다.
-                        </div>
+                      ) : (
+                        <>
+                          {displayTracks.map((track, idx) => {
+                            const isLastItemAndDetailDragOver = isDetailDragOver && !dragOverPlaylistTrackInfo && idx === displayTracks.length - 1;
+                            const currentDragOverPosition = dragOverPlaylistTrackInfo && dragOverPlaylistTrackInfo.index === idx
+                              ? dragOverPlaylistTrackInfo.position
+                              : (isLastItemAndDetailDragOver ? 'bottom' : null);
+
+                            return (
+                              <TrackRowItem 
+                                key={`${listContextId}_${track.id || track.youtube_video_id || idx}_${idx}`}
+                                track={track}
+                                index={idx}
+                                currentTrack={currentTrack}
+                                isPlaying={isPlaying}
+                                togglePlay={togglePlay}
+                                playTrack={(t) => {
+                                  playTrack(t, displayTracks);
+                                  if (activeSharedPlaylist) {
+                                    if (setPlayingSource) setPlayingSource({ type: 'shared', data: activeSharedPlaylist });
+                                  } else if (selectedPlaylistId) {
+                                    if (setPlayingSource) setPlayingSource({ type: 'my', playlistId: selectedPlaylistId });
+                                  }
+                                }}
+                                addToQueue={addToQueue}
+                                onDeleteTrack={isReadOnlyShared ? null : handleDeleteTrack}
+                                handleDragStart={isReadOnlyShared ? null : handlePlaylistTrackDragStart}
+                                handleDragOver={isReadOnlyShared ? null : handlePlaylistTrackDragOver}
+                                handleDrop={isReadOnlyShared ? null : handlePlaylistTrackDrop}
+                                handleDragEnd={isReadOnlyShared ? null : handlePlaylistTrackDragEnd}
+                                dragOverPosition={currentDragOverPosition}
+                              />
+                            );
+                          })}
+                          
+                          {isDetailEmpty && (
+                            <div className={`empty-list-message ${isDetailDragOver ? 'drag-over' : ''}`}>
+                              등록된 음악이 없습니다.
+                            </div>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
-                </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -2104,12 +2134,7 @@ export default function PlaylistManager() {
 
         {/* 탭 2: 실시간 대기열 뷰 */}
         {activeTab === 'queue' && (
-          <div 
-            className={`tab-content-panel queue-list-panel ${isQueueDragOver ? 'drag-over' : ''}`}
-            onDragOver={handleQueueDragOver}
-            onDragLeave={handleQueueDragLeave}
-            onDrop={handleQueueDrop}
-          >
+          <div className="tab-content-panel queue-list-panel">
             <div className="playlist-detail-header queue-header">
               <div key="header-queue" className="playlist-detail-header-inner header-fade-in">
                 <Button 
@@ -2179,7 +2204,7 @@ export default function PlaylistManager() {
               
               {queue.length === 0 && (
                 <div className={`empty-list-message queue ${isQueueDragOver ? 'drag-over' : ''}`}>
-                  {isQueueDragOver ? '여기에 곡을 놓아 대기열에 추가' : '현재 재생 목록이 비어 있습니다.'}
+                  현재 대기열이 비어 있습니다.
                 </div>
               )}
             </div>

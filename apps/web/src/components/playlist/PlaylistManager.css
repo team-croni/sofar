@@ -921,11 +921,6 @@
   background: rgba(212, 163, 115, 0.06) !important;
 }
 
-.tab-content-panel.drag-over:not(.queue-list-panel) *,
-.track-item-list.drag-over * {
-  pointer-events: none;
-}
-
 .playlist-bottom-control-bar.drag-over * {
   pointer-events: none;
 }
@@ -934,9 +929,11 @@
   border-color: var(--primary-warm, #d4a373) !important;
 }
 
+.empty-list-message.drag-over,
 .empty-list-message.queue.drag-over {
   background: rgba(212, 163, 115, 0.08);
   color: var(--primary-warm, #d4a373);
+  border-radius: 8px;
   transition: var(--transition-fast);
 }
 

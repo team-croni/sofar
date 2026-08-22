@@ -184,7 +184,7 @@ export function useAddTracksMutation() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ playlistId, tracks }) => {
+    mutationFn: async ({ playlistId, tracks, targetIndex }) => {
       if (!tracks || tracks.length === 0) return { inserted: [], skippedCount: 0 };
 
       // 0. 각 트랙의 videoId 사전 확보 (비어있는 경우 검색 쿼리로 병렬 매칭하여 동일 빈 문자열 충돌 방지)
@@ -227,14 +227,16 @@ export function useAddTracksMutation() {
         // 1. 단일 쿼리로 대상 플레이리스트의 기존 트랙 목록 조회 (유튜브 ID + 제목/가수 복합 키)
         const { data: existingData } = await supabase
           .from('tracks')
-          .select('youtube_video_id, custom_title, custom_artist')
-          .eq('playlist_id', playlistId);
+          .select('*')
+          .eq('playlist_id', playlistId)
+          .order('sequence', { ascending: true });
 
+        const existingTracks = existingData || [];
         const existingVideoSet = new Set(
-          (existingData || []).map(t => t.youtube_video_id).filter(Boolean)
+          existingTracks.map(t => t.youtube_video_id).filter(Boolean)
         );
         const existingTitleArtistSet = new Set(
-          (existingData || []).map(t => `${(t.custom_title || '').trim().toLowerCase()}::${(t.custom_artist || '').trim().toLowerCase()}`)
+          existingTracks.map(t => `${(t.custom_title || '').trim().toLowerCase()}::${(t.custom_artist || '').trim().toLowerCase()}`)
         );
 
         // 들어오는 일괄 tracks 내부의 중복도 함께 필터링
@@ -262,14 +264,10 @@ export function useAddTracksMutation() {
           return { inserted: [], skippedCount: tracks.length };
         }
 
-        const { data: seqData } = await supabase
-          .from('tracks')
-          .select('sequence')
-          .eq('playlist_id', playlistId)
-          .order('sequence', { ascending: false })
-          .limit(1);
-
-        const baseSeq = seqData && seqData[0] ? (seqData[0].sequence + 1) : 0;
+        const isTargetedInsert = typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex < existingTracks.length;
+        const baseSeq = isTargetedInsert 
+          ? targetIndex 
+          : (existingTracks.length > 0 ? (existingTracks[existingTracks.length - 1].sequence ?? (existingTracks.length - 1)) + 1 : 0);
 
         const insertPayloads = nonDuplicates.map((t, idx) => ({
           playlist_id: playlistId,
@@ -308,6 +306,26 @@ export function useAddTracksMutation() {
           }
         }
 
+        // 중간 위치 삽입인 경우, 전체 순서 sequence 재정렬 동기화
+        if (isTargetedInsert && insertedList.length > 0) {
+          const combined = [...existingTracks];
+          combined.splice(targetIndex, 0, ...insertedList);
+          
+          const updatePromises = combined.map((track, idx) => {
+            if (track.sequence !== idx && UUID_REGEX.test(track.id)) {
+              return supabase
+                .from('tracks')
+                .update({ sequence: idx })
+                .eq('id', track.id);
+            }
+            return null;
+          }).filter(Boolean);
+
+          if (updatePromises.length > 0) {
+            await Promise.all(updatePromises);
+          }
+        }
+
         return { 
           inserted: insertedList, 
           skippedCount: (tracks.length - nonDuplicates.length) + skippedInInsert 
@@ -317,7 +335,10 @@ export function useAddTracksMutation() {
         const localTr = localStorage.getItem('sofar_tracks');
         const allTracks = localTr ? JSON.parse(localTr) : [];
 
-        const existingPlaylistTracks = allTracks.filter(t => t.playlist_id === playlistId);
+        const existingPlaylistTracks = allTracks
+          .filter(t => t.playlist_id === playlistId)
+          .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+
         const existingVideoSet = new Set(
           existingPlaylistTracks.map(t => t.youtube_video_id).filter(Boolean)
         );
@@ -349,7 +370,6 @@ export function useAddTracksMutation() {
           return { inserted: [], skippedCount: tracks.length };
         }
 
-        const baseSeq = existingPlaylistTracks.length;
         const newInserted = nonDuplicates.map((t, idx) => ({
           id: `tr-${Date.now()}-${idx}-${Math.random()}`,
           playlist_id: playlistId,
@@ -358,11 +378,26 @@ export function useAddTracksMutation() {
           custom_artist: t.custom_artist || t.artist || '알 수 없는 아티스트',
           durationSec: t.durationSec || t.duration || 0,
           duration: t.durationSec || t.duration || 0,
-          sequence: baseSeq + idx,
+          sequence: 0,
           created_at: new Date().toISOString()
         }));
 
-        localStorage.setItem('sofar_tracks', JSON.stringify([...allTracks, ...newInserted]));
+        const otherTracks = allTracks.filter(t => t.playlist_id !== playlistId);
+        let updatedPlaylistTracks;
+
+        if (typeof targetIndex === 'number' && targetIndex >= 0 && targetIndex < existingPlaylistTracks.length) {
+          updatedPlaylistTracks = [...existingPlaylistTracks];
+          updatedPlaylistTracks.splice(targetIndex, 0, ...newInserted);
+        } else {
+          updatedPlaylistTracks = [...existingPlaylistTracks, ...newInserted];
+        }
+
+        const sequencedTracks = updatedPlaylistTracks.map((t, idx) => ({
+          ...t,
+          sequence: idx
+        }));
+
+        localStorage.setItem('sofar_tracks', JSON.stringify([...otherTracks, ...sequencedTracks]));
         return { inserted: newInserted, skippedCount: tracks.length - nonDuplicates.length };
       }
     },
