@@ -1864,7 +1864,7 @@ export default function PlaylistManager() {
     >
       {/* 로고 및 액션 헤더 영역 */}
       <div className="sidebar-logo-section">
-        <Logo iconSize={26} titleSize={30} />
+        <Logo iconSize={26} titleSize={30} onClick={() => { window.location.href = '/'; }} />
         <div className="sidebar-logo-actions">
           <Button 
             onClick={() => navigate('/')} 
