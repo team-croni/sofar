@@ -229,7 +229,7 @@ image {
   height: 100%;
 }
 
-/* Cozy Floating Toast Style (프리미엄 다크 글래스모피즘 룩 & right-main-content 하단 플로팅) */
+/* Cozy Floating Toast Style (프리미엄 다크 글래스모피즘 룩 & right-panel-column 하단 고정 플로팅) */
 .toast {
   position: absolute;
   bottom: 0.5rem;

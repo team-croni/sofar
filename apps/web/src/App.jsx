@@ -142,10 +142,11 @@ function HomePage() {
         >
           {renderRightPanelContent()}
 
-          {/* 알림 토스트 (right-main-content 기준 위치) */}
-          <div className={`toast ${hasBottomPlayer ? 'has-player' : 'no-player'} ${isToastVisible ? 'show' : ''}`}>
-            {toastMessage}
-          </div>
+        </div>
+
+        {/* 알림 토스트 (right-panel-column 기준 고정 플로팅) */}
+        <div className={`toast ${hasBottomPlayer ? 'has-player' : 'no-player'} ${isToastVisible ? 'show' : ''}`}>
+          {toastMessage}
         </div>
 
         {/* 노래 일치 여부 매칭 피드백 (right-panel-column 기준 고정 플로팅 캡슐) */}
