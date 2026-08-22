@@ -12,12 +12,16 @@ export const STORAGE_KEYS = {
   REPEAT_MODE: 'sofar_repeat_mode',
   PLAYING_SOURCE: 'sofar_playing_source',
   PLAYBACK_CONTEXT: 'sofar_playback_context',
+  IS_LYRICS_HIDDEN: 'sofar_is_lyrics_hidden',
 };
 
 export const getStorageItem = (key, fallbackValue) => {
   try {
     const item = localStorage.getItem(key);
     if (item === null || item === undefined) return fallbackValue;
+    if (typeof fallbackValue === 'boolean') {
+      return item === 'true';
+    }
     if (typeof fallbackValue === 'number') {
       const parsed = parseFloat(item);
       return isNaN(parsed) ? fallbackValue : parsed;

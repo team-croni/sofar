@@ -46,10 +46,10 @@ export function AudioProvider({ children }) {
   const [showVideoInVinyl, setShowVideoInVinyl] = useState(false);
   const [videoVinylState, setVideoVinylState] = useState("idle");
   const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
-  const [isLyricsHidden, setIsLyricsHidden] = useState(() => getStorageItem('sofar_is_lyrics_hidden', false));
+  const [isLyricsHidden, setIsLyricsHidden] = useState(() => getStorageItem(STORAGE_KEYS.IS_LYRICS_HIDDEN, false));
 
   useEffect(() => {
-    setStorageItem('sofar_is_lyrics_hidden', isLyricsHidden);
+    setStorageItem(STORAGE_KEYS.IS_LYRICS_HIDDEN, isLyricsHidden);
   }, [isLyricsHidden]);
 
   const [playbackContext, setPlaybackContext] = useState(() => getStorageItem(STORAGE_KEYS.PLAYBACK_CONTEXT, []));
