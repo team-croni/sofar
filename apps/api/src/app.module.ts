@@ -6,6 +6,9 @@ import { ChartModule } from './chart/chart.module';
 import { AdminModule } from './admin/admin.module';
 import { SearchModule } from './search/search.module';
 
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
 @Module({
   imports: [
     // 환경변수 전역 설정
@@ -23,5 +26,7 @@ import { SearchModule } from './search/search.module';
     AdminModule,
     SearchModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
