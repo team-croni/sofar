@@ -98,7 +98,8 @@ CREATE TABLE public.tracks (
     lyric_offset NUMERIC DEFAULT 0.0 NOT NULL,
     custom_lyrics TEXT,
     sequence INTEGER NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT unique_playlist_track UNIQUE (playlist_id, youtube_video_id)
 );
 
 ALTER TABLE public.tracks ENABLE ROW LEVEL SECURITY;

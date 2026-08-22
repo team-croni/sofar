@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAudio } from '../../contexts/AudioContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../contexts/AuthContext';
-import { Trash2, Plus, ChevronLeft, Music, MoreVertical, Pencil, ListPlus, ListMusic, Search, Home, Headphones, Share2, Play, Shuffle, TvMinimal, LayoutGrid } from 'lucide-react';
+import { Trash2, Plus, ChevronLeft, Music, MoreVertical, MoreHorizontal, Pencil, ListPlus, ListMusic, Search, Home, Headphones, Share2, Play, Shuffle, TvMinimal, LayoutGrid } from 'lucide-react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -28,8 +28,9 @@ import {
 } from '../../hooks/usePlaylists';
 import { 
   usePlaylistTracksQuery, 
-  useAddTrackMutation,
-  useDeleteTrackMutation 
+  useAddTracksMutation,
+  useDeleteTrackMutation,
+  useClearPlaylistTracksMutation
 } from '../../hooks/useTracks';
 import PlaylistModal from './PlaylistModal';
 import { getStaggerStyle } from '../../utils/animation';
@@ -79,14 +80,14 @@ export default function PlaylistManager() {
   const { 
     data: fetchedTracks = [], 
     isLoading: isTracksLoading, 
-    isFetching: isTracksFetching 
   } = usePlaylistTracksQuery(selectedPlaylistId);
 
   const createPlaylistMutation = useCreatePlaylistMutation();
   const updatePlaylistMutation = useUpdatePlaylistMutation();
   const deletePlaylistMutation = useDeletePlaylistMutation();
-  const addTrackMutation = useAddTrackMutation();
+  const addTracksMutation = useAddTracksMutation();
   const deleteTrackMutation = useDeleteTrackMutation();
+  const clearPlaylistTracksMutation = useClearPlaylistTracksMutation();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('playlists');
@@ -283,44 +284,6 @@ export default function PlaylistManager() {
     }
   };
 
-  const getPlaylistTracks = async (playlistId) => {
-    if (!playlistId) return [];
-    if (selectedPlaylistId === playlistId && fetchedTracks) {
-      return fetchedTracks;
-    }
-    const cached = queryClient.getQueryData(['tracks', playlistId, user?.id || 'guest']);
-    if (cached && cached.length > 0) {
-      return cached;
-    }
-    if (user && !user.isGuest && supabase) {
-      const { data } = await supabase
-        .from('tracks')
-        .select('*')
-        .eq('playlist_id', playlistId)
-        .order('sequence', { ascending: true });
-      if (data && data.length > 0) return data;
-    } else {
-      const localTr = localStorage.getItem('sofar_tracks');
-      if (localTr) {
-        try {
-          const parsed = JSON.parse(localTr);
-          return parsed.filter(t => t.playlist_id === playlistId).sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
-        } catch (e) {}
-      }
-    }
-    return playlistPreviews[playlistId] || [];
-  };
-
-  const isTrackAlreadyInList = (track, existingTracks) => {
-    if (!track || !existingTracks || existingTracks.length === 0) return false;
-    return existingTracks.some(existing => {
-      if (track.playlist_id && track.playlist_id === existing.playlist_id && track.id === existing.id) {
-        return true;
-      }
-      return isMatchTrack(track, existing);
-    });
-  };
-
   const handleFolderDrop = async (e, folder) => {
     e.preventDefault();
     e.stopPropagation();
@@ -333,34 +296,22 @@ export default function PlaylistManager() {
       const tracks = extractTracksFromDragData(rawData);
       if (!tracks || tracks.length === 0) return;
 
-      const existingTracks = await getPlaylistTracks(folder.id);
-      const tracksToAdd = tracks.filter(t => !isTrackAlreadyInList(t, existingTracks));
+      const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
+        playlistId: folder.id,
+        tracks,
+      });
 
-      if (tracksToAdd.length === 0) {
+      if (inserted.length === 0 && skippedCount > 0) {
+        showToast(`이미 '${folder.title}' 플레이리스트에 담긴 곡입니다.`);
         return;
       }
 
-      for (const track of tracksToAdd) {
-        const videoId = track.youtube_video_id || '';
-        const title = track.custom_title || track.title || '제목 없음';
-        const artist = track.custom_artist || track.artist || '아티스트 미상';
-        const durationSec = track.durationSec || track.duration || 0;
-
-        await addTrackMutation.mutateAsync({
-          playlistId: folder.id,
-          videoId,
-          title,
-          artist,
-          durationSec,
-        });
-      }
-
-      if (tracksToAdd.length === 1) {
-        const title = tracksToAdd[0].custom_title || tracksToAdd[0].title || '제목 없음';
+      if (inserted.length === 1) {
+        const title = inserted[0].custom_title || inserted[0].title || '제목 없음';
         showToast(`'${title}' 곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
-      } else {
-        const label = rawData.name || rawData.title || `${tracksToAdd.length}곡`;
-        showToast(`'${label}' ${tracksToAdd.length}곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
+      } else if (inserted.length > 1) {
+        const label = rawData.name || rawData.title || `${inserted.length}곡`;
+        showToast(`'${label}' ${inserted.length}곡을 '${folder.title}' 플레이리스트에 추가했습니다.`);
       }
     } catch (err) {
       console.warn('Drop to folder failed:', err);
@@ -485,34 +436,22 @@ export default function PlaylistManager() {
       if (!tracks || tracks.length === 0) return;
 
       const currentPl = playlists.find(p => p.id === selectedPlaylistId);
-      const existingTracks = fetchedTracks || [];
-      const tracksToAdd = tracks.filter(t => !isTrackAlreadyInList(t, existingTracks));
+      const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
+        playlistId: selectedPlaylistId,
+        tracks,
+      });
 
-      if (tracksToAdd.length === 0) {
+      if (inserted.length === 0 && skippedCount > 0) {
+        showToast(`이미 '${currentPl?.title || '플레이리스트'}'에 담긴 곡입니다.`);
         return;
       }
 
-      for (const track of tracksToAdd) {
-        const videoId = track.youtube_video_id || '';
-        const title = track.custom_title || track.title || '제목 없음';
-        const artist = track.custom_artist || track.artist || '아티스트 미상';
-        const durationSec = track.durationSec || track.duration || 0;
-
-        await addTrackMutation.mutateAsync({
-          playlistId: selectedPlaylistId,
-          videoId,
-          title,
-          artist,
-          durationSec,
-        });
-      }
-
-      if (tracksToAdd.length === 1) {
-        const title = tracksToAdd[0].custom_title || tracksToAdd[0].title || '제목 없음';
+      if (inserted.length === 1) {
+        const title = inserted[0].custom_title || inserted[0].title || '제목 없음';
         showToast(`'${title}' 곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
-      } else {
-        const label = rawData.name || rawData.title || `${tracksToAdd.length}곡`;
-        showToast(`'${label}' ${tracksToAdd.length}곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
+      } else if (inserted.length > 1) {
+        const label = rawData.name || rawData.title || `${inserted.length}곡`;
+        showToast(`'${label}' ${inserted.length}곡을 '${currentPl?.title || '플레이리스트'}'에 추가했습니다.`);
       }
     } catch (err) {
       console.warn('Drop to detail failed:', err);
@@ -1044,6 +983,28 @@ export default function PlaylistManager() {
     }
   };
 
+  const handleClearPlaylistTracks = async (e) => {
+    if (e) e.stopPropagation();
+    const tracks = getCurrentDetailTracks();
+    if (!tracks || tracks.length === 0) {
+      showToast('플레이리스트가 비어 있습니다.');
+      return;
+    }
+    const targetPlId = selectedPlaylistId || (isMyPlaylist ? activeSharedPlaylist?.id : null);
+    if (!targetPlId) {
+      showToast('플레이리스트를 찾을 수 없습니다.');
+      return;
+    }
+
+    try {
+      await clearPlaylistTracksMutation.mutateAsync({ playlistId: targetPlId });
+      showToast('플레이리스트 곡을 전체 삭제했습니다.');
+    } catch (err) {
+      console.error('Clear playlist tracks error:', err);
+      showToast('전체 삭제 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleClearQueue = (e) => {
     if (e) e.stopPropagation();
     if (queue.length === 0) {
@@ -1091,6 +1052,66 @@ export default function PlaylistManager() {
       }
     }
   };
+
+  const playlistDetailDropdownOptions = [
+    {
+      label: '전체 재생',
+      icon: <Play size={15} />,
+      onClick: handlePlayAllDetail
+    },
+    {
+      label: isDetailShuffle ? '셔플 재생 해제' : '셔플 재생',
+      icon: <Shuffle size={15} />,
+      className: isDetailShuffle ? 'active-option' : '',
+      onClick: handleShufflePlayDetail
+    },
+    {
+      label: '대기열에 전체 추가',
+      icon: <ListPlus size={15} />,
+      onClick: (e) => {
+        if (activeSharedPlaylist) {
+          const tracks = getCurrentDetailTracks();
+          if (tracks.length > 0) {
+            setQueue(prev => [...prev, ...tracks]);
+            setActiveTab('queue');
+            showToast(`'${activeSharedPlaylist.title}' ${tracks.length}곡을 대기열에 추가했습니다.`);
+          } else {
+            showToast('대기열에 추가할 곡이 없습니다.');
+          }
+        } else {
+          handleAddPlaylistToQueue(selectedPlaylistId, e);
+        }
+      }
+    },
+    ...(!isReadOnlyShared ? [
+      {
+        label: '전체 삭제',
+        icon: <Trash2 size={15} />,
+        className: 'btn-delete',
+        onClick: handleClearPlaylistTracks
+      }
+    ] : [])
+  ];
+
+  const queueDropdownOptions = [
+    {
+      label: '전체 재생',
+      icon: <Play size={15} />,
+      onClick: handlePlayAllQueue
+    },
+    {
+      label: isQueueShuffle ? '셔플 재생 해제' : '셔플 재생',
+      icon: <Shuffle size={15} />,
+      className: isQueueShuffle ? 'active-option' : '',
+      onClick: handleShufflePlayQueue
+    },
+    {
+      label: '전체 삭제',
+      icon: <Trash2 size={15} />,
+      className: 'btn-delete',
+      onClick: handleClearQueue
+    }
+  ];
 
   const render2x2Cover = (pl) => {
     const plObj = typeof pl === 'object' ? pl : playlists.find(p => p.id === pl);
@@ -1704,7 +1725,8 @@ export default function PlaylistManager() {
                           ...(count > 0 || pl.is_public ? [
                             {
                               label: pl.is_public ? '공유 해제' : '공유하기',
-                              icon: <Share2 size={14} style={{ color: pl.is_public ? 'var(--primary-warm, #ff6b6b)' : 'inherit' }} />,
+                              icon: <Share2 size={14} />,
+                              className: pl.is_public ? 'shared-option' : '',
                               onClick: (e) => handleToggleSharePlaylist(pl, e)
                             }
                           ] : []),
@@ -1801,43 +1823,19 @@ export default function PlaylistManager() {
                     </div>
 
                     <div className="playlist-detail-header-actions">
-                      <Button 
-                        variant="icon"
-                        size="md"
-                        onClick={handlePlayAllDetail}
-                        title="전체 재생"
-                        aria-label="전체 재생"
-                        leadingIcon={<Play size={16} />}
-                      />
-                      <Button 
-                        variant="icon"
-                        size="md"
-                        onClick={handleShufflePlayDetail}
-                        className={isDetailShuffle ? 'active' : ''}
-                        title={isDetailShuffle ? "셔플 재생 켬" : "셔플 재생 끔"}
-                        aria-label={isDetailShuffle ? "셔플 재생 켬" : "셔플 재생 끔"}
-                        leadingIcon={<Shuffle size={16} />}
-                      />
-                      <Button 
-                        variant="icon"
-                        size="md"
-                        onClick={(e) => {
-                          if (activeSharedPlaylist) {
-                            const tracks = getCurrentDetailTracks();
-                            if (tracks.length > 0) {
-                              setQueue(prev => [...prev, ...tracks]);
-                              setActiveTab('queue');
-                              showToast(`'${activeSharedPlaylist.title}' ${tracks.length}곡을 대기열에 추가했습니다.`);
-                            } else {
-                              showToast('대기열에 추가할 곡이 없습니다.');
-                            }
-                          } else {
-                            handleAddPlaylistToQueue(selectedPlaylistId, e);
-                          }
-                        }}
-                        title="대기열에 전체 곡 추가"
-                        aria-label="대기열에 전체 곡 추가"
-                        leadingIcon={<ListPlus size={16} />}
+                      <Dropdown 
+                        options={playlistDetailDropdownOptions}
+                        align="right"
+                        trigger={(isOpen) => (
+                          <button 
+                            type="button"
+                            className={`sofar-dropdown-trigger-btn ${isOpen ? 'active' : ''}`}
+                            title="더보기"
+                            aria-label="더보기 메뉴"
+                          >
+                            <MoreHorizontal size={18} strokeWidth={1.75} />
+                          </button>
+                        )}
                       />
                     </div>
                   </div>
@@ -1851,7 +1849,7 @@ export default function PlaylistManager() {
                   onDragLeave={handleDetailDragLeave}
                   onDrop={handleDetailDrop}
                 >
-                  {(!activeSharedPlaylist && (isTracksLoading || isTracksFetching)) ? (
+                  {(!activeSharedPlaylist && isTracksLoading && fetchedTracks.length === 0) ? (
                     <div className="track-loading-skeleton-list delayed-skeleton-container">
                       {[1, 2, 3, 4].map((num) => (
                         <div key={num} className="track-skeleton-row">
@@ -1931,30 +1929,19 @@ export default function PlaylistManager() {
                   </h3>
                 </div>
                 <div className="playlist-detail-header-actions">
-                  <Button 
-                    variant="icon"
-                    size="md"
-                    onClick={handlePlayAllQueue}
-                    title="전체 재생"
-                    aria-label="전체 재생"
-                    leadingIcon={<Play size={16} />}
-                  />
-                  <Button 
-                    variant="icon"
-                    size="md"
-                    onClick={handleShufflePlayQueue}
-                    className={isQueueShuffle ? 'active' : ''}
-                    title={isQueueShuffle ? "셔플 재생 켬" : "셔플 재생 끔"}
-                    aria-label={isQueueShuffle ? "셔플 재생 켬" : "셔플 재생 끔"}
-                    leadingIcon={<Shuffle size={16} />}
-                  />
-                  <Button 
-                    variant="icon"
-                    size="md"
-                    onClick={handleClearQueue}
-                    title="전체 삭제"
-                    aria-label="전체 삭제"
-                    leadingIcon={<Trash2 size={16} />}
+                  <Dropdown 
+                    options={queueDropdownOptions}
+                    align="right"
+                    trigger={(isOpen) => (
+                      <button 
+                        type="button"
+                        className={`sofar-dropdown-trigger-btn ${isOpen ? 'active' : ''}`}
+                        title="더보기"
+                        aria-label="더보기 메뉴"
+                      >
+                        <MoreHorizontal size={18} strokeWidth={1.75} />
+                      </button>
+                    )}
                   />
                 </div>
               </div>

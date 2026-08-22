@@ -120,9 +120,117 @@
   opacity: 1;
 }
 
-/* ── Track Action Dropdown Subpanel (Playlists List) ── */
-.track-dropdown-subpanel,
+.sofar-dropdown-item.active-option,
+.sofar-dropdown-item.active-option .dropdown-item-icon {
+  color: var(--primary-warm, #d4a373);
+}
+
+.sofar-dropdown-item.shared-option,
+.sofar-dropdown-item.shared-option .dropdown-item-icon {
+  color: var(--primary-warm, #ff6b6b);
+}
+
+.sofar-dropdown-trigger-container,
+.sofar-dropdown-custom-trigger {
+  display: inline-flex;
+  align-items: center;
+}
+
+.track-dropdown-header-title {
+  padding-left: 0.2rem;
+}
+
+/* ── Track Action Dropdown Submenu (Cascading Side Flyout) ── */
 .track-dropdown-mainpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+}
+
+.sofar-dropdown-submenu-container {
+  position: relative;
+  width: 100%;
+}
+
+.sofar-dropdown-item.has-submenu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sofar-dropdown-submenu {
+  position: absolute;
+  background: var(--bg-popover);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  padding: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 185px;
+  max-width: 240px;
+  z-index: 10010;
+}
+
+/* Horizontal positioning */
+.sofar-dropdown-submenu.to-right {
+  left: calc(100% + 6px);
+  right: auto;
+}
+
+.sofar-dropdown-submenu.to-left {
+  right: calc(100% + 6px);
+  left: auto;
+}
+
+/* Vertical alignment */
+.sofar-dropdown-submenu.align-top {
+  top: -4px;
+  bottom: auto;
+}
+
+.sofar-dropdown-submenu.align-bottom {
+  bottom: -4px;
+  top: auto;
+}
+
+/* Safe diagonal hover bridge / buffer zone */
+.sofar-dropdown-submenu::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+  width: 12px;
+}
+
+.sofar-dropdown-submenu.to-right::before {
+  left: -12px;
+}
+
+.sofar-dropdown-submenu.to-left::before {
+  right: -12px;
+}
+
+.sofar-dropdown-submenu.is-ready {
+  animation: submenuFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes submenuFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Subpanel & Header (Player Bar / Single Panel Dropdowns) ── */
+.track-dropdown-subpanel {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -133,36 +241,17 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.75rem;
-  color: var(--text-primary, rgba(255, 255, 255, 0.65));
-  padding: 0.2rem 0.75rem 0.65rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+  padding: 0.35rem 0.65rem 0.55rem 0.65rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.3rem;
+  letter-spacing: -0.01em;
 }
 
-.track-dropdown-back-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.65));
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  margin: -4px;
-  margin-left: -6px;
-  margin-right: -2px;
-  border-radius: 100%;
-  transition: all 0.15s ease;
-}
-
-.track-dropdown-back-btn:hover {
-  color: var(--text-primary, #fff);
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.track-dropdown-playlists-list {
-  max-height: 180px;
+.track-dropdown-playlists-list,
+.sofar-dropdown-submenu .track-dropdown-playlists-list {
+  max-height: 220px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -173,19 +262,27 @@
   display: flex;
   align-items: center;
   gap: 0.65rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.6rem 0.85rem;
   background: transparent;
   border: none;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
-  font-size: 0.75rem;
+  color: var(--text-primary, rgba(255, 255, 255, 0.9));
+  font-size: 0.8rem;
   font-weight: 500;
-  line-height: 1.2;
-  text-align: left;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   width: 100%;
-  box-sizing: border-box;
+  text-align: left;
   transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.track-dropdown-playlist-item .dropdown-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  flex-shrink: 0;
+  width: 18px;
 }
 
 .dropdown-playlist-title {
@@ -200,10 +297,16 @@
   color: var(--text-primary, #fff);
 }
 
+.track-dropdown-playlist-item:hover .dropdown-item-icon {
+  color: var(--text-primary, #fff);
+}
+
 .track-dropdown-empty {
   font-size: 0.75rem;
   color: var(--text-muted, rgba(255, 255, 255, 0.4));
-  padding: 0.65rem;
+  padding: 0.75rem 0.5rem;
   text-align: center;
 }
+
+
 

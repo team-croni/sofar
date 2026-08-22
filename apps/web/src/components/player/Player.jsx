@@ -14,7 +14,7 @@ import { useAudio } from '../../contexts/AudioContext';
 import { useFavorite } from '../../contexts/FavoriteContext';
 import { useAuth, supabase } from '../../contexts/AuthContext';
 import { useNowPlaying } from '../../hooks/useNowPlaying';
-import { useAddTrackMutation } from '../../hooks/useTracks';
+import { useAddTrackToPlaylist } from '../../hooks/useTracks';
 import VolumePopover from './VolumePopover';
 import { thumbnailCache } from '../../utils/thumbnailCache';
 import { formatArtistName } from '../../utils/trackUtils';
@@ -126,30 +126,15 @@ export default function Player() {
     addToQueue(currentTrack, 'end');
   };
 
+  const { addTrackToPlaylist } = useAddTrackToPlaylist();
+
   const handleAddToPlaylist = async (targetPlaylist) => {
-    if (!currentTrack) return;
-    try {
-      let videoId = currentTrack.youtube_video_id 
-        || currentTrack.videoId 
-        || (typeof currentTrack.id === 'string' && !currentTrack.id.startsWith('tr-') && currentTrack.id.length === 11 ? currentTrack.id : '');
-      const title = currentTrack.custom_title || currentTrack.title || '유튜브 동영상';
-      const artist = currentTrack.custom_artist || currentTrack.artist || '알 수 없는 아티스트';
-
-      const insertedTrack = await addTrackMutation.mutateAsync({
-        playlistId: targetPlaylist.id,
-        videoId: videoId || '',
-        title,
-        artist,
-      });
-
-      showToast(`'${targetPlaylist.title}' 플레이리스트에 추가되었습니다.`);
+    if (!currentTrack || !targetPlaylist) return;
+    const res = await addTrackToPlaylist(currentTrack, targetPlaylist);
+    if (res.success && res.data) {
       if (playlist.length > 0 && playlist[0].playlist_id === targetPlaylist.id) {
-        setPlaylist(prev => [...prev, insertedTrack]);
+        setPlaylist(prev => [...prev, res.data]);
       }
-      window.dispatchEvent(new Event('tracks-updated'));
-    } catch (err) {
-      console.error(err);
-      showToast('플레이리스트 추가에 실패했습니다.');
     }
   };
 
@@ -565,7 +550,7 @@ export default function Player() {
           {(close) => (
             <div className="track-dropdown-subpanel" onClick={(e) => e.stopPropagation()}>
               <div className="track-dropdown-header">
-                <span style={{ paddingLeft: '0.2rem' }}>플레이리스트에 추가</span>
+                <span className="track-dropdown-header-title">플레이리스트에 추가</span>
               </div>
               <div className="track-dropdown-playlists-list scrollbar-none">
                 {playlists.map(pl => (

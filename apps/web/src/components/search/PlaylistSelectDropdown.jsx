@@ -1,10 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Check, FolderPlus, ListMusic, Loader2 } from 'lucide-react';
 import { usePlaylistsQuery } from '../../hooks/usePlaylists';
-import { useAddTrackMutation } from '../../hooks/useTracks';
-import { useAudio } from '../../contexts/AudioContext';
-
-import { searchYoutube } from '../../utils/youtube';
+import { useAddTrackToPlaylist } from '../../hooks/useTracks';
 
 export default function PlaylistSelectDropdown({ track, buttonVariant = 'icon', className = '' }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,8 +9,7 @@ export default function PlaylistSelectDropdown({ track, buttonVariant = 'icon', 
   const dropdownRef = useRef(null);
 
   const { data: playlists = [], isLoading: isPlaylistsLoading } = usePlaylistsQuery();
-  const addTrackMutation = useAddTrackMutation();
-  const { showToast } = useAudio();
+  const { addTrackToPlaylist, isPending } = useAddTrackToPlaylist();
 
   // 드롭다운 외부 클릭 및 외부 요소 스크롤 시 닫기
   useEffect(() => {
@@ -49,38 +45,9 @@ export default function PlaylistSelectDropdown({ track, buttonVariant = 'icon', 
     e.stopPropagation();
     if (!track || !playlist) return;
 
-    try {
-      let videoId = track.youtube_video_id 
-        || track.videoId 
-        || (typeof track.id === 'string' && !track.id.startsWith('tr-') && track.id.length === 11 ? track.id : '');
-      const title = track.custom_title || track.title || '알 수 없는 곡';
-      const artist = track.custom_artist || track.artist || '알 수 없는 아티스트';
-
-      if (!videoId) {
-        const query = track.searchQuery || `${title} ${artist}`;
-        try {
-          const results = await searchYoutube(query);
-          if (results && results.length > 0) {
-            videoId = results[0].youtube_video_id || results[0].id || '';
-          }
-        } catch (searchErr) {
-          console.warn('YouTube search failed during playlist add:', searchErr);
-        }
-      }
-
-      await addTrackMutation.mutateAsync({
-        playlistId: playlist.id,
-        videoId: videoId || '',
-        title,
-        artist,
-      });
-
+    const res = await addTrackToPlaylist(track, playlist);
+    if (res.success || res.reason === 'ALREADY_EXISTS') {
       setAddedPlaylistIds(prev => new Set(prev).add(playlist.id));
-      showToast?.(`'${playlist.title}' 플레이리스트에 추가되었습니다.`);
-      window.dispatchEvent(new Event('tracks-updated'));
-    } catch (err) {
-      console.error('Failed to add track to playlist:', err);
-      showToast?.('플레이리스트 추가에 실패했습니다.');
     }
   };
 
@@ -121,7 +88,7 @@ export default function PlaylistSelectDropdown({ track, buttonVariant = 'icon', 
                     type="button"
                     className={`popover-item-btn ${isAdded ? 'is-added' : ''}`}
                     onClick={(e) => handleAddToPlaylist(pl, e)}
-                    disabled={addTrackMutation.isPending && isAdded}
+                    disabled={isPending && isAdded}
                   >
                     <span className="popover-item-title">{pl.title}</span>
                     {isAdded ? (

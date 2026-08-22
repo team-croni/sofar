@@ -161,7 +161,7 @@ export default function Dropdown({ options, trigger, align = 'right', children }
     >
       <div 
         ref={triggerRef} 
-        style={{ display: 'inline-flex' }}
+        className="sofar-dropdown-trigger-container"
         draggable={false}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -170,7 +170,7 @@ export default function Dropdown({ options, trigger, align = 'right', children }
             onClick={handleTriggerClick} 
             onMouseDown={(e) => e.stopPropagation()}
             draggable={false}
-            style={{ display: 'inline-flex' }}
+            className="sofar-dropdown-custom-trigger"
           >
             {trigger(isOpen)}
           </div>
