@@ -11,3 +11,4 @@ export { default as Modal } from './Modal.jsx';
 export { default as Logo } from './Logo.jsx';
 export { default as LoadingScreen } from './LoadingScreen.jsx';
 export { default as KpiCard } from './KpiCard.jsx';
+export { default as YoutubeIcon } from './YoutubeIcon.jsx';

@@ -18,7 +18,7 @@ import SearchPanel from './components/search/SearchPanel';
 import RightHeader from './components/header/RightHeader';
 
 import { thumbnailCache } from './utils/thumbnailCache';
-import { Button, Modal, LoadingScreen } from './components/ui';
+import { Button, Modal, LoadingScreen, YoutubeIcon } from './components/ui';
 import './App.css';
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
 
@@ -148,6 +148,19 @@ function HomePage() {
         <div className={`toast ${hasBottomPlayer ? 'has-player' : 'no-player'} ${isToastVisible ? 'show' : ''}`}>
           {toastMessage}
         </div>
+
+        {/* 유튜브 바로가기 버튼 (right-panel-column 기준 왼쪽 아래 고정 플로팅) */}
+        {isNowPlayingPage && !isLyricsExpanded && currentTrack?.youtube_video_id && (
+          <Button
+            variant="icon"
+            size="lg"
+            leadingIcon={<YoutubeIcon size={24} />}
+            onClick={() => window.open(`https://www.youtube.com/watch?v=${currentTrack.youtube_video_id}`, '_blank', 'noopener,noreferrer')}
+            className="main-youtube-btn"
+            title="YouTube에서 열기"
+            aria-label="YouTube에서 열기"
+          />
+        )}
 
         {/* 노래 일치 여부 매칭 피드백 (right-panel-column 기준 고정 플로팅 캡슐) */}
         {isNowPlayingPage && !isLyricsExpanded && currentTrack && (!hasVotedCurrentTrack || isMatchFeedbackLoading) && (

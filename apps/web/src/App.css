@@ -634,6 +634,22 @@ image {
   }
 }
 
+/* ── 유튜브 바로가기 플로팅 버튼 (Now Playing 왼쪽 하단) ── */
+.main-youtube-btn {
+  position: absolute;
+  bottom: calc(6rem + 1.25rem); /* 하단 플레이어 바(6rem) 위 20px 띄움 */
+  left: 1.5rem;
+  z-index: 110;
+  cursor: pointer;
+
+  /* 등장 시 아래에서 위로 올라오는 애니메이션 */
+  animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.main-youtube-btn:hover:not(:disabled) {
+  color: #ff0000 !important;
+}
+
 /* ── 노래 일치 여부 매칭 피드백 ── */
 .main-match-feedback {
   position: absolute;
