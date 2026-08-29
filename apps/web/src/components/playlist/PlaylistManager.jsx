@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import TrackRowItem from './TrackRowItem';
 import QueueRowItem from './QueueRowItem';
 import TrackThumbnail from './TrackThumbnail';
-import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube } from '../../utils/youtube';
+import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube, fetchVideoDurations } from '../../utils/youtube';
 import { durationCache } from '../../utils/durationCache';
 import { extractTracksFromDragData, handleTrackDragStart } from '../../utils/dragUtils';
 import { isMatchTrack } from '../../utils/trackUtils';
@@ -910,6 +910,14 @@ export default function PlaylistManager() {
       }
     });
 
+    // youtube_video_id가 있는 트랙들 중 아직 캐시에 없는 것들의 duration 조회
+    const videoIdsToFetch = tracks
+      .map(t => t.youtube_video_id)
+      .filter(id => Boolean(id) && !durationCache.get(id));
+    if (videoIdsToFetch.length > 0) {
+      fetchVideoDurations(videoIdsToFetch);
+    }
+
     // youtube_video_id가 없는 트랙만 폴백 검색 (백엔드 enrichment가 아직 완료 안 된 경우)
     const unresolved = tracks.filter(t => !t.youtube_video_id);
     if (unresolved.length === 0) return;
@@ -920,15 +928,30 @@ export default function PlaylistManager() {
     const abortController = new AbortController();
     resolveAbortRef.current = abortController;
 
-    const queries = unresolved.map(t => `${t.custom_title || t.title} ${t.custom_artist || t.artist}`);
-    fetchVideoDurations(queries).then(results => {
+    Promise.all(
+      unresolved.map(async (t) => {
+        const query = `${t.custom_title || t.title} ${t.custom_artist || t.artist}`.trim();
+        try {
+          const results = await searchYoutube(query, t.durationSec || 0);
+          if (results && results.length > 0) {
+            return {
+              id: t.id || query,
+              resolved: results[0],
+            };
+          }
+        } catch {
+          // ignore
+        }
+        return null;
+      })
+    ).then(resolvedItems => {
       if (abortController.signal.aborted) return;
-      if (!results || results.length === 0) return;
+      if (!resolvedItems || resolvedItems.length === 0) return;
 
-      const durationMap = new Map();
-      results.forEach(item => {
-        if (item?.query && item?.durationSec > 0) {
-          durationMap.set(item.query, item.durationSec);
+      const resolutionMap = new Map();
+      resolvedItems.forEach(item => {
+        if (item) {
+          resolutionMap.set(item.id, item.resolved);
         }
       });
 
@@ -936,19 +959,28 @@ export default function PlaylistManager() {
         if (!prev) return prev;
         return prev.map(t => {
           if (t.youtube_video_id) return t;
-          const q = `${t.custom_title || t.title} ${t.custom_artist || t.artist}`;
-          const dur = durationMap.get(q);
-          return dur ? { ...t, durationSec: dur } : t;
+          const query = `${t.custom_title || t.title} ${t.custom_artist || t.artist}`.trim();
+          const key = t.id || query;
+          const resolved = resolutionMap.get(key);
+          if (resolved) {
+            return {
+              ...t,
+              youtube_video_id: resolved.youtube_video_id,
+              durationSec: resolved.durationSec || t.durationSec,
+              artwork: resolved.artwork || t.artwork,
+            };
+          }
+          return t;
         });
       });
     }).catch(err => {
-      console.warn('Fallback chart duration resolution error:', err);
+      console.warn('Fallback chart track resolution error:', err);
     });
 
     return () => {
       abortController.abort();
     };
-  }, [activeSharedPlaylist?.id]);
+  }, [activeSharedPlaylist?.id, activeSharedPlaylist?._openedAt]);
 
   // 폴더 클릭 핸들러 (통일된 180ms Zoom-In 애니메이션 적용)
   const handleSelectPlaylistFolder = (folderId) => {
