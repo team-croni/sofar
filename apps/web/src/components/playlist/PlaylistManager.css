@@ -242,6 +242,9 @@
 .playlist-folder-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: max-content;
   padding-top: 0.1rem;
 }
 
@@ -253,6 +256,8 @@
   position: relative;
   padding: 0.875rem;
   border-radius: 20px;
+  align-self: start;
+  height: fit-content;
 }
 
 @supports (corner-shape: squircle) {

@@ -682,6 +682,9 @@
 .recommended-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  align-content: start;
+  align-items: start;
+  grid-auto-rows: max-content;
   gap: 0.85rem;
 }
 
