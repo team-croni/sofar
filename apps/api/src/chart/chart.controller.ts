@@ -141,6 +141,21 @@ export class ChartController {
     return this.chartService.deleteSongMapping(body.query || '', body.trackId);
   }
 
+  @Get('search-domestic')
+  async searchDomestic(
+    @Query('q') query?: string,
+    @Query('limit') limit?: string,
+  ): Promise<{ success: boolean; count: number; data: any[] }> {
+    if (!query) return { success: false, count: 0, data: [] };
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const results = await this.chartService.searchDomestic(query, limitNum);
+    return {
+      success: true,
+      count: results.length,
+      data: results,
+    };
+  }
+
   @Get('search-itunes')
   async searchItunes(
     @Query('q') query?: string,

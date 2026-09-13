@@ -9,7 +9,7 @@ import { useAudio } from '../../contexts/AudioContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Input } from '../ui';
 import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube } from '../../utils/youtube';
-import { searchItunesTracks } from '../../utils/itunes';
+import { searchDomesticTracks, searchItunesTracks } from '../../utils/itunes';
 
 import SearchLandingView from './SearchLandingView';
 
@@ -148,31 +148,40 @@ export default function SearchPanel() {
         setResults(fetchedTracks);
         setSearchCache(targetQuery, fetchedTracks);
       } else {
-        // 2) 일반 키워드 검색 시 ➔ 정제된 실제 음원 DB (iTunes Open API)
+        // 2) 일반 키워드 검색 시 ➔ 국내 음원 DB(Bugs 한국어 정식 메타데이터) 우선 검색
         try {
-          const itunesTracks = await searchItunesTracks(targetQuery, 25);
+          const domesticTracks = await searchDomesticTracks(targetQuery, 25);
 
-          if (itunesTracks && itunesTracks.length > 0) {
-            fetchedTracks = itunesTracks;
-            setResults(itunesTracks);
-            setSearchCache(targetQuery, itunesTracks);
+          if (domesticTracks && domesticTracks.length > 0) {
+            fetchedTracks = domesticTracks;
+            setResults(domesticTracks);
+            setSearchCache(targetQuery, domesticTracks);
           } else {
-            // iTunes DB에 없을 시 유튜브 직접 검색 폴백
-            const res = await searchYoutube(targetQuery);
-            if (res && res.length > 0) {
-              fetchedTracks = res.map(r => ({
-                id: `search-${r.youtube_video_id}-${Date.now()}`,
-                youtube_video_id: r.youtube_video_id,
-                custom_title: r.custom_title,
-                custom_artist: r.custom_artist,
-                thumbnail: r.thumbnail,
-                durationSec: r.durationSec || 0,
-                genre: 'YouTube'
-              }));
-              setResults(fetchedTracks);
-              setSearchCache(targetQuery, fetchedTracks);
+            // 국내 검색 결과 없을 시 글로벌 iTunes DB 검색 (해외 팝송 등)
+            const itunesTracks = await searchItunesTracks(targetQuery, 25);
+
+            if (itunesTracks && itunesTracks.length > 0) {
+              fetchedTracks = itunesTracks;
+              setResults(itunesTracks);
+              setSearchCache(targetQuery, itunesTracks);
             } else {
-              setResults([]);
+              // iTunes DB에도 없을 시 유튜브 직접 검색 폴백
+              const res = await searchYoutube(targetQuery);
+              if (res && res.length > 0) {
+                fetchedTracks = res.map(r => ({
+                  id: `search-${r.youtube_video_id}-${Date.now()}`,
+                  youtube_video_id: r.youtube_video_id,
+                  custom_title: r.custom_title,
+                  custom_artist: r.custom_artist,
+                  thumbnail: r.thumbnail,
+                  durationSec: r.durationSec || 0,
+                  genre: 'YouTube'
+                }));
+                setResults(fetchedTracks);
+                setSearchCache(targetQuery, fetchedTracks);
+              } else {
+                setResults([]);
+              }
             }
           }
         } catch (err) {

@@ -124,7 +124,7 @@ export default function AdminRightSidebar() {
 
       // 1) 앨범 커버 및 상세 정보가 부족한 경우 iTunes API로 자동 보강
       if (!songItem.artwork || !songItem.album || !songItem.durationSec) {
-        fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&country=KR&lang=ko_kr&limit=1`)
+        fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=1`)
           .then((res) => (res.ok ? res.json() : null))
           .then((json) => {
             if (!isMounted) return;
@@ -427,30 +427,49 @@ export default function AdminRightSidebar() {
     setSongHasSearched(true);
     setLastSearchedSongQuery(q);
     try {
-      const res = await fetch(
-        `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&country=KR&lang=ko_kr&limit=25`
-      );
-      if (res.ok) {
-        const json = await res.json();
-        if (json.results && Array.isArray(json.results)) {
-          const formatted = json.results.map((item) => {
-            const durationSec = item.trackTimeMillis ? Math.round(item.trackTimeMillis / 1000) : 0;
-            const rawArtwork = item.artworkUrl100 || '';
-            const artwork = rawArtwork ? rawArtwork.replace('100x100bb', '600x600bb') : '';
-            return {
-              id: item.trackId,
-              title: item.trackName || '제목 없음',
-              artist: item.artistName || '아티스트 없음',
-              album: item.collectionName || '',
-              durationSec,
-              artwork,
-            };
-          });
-          setSongResults(formatted);
-        } else {
-          setSongResults([]);
+      let foundSongs = [];
+      try {
+        const domesticRes = await fetch(`${API_BASE}/api/chart/search-domestic?q=${encodeURIComponent(q)}&limit=25`);
+        if (domesticRes.ok) {
+          const domJson = await domesticRes.json();
+          if (domJson.success && Array.isArray(domJson.data) && domJson.data.length > 0) {
+            foundSongs = domJson.data.map((item) => ({
+              id: item.id,
+              title: item.custom_title || '제목 없음',
+              artist: item.custom_artist || '아티스트 없음',
+              album: item.album || '',
+              durationSec: item.durationSec || 0,
+              artwork: item.thumbnail || item.artwork || '',
+            }));
+          }
+        }
+      } catch (e) {}
+
+      if (foundSongs.length === 0) {
+        const res = await fetch(
+          `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=25`
+        );
+        if (res.ok) {
+          const json = await res.json();
+          if (json.results && Array.isArray(json.results)) {
+            foundSongs = json.results.map((item) => {
+              const durationSec = item.trackTimeMillis ? Math.round(item.trackTimeMillis / 1000) : 0;
+              const rawArtwork = item.artworkUrl100 || '';
+              const artwork = rawArtwork ? rawArtwork.replace('100x100bb', '600x600bb') : '';
+              return {
+                id: item.trackId,
+                title: item.trackName || '제목 없음',
+                artist: item.artistName || '아티스트 없음',
+                album: item.collectionName || '',
+                durationSec,
+                artwork,
+              };
+            });
+          }
         }
       }
+
+      setSongResults(foundSongs);
     } catch (err) {
       console.warn('Song search error:', err);
       setSongResults([]);

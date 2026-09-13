@@ -2221,7 +2221,7 @@ export class ChartService implements OnModuleInit {
         .replace(/\s*\([^)]*\)/g, '')
         .replace(/\s*\[[^\]]*\]/g, '')
         .trim();
-      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ || query)}&media=music&entity=song&limit=${limit}&country=KR`;
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQ || query)}&media=music&entity=song&limit=${limit}`;
       const res = await fetch(url, {
         headers: {
           'User-Agent':
@@ -2250,6 +2250,73 @@ export class ChartService implements OnModuleInit {
       });
     } catch (e) {
       this.logger.error(`iTunes search error for query ${query}: ${e.message}`);
+      return [];
+    }
+  }
+
+  // 국내 음원 검색 엔진 (Bugs 공식 음원 검색 기반 100% 한국어 정식 메타데이터 파싱)
+  async searchDomestic(query: string, limit = 20): Promise<any[]> {
+    if (!query || !query.trim()) return [];
+    try {
+      const cleanQ = query
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/\s*\[[^\]]*\]/g, '')
+        .trim();
+      const url = `https://music.bugs.co.kr/search/track?q=${encodeURIComponent(cleanQ || query)}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+      });
+      if (!res.ok) return [];
+      const html = await res.text();
+      const trMatches = [
+        ...html.matchAll(/<tr[^>]*trackId="([0-9]+)"[\s\S]*?<\/tr>/gi),
+      ];
+
+      const tracks = trMatches
+        .map((m) => {
+          const row = m[0];
+          const trackId = m[1];
+          const artistId = row.match(/artistId="([0-9]+)"/i)?.[1] || null;
+          const title =
+            row
+              .match(/<p class="title"[^>]*>[\s\S]*?<a[^>]*title="([^"]+)"/i)?.[1]
+              ?.trim() || '';
+          const artist =
+            row
+              .match(/<p class="artist"[^>]*>[\s\S]*?<a[^>]*title="([^"]+)"/i)?.[1]
+              ?.trim() || '';
+          const album =
+            row
+              .match(/<a[^>]*class="album"[^>]*title="([^"]+)"/i)?.[1]
+              ?.trim() || '';
+          const rawImg = row.match(/<img[^>]*src="([^"]+)"/i)?.[1] || '';
+          const thumbnail = rawImg
+            ? rawImg.replace('/album/images/50/', '/album/images/500/')
+            : '';
+
+          return {
+            id: `bugs-${trackId}`,
+            artist_id: artistId,
+            custom_title: title,
+            custom_artist: artist,
+            album,
+            genre: '가요',
+            thumbnail,
+            artwork: thumbnail,
+            durationSec: 0,
+            searchQuery: `${artist} ${title}`.trim(),
+            youtube_video_id: null,
+            source: 'domestic-search',
+          };
+        })
+        .filter((t) => t.custom_title && t.custom_artist);
+
+      return tracks.slice(0, limit);
+    } catch (err: any) {
+      this.logger.warn(`searchDomestic error: ${err?.message || err}`);
       return [];
     }
   }

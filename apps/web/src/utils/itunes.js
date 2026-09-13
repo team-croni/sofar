@@ -10,7 +10,7 @@ export async function searchItunesMetadata(query) {
     const timeoutId = setTimeout(() => controller.abort(), 3500);
 
     const res = await fetch(
-      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&country=KR&lang=ko_kr&limit=5`,
+      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=5`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);
@@ -42,6 +42,50 @@ export async function searchItunesMetadata(query) {
 }
 
 /**
+ * 국내 음원 DB 검색 (Bugs 크롤링 기반 백엔드 API 연동)
+ * 100% 한국어 원본 곡명, 한국어 아티스트명, 앨범명, 500x500 고화질 앨범아트 반환
+ */
+export async function searchDomesticTracks(query, limit = 20) {
+  if (!query || !query.trim()) return [];
+
+  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch(
+      `${backendUrl}/api/chart/search-domestic?q=${encodeURIComponent(query)}&limit=${limit}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        return json.data.map((item, idx) => ({
+          id: item.id || `domestic-${idx}-${Date.now()}`,
+          artist_id: item.artist_id || null,
+          custom_title: item.custom_title || '',
+          custom_artist: item.custom_artist || '',
+          album: item.album || '',
+          genre: item.genre || '가요',
+          thumbnail: item.thumbnail || '',
+          artwork: item.artwork || item.thumbnail || '',
+          durationSec: item.durationSec || 0,
+          searchQuery: item.searchQuery || `${item.custom_artist} ${item.custom_title}`.trim(),
+          youtube_video_id: null,
+          source: 'domestic-search'
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('Domestic track search error:', err);
+  }
+
+  return [];
+}
+
+/**
  * 키워드 기반 실제 음원 DB 검색 (iTunes Open API - 한국 스토어 & 한국어 locale)
  * 정제된 실제 곡/음원 리스트 (곡명, 아티스트, 앨범, 600x600 고화질 커버, 원곡 재생길이) 반환
  */
@@ -53,7 +97,7 @@ export async function searchItunesTracks(query, limit = 20) {
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     const res = await fetch(
-      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&country=KR&lang=ko_kr&limit=${limit}`,
+      `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=${limit}`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);
