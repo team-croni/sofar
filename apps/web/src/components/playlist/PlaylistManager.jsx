@@ -39,11 +39,10 @@ import { getStaggerStyle } from '../../utils/animation';
 export default function PlaylistManager() {
   const { user } = useAuth();
   const { 
-    playlist, setPlaylist, 
+    setPlaylist, 
     queue, setQueue, 
     currentTrack, playTrack, 
     isPlaying, togglePlay, showToast,
-    isShuffle, setIsShuffle,
     isShuffleFor, toggleShuffleFor,
     activeSharedPlaylist, setActiveSharedPlaylist,
     playingSource, setPlayingSource,
@@ -91,8 +90,9 @@ export default function PlaylistManager() {
   const clearPlaylistTracksMutation = useClearPlaylistTracksMutation();
   const reorderTracksMutation = useReorderTracksMutation();
 
-  const isAddingBatchTracks = addTracksMutation.isPending;
   const [pendingFolderId, setPendingFolderId] = useState(null);
+  const [batchAddingInfo, setBatchAddingInfo] = useState(null);
+  const isAddingBatchTracks = addTracksMutation.isPending || !!batchAddingInfo;
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('playlists');
@@ -307,6 +307,16 @@ export default function PlaylistManager() {
       if (!tracks || tracks.length === 0) return;
 
       setPendingFolderId(folder.id);
+      setBatchAddingInfo({
+        playlistId: folder.id,
+        playlistTitle: folder.title,
+        count: tracks.length,
+      });
+
+      if (tracks.length > 1) {
+        showToast(`'${folder.title}'에 ${tracks.length}곡을 추가하는 중입니다...`);
+      }
+
       const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
         playlistId: folder.id,
         tracks,
@@ -342,6 +352,7 @@ export default function PlaylistManager() {
       showToast('플레이리스트 추가 중 오류가 발생했습니다.');
     } finally {
       setPendingFolderId(null);
+      setBatchAddingInfo(null);
     }
   };
 
@@ -583,6 +594,19 @@ export default function PlaylistManager() {
       if (!tracks || tracks.length === 0) return;
 
       const currentPl = playlists.find(p => p.id === selectedPlaylistId);
+      const plTitle = currentPl?.title || '플레이리스트';
+
+      setPendingFolderId(selectedPlaylistId);
+      setBatchAddingInfo({
+        playlistId: selectedPlaylistId,
+        playlistTitle: plTitle,
+        count: tracks.length,
+      });
+
+      if (tracks.length > 1) {
+        showToast(`'${plTitle}'에 ${tracks.length}곡을 추가하는 중입니다...`);
+      }
+
       const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
         playlistId: selectedPlaylistId,
         tracks,
@@ -618,6 +642,9 @@ export default function PlaylistManager() {
     } catch (err) {
       console.warn('Drop to detail track failed:', err);
       showToast('플레이리스트 추가 중 오류가 발생했습니다.');
+    } finally {
+      setPendingFolderId(null);
+      setBatchAddingInfo(null);
     }
   };
 
@@ -643,6 +670,19 @@ export default function PlaylistManager() {
       if (!tracks || tracks.length === 0) return;
 
       const currentPl = playlists.find(p => p.id === selectedPlaylistId);
+      const plTitle = currentPl?.title || '플레이리스트';
+
+      setPendingFolderId(selectedPlaylistId);
+      setBatchAddingInfo({
+        playlistId: selectedPlaylistId,
+        playlistTitle: plTitle,
+        count: tracks.length,
+      });
+
+      if (tracks.length > 1) {
+        showToast(`'${plTitle}'에 ${tracks.length}곡을 추가하는 중입니다...`);
+      }
+
       const { inserted, skippedCount } = await addTracksMutation.mutateAsync({
         playlistId: selectedPlaylistId,
         tracks,
@@ -677,6 +717,9 @@ export default function PlaylistManager() {
     } catch (err) {
       console.warn('Drop to detail failed:', err);
       showToast('플레이리스트 추가 중 오류가 발생했습니다.');
+    } finally {
+      setPendingFolderId(null);
+      setBatchAddingInfo(null);
     }
   };
 
@@ -2007,7 +2050,10 @@ export default function PlaylistManager() {
                               {render2x2Cover(pl)}
                               {pendingFolderId === pl.id && isAddingBatchTracks && (
                                 <div className="folder-card-processing-overlay">
-                                  <Loader2 size={24} className="spin-icon" />
+                                  <Loader2 size={22} className="spin-icon" />
+                                  <span className="folder-processing-text">
+                                    {batchAddingInfo?.count ? `${batchAddingInfo.count}곡 추가 중...` : '추가 중...'}
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -2113,6 +2159,13 @@ export default function PlaylistManager() {
                       onDragLeave={isAddingBatchTracks ? undefined : handleDetailDragLeave}
                       onDrop={isAddingBatchTracks ? undefined : handleDetailDrop}
                     >
+                      {isAddingBatchTracks && (
+                        <div className="track-list-processing-overlay">
+                          <div className="track-list-processing-spinner-box">
+                            <Loader2 size={24} className="spin-icon" />
+                          </div>
+                        </div>
+                      )}
                       {(!activeSharedPlaylist && isTracksLoading && isDetailEmpty) ? (
                         <div className="track-loading-skeleton-list delayed-skeleton-container">
                           {[1, 2, 3, 4, 5, 6].map((num) => (

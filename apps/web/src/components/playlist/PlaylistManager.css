@@ -960,31 +960,30 @@
 /* --- Batch Addition Processing & Disabled States --- */
 .track-item-list.is-processing {
   pointer-events: none !important;
-  opacity: 0.45;
   user-select: none;
-  filter: grayscale(0.2);
-  transition: opacity 0.2s ease, filter 0.2s ease;
+  position: relative;
 }
 
 .track-list-processing-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  padding: 0.55rem 1rem;
-  margin: 0 1.25rem 0.5rem 1.25rem;
-  background: rgba(212, 163, 115, 0.1);
-  border: 1px solid rgba(212, 163, 115, 0.25);
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  margin: 0.25rem 1.25rem 0.65rem 1.25rem;
+  background: rgba(212, 163, 115, 0.12);
+  border: 1px solid rgba(212, 163, 115, 0.3);
   border-radius: 12px;
   color: var(--primary-warm, #d4a373);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 500;
   animation: fadeIn 0.2s ease forwards;
   flex-shrink: 0;
 }
 
 .track-list-processing-bar .spin-icon,
-.folder-card-processing-overlay .spin-icon {
+.folder-card-processing-overlay .spin-icon,
+.track-list-processing-spinner-box .spin-icon {
   animation: spin 1s linear infinite;
 }
 
@@ -997,15 +996,45 @@
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   border-radius: inherit;
   color: var(--primary-warm, #d4a373);
   z-index: 5;
   animation: fadeIn 0.15s ease forwards;
+}
+
+.folder-processing-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.track-list-processing-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 18, 18, 0.7);
+  z-index: 20;
+  animation: fadeIn 0.2s ease forwards;
+  border-radius: 12px;
+}
+
+.track-list-processing-spinner-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--primary-warm, #d4a373);
 }
 
 @supports (corner-shape: squircle) {
