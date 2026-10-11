@@ -62,7 +62,8 @@ export default function QueueRowItem({
       return;
     }
 
-    if (track?.youtube_video_id) {
+    const isValidVideoId = typeof track?.youtube_video_id === 'string' && /^[a-zA-Z0-9_-]{11}$/.test(track.youtube_video_id);
+    if (isValidVideoId) {
       fetchVideoDurations([track.youtube_video_id]);
     }
   }, [track?.id, track?.duration, track?.durationSec, track?.youtube_video_id, isCurrent, audioDuration]);

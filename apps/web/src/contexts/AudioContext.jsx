@@ -3,9 +3,13 @@ import { searchYoutube } from "../utils/youtube";
 import { isMatchTrack } from "../utils/trackUtils";
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from "../utils/audioStorage";
 import { useToast } from "../hooks/useToast";
-import { useAuth } from "./AuthContext";
+import { useAuth, supabase } from "./AuthContext";
 
 const AudioContext = createContext(null);
+
+export const isValidYoutubeVideoId = (id) => {
+  return typeof id === 'string' && /^[a-zA-Z0-9_-]{11}$/.test(id);
+};
 
 export const getShuffleKey = (source) => {
   if (!source) return 'default';
@@ -23,6 +27,37 @@ export function AudioProvider({ children }) {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  // 트랙의 잘못된 비디오 ID를 실제 올바른 유튜브 ID로 Supabase / LocalStorage에 자가 치유(Self-healing) 업데이트
+  const updatePersistedTrackVideoId = useCallback(async (trackId, newVideoId) => {
+    if (!trackId || !isValidYoutubeVideoId(newVideoId)) return;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(trackId));
+    const currentUser = userRef.current;
+
+    if (currentUser && !currentUser.isGuest && supabase && isUuid) {
+      try {
+        await supabase
+          .from('tracks')
+          .update({ youtube_video_id: newVideoId })
+          .eq('id', trackId);
+      } catch (e) {
+        console.warn('Failed to self-heal track videoId in Supabase:', e);
+      }
+    } else {
+      try {
+        const localTr = localStorage.getItem('sofar_tracks');
+        if (localTr) {
+          const parsed = JSON.parse(localTr);
+          const updated = parsed.map(t => (String(t.id) === String(trackId) ? { ...t, youtube_video_id: newVideoId } : t));
+          localStorage.setItem('sofar_tracks', JSON.stringify(updated));
+        }
+      } catch (e) {
+        console.warn('Failed to self-heal track videoId in localStorage:', e);
+      }
+    }
+    window.dispatchEvent(new Event('tracks-updated'));
+  }, []);
 
   // 1. 기본 오디오/플레이어 관련 상태
   const [player, setPlayer] = useState(null);
@@ -213,24 +248,38 @@ export function AudioProvider({ children }) {
     setIsPlaying(true);
 
     let activeTrack = track;
+    const hasValidVideoId = isValidYoutubeVideoId(activeTrack.youtube_video_id);
 
-    if (!activeTrack.youtube_video_id) {
+    // 11자리 유효한 유튜브 비디오 ID가 없거나 잘못된 임시 식별자(itunes-..., trk_... 등)인 경우 자가 복구(Self-healing) 검색 실행
+    if (!hasValidVideoId) {
       try {
-        const query = activeTrack.searchQuery || `${activeTrack.custom_artist || ''} ${activeTrack.custom_title || ''}`;
+        const query = activeTrack.searchQuery || `${activeTrack.custom_artist || ''} ${activeTrack.custom_title || ''}`.trim();
         const results = await searchYoutube(query, activeTrack.durationSec || 0);
-        if (results && results.length > 0) {
+        const firstResult = results && results.length > 0 ? results[0] : null;
+        const matchedId = firstResult?.youtube_video_id || firstResult?.id;
+
+        if (firstResult && isValidYoutubeVideoId(matchedId)) {
           activeTrack = {
-            ...results[0],
-            id: activeTrack.id || results[0].id,
-            custom_title: activeTrack.custom_title,
-            custom_artist: activeTrack.custom_artist,
-            thumbnail: activeTrack.thumbnail || results[0].thumbnail,
-            durationSec: activeTrack.durationSec || results[0].durationSec
+            ...firstResult,
+            ...activeTrack,
+            id: activeTrack.id || firstResult.id,
+            youtube_video_id: matchedId,
+            custom_title: activeTrack.custom_title || firstResult.custom_title,
+            custom_artist: activeTrack.custom_artist || firstResult.custom_artist,
+            thumbnail: activeTrack.thumbnail || firstResult.thumbnail,
+            durationSec: activeTrack.durationSec || firstResult.durationSec
           };
           setCurrentTrack(activeTrack);
           setQueue(prev => prev.map(t => isMatchTrack(t, track) ? activeTrack : t));
+          setPlaybackContext(prev => prev.map(t => isMatchTrack(t, track) ? activeTrack : t));
+          setPlaylist(prev => prev.map(t => isMatchTrack(t, track) ? activeTrack : t));
+
+          // Supabase DB 또는 LocalStorage에 올바른 유튜브 ID로 자동 영속화
+          if (activeTrack.id) {
+            updatePersistedTrackVideoId(activeTrack.id, matchedId);
+          }
         } else {
-          showToast(`'${activeTrack.custom_title}' 재생 정보를 찾을 수 없습니다.`);
+          showToast(`'${activeTrack.custom_title || '곡'}' 재생 정보를 찾을 수 없습니다.`);
           setIsLoadingTrack(false);
           setIsPlaying(false);
           setTimeout(() => {
@@ -258,7 +307,7 @@ export function AudioProvider({ children }) {
       p.playVideo();
     }
     hasLoggedPlayRef.current = false;
-  }, [player, showToast]);
+  }, [player, showToast, updatePersistedTrackVideoId]);
 
   const playNext = useCallback(() => {
     const currentQueue = queueRef.current;
@@ -386,13 +435,50 @@ export function AudioProvider({ children }) {
     }
   }, [handleTrackEnded]);
 
-  const handlePlayerError = useCallback((event) => {
+  const handlePlayerError = useCallback(async (event) => {
     console.error("YouTube Player Error:", event.data);
+    const failedTrack = currentTrackRef.current;
+
+    // 만약 영상 재생 차단(101, 150) 또는 영상 없음(100)이고 아직 대체 영상을 찾지 않은 경우, 제외 검색 1회 시도
+    if (failedTrack && failedTrack.youtube_video_id && !failedTrack._hasRetriedAlternative) {
+      try {
+        const query = failedTrack.searchQuery || `${failedTrack.custom_artist || ''} ${failedTrack.custom_title || ''}`.trim();
+        const altResults = await searchYoutube(query, failedTrack.durationSec || 0, [failedTrack.youtube_video_id]);
+        const altFirst = altResults && altResults.length > 0 ? altResults[0] : null;
+        const altId = altFirst?.youtube_video_id || altFirst?.id;
+
+        if (altFirst && isValidYoutubeVideoId(altId)) {
+          console.log(`[Self-Healing] Alternative video found for '${failedTrack.custom_title}':`, altId);
+          const repairedTrack = {
+            ...failedTrack,
+            ...altFirst,
+            id: failedTrack.id,
+            youtube_video_id: altId,
+            _hasRetriedAlternative: true,
+          };
+          setCurrentTrack(repairedTrack);
+          setQueue(prev => prev.map(t => isMatchTrack(t, failedTrack) ? repairedTrack : t));
+          setPlaybackContext(prev => prev.map(t => isMatchTrack(t, failedTrack) ? repairedTrack : t));
+          if (repairedTrack.id) {
+            updatePersistedTrackVideoId(repairedTrack.id, altId);
+          }
+          const p = playerRef.current;
+          if (p && typeof p.loadVideoById === "function") {
+            p.loadVideoById({ videoId: altId, startSeconds: 0 });
+            p.playVideo();
+            return;
+          }
+        }
+      } catch (retryErr) {
+        console.warn('Failed to find alternative video on player error:', retryErr);
+      }
+    }
+
     showToast("재생할 수 없는 영상입니다. 다음 곡으로 이동합니다.");
     setTimeout(() => {
       playNext();
     }, 2000);
-  }, [playNext, showToast]);
+  }, [playNext, showToast, updatePersistedTrackVideoId]);
 
   useEffect(() => {
     handlePlayerStateChangeRef.current = handlePlayerStateChange;
