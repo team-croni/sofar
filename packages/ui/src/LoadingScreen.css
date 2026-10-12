@@ -29,7 +29,6 @@
 }
 
 .sofar-loading-logo {
-  animation: loading-pulse 2s ease-in-out infinite;
   cursor: default;
 }
 

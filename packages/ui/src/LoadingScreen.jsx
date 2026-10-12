@@ -1,4 +1,3 @@
-import React from 'react';
 import Logo from './Logo';
 import './LoadingScreen.css';
 
@@ -8,7 +7,7 @@ export default function LoadingScreen({
   size = 'md',
   className = ''
 }) {
-  const iconSizes = { sm: 24, md: 36, lg: 48 };
+  const iconSizes = { sm: 20, md: 28, lg: 36 };
   const titleSizes = { sm: '1.25rem', md: '1.75rem', lg: '2.2rem' };
 
   return (
@@ -19,9 +18,6 @@ export default function LoadingScreen({
           titleSize={titleSizes[size] || '1.75rem'} 
           className="sofar-loading-logo" 
         />
-        <div className="sofar-loading-indicator">
-          <span className="sofar-loading-pulse-ring" />
-        </div>
         {message && <p className="sofar-loading-message">{message}</p>}
       </div>
     </div>

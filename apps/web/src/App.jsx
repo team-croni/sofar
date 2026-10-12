@@ -46,7 +46,7 @@ function AppShell({ children }) {
   };
 
   if (loading) {
-    return <LoadingScreen fullScreen message="sofar를 준비하고 있습니다..." />;
+    return <LoadingScreen fullScreen message="Loading" />;
   }
 
   const bgUrl = getTrackThumbnail(currentTrack);

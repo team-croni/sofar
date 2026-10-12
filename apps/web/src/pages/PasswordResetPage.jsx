@@ -134,14 +134,14 @@ export default function PasswordResetPage() {
 
       <div className="reset-card-container">
         {/* Top Logo */}
-        <div className="reset-top-logo">
-          <Logo iconSize={26} titleSize="1.65rem" onClick={() => navigate('/')} />
-        </div>
+        {!checkingSession &&
+          <div className="reset-top-logo">
+            <Logo iconSize={26} titleSize="1.65rem" onClick={() => navigate('/')} />
+          </div>
+        }
 
         {checkingSession ? (
-          <div className="reset-loading-card">
-            <LoadingScreen fullScreen={false} size="sm" message="보안 인증 세션을 확인하고 있습니다..." />
-          </div>
+          <LoadingScreen fullScreen message="Loading" />
         ) : success ? (
           <div className="reset-success-card">
             <div className="reset-success-icon-wrap">
@@ -164,10 +164,6 @@ export default function PasswordResetPage() {
         ) : (
           <div className="reset-form-card">
             <div className="reset-card-header">
-              <div className="reset-header-badge">
-                <ShieldCheck size={14} />
-                <span>계정 보안 재설정</span>
-              </div>
               <h2 className="reset-card-title">새 비밀번호 설정 🔑</h2>
               <p className="reset-card-desc">
                 계정 보호를 위해 6자 이상의 안전한 새 비밀번호를 등록해 주세요.
