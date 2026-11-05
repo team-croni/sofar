@@ -44,8 +44,12 @@ export class EmailService {
     if (record) {
       // 1. 1분 쿨다운 검증
       if (now - record.lastSentAt < this.COOLDOWN_MS) {
-        const waitSec = Math.ceil((this.COOLDOWN_MS - (now - record.lastSentAt)) / 1000);
-        this.logger.warn(`Email rate limit hit (Cooldown): ${cleanEmail} (wait ${waitSec}s)`);
+        const waitSec = Math.ceil(
+          (this.COOLDOWN_MS - (now - record.lastSentAt)) / 1000,
+        );
+        this.logger.warn(
+          `Email rate limit hit (Cooldown): ${cleanEmail} (wait ${waitSec}s)`,
+        );
         throw new HttpException(
           `이메일 재발송 대기 시간입니다. ${waitSec}초 후에 다시 시도해주세요.`,
           HttpStatus.TOO_MANY_REQUESTS,

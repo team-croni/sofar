@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { AudioProvider, useAudio } from './contexts/AudioContext';
@@ -19,6 +19,7 @@ import RightHeader from './components/header/RightHeader';
 
 import { thumbnailCache } from './utils/thumbnailCache';
 import { Button, Modal, LoadingScreen, YoutubeIcon } from './components/ui';
+import MobileNoticeScreen from './components/common/MobileNoticeScreen';
 import './App.css';
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
 
@@ -32,7 +33,46 @@ function AppShell({ children }) {
     discardMigration,
   } = useAuth();
 
-  const { toastMessage, currentTrack } = useAudio();
+  const { 
+    toastMessage, 
+    currentTrack, 
+    isPlaying, 
+    togglePlay, 
+    setShowVideoInVinyl, 
+    setVideoVinylState 
+  } = useAudio();
+
+  // 유튜브 정책 준수: 데스크톱 너비(> 768px)에서 모바일 너비(<= 768px)로 줄어드는 순간 재생 중인 영상 강제 정지 및 비닐 영상 닫기
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let wasDesktop = window.innerWidth > 768;
+
+    const handleResize = () => {
+      const isMobile = window.innerWidth <= 768;
+      // 데스크톱 너비였다가 모바일 너비(768px 이하)로 줄어든 순간
+      if (wasDesktop && isMobile) {
+        if (isPlayingRef.current) {
+          togglePlay();
+        }
+        if (setShowVideoInVinyl) {
+          setShowVideoInVinyl(false);
+        }
+        if (setVideoVinylState) {
+          setVideoVinylState('idle');
+        }
+      }
+      wasDesktop = !isMobile;
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [togglePlay, setShowVideoInVinyl, setVideoVinylState]);
 
   // 앨범 이미지 URL 구하기
   const getTrackThumbnail = (track) => {
@@ -61,6 +101,9 @@ function AppShell({ children }) {
           style={{ backgroundImage: `url(${bgUrl})` }}
         />
       )}
+
+      {/* 모바일 환경 감지 시 데스크톱/태블릿 권장 안내 화면 */}
+      <MobileNoticeScreen />
 
       {/* 페이지 컨텐츠 */}
       {children}

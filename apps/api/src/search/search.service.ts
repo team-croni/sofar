@@ -62,7 +62,6 @@ export interface ArtistStats {
   };
 }
 
-
 export interface SearchLogArtistDto {
   name: string;
   thumbnail?: string;
@@ -126,7 +125,10 @@ export class SearchService implements OnModuleInit {
   private readonly logger = new Logger(SearchService.name);
 
   private readonly dataDir = path.join(process.cwd(), 'data');
-  private readonly keywordsFilePath = path.join(this.dataDir, 'search_keywords.json');
+  private readonly keywordsFilePath = path.join(
+    this.dataDir,
+    'search_keywords.json',
+  );
 
   // 인메모리 검색 로그 및 통계
   private searchLogs: SearchLogEntry[] = [];
@@ -174,8 +176,12 @@ export class SearchService implements OnModuleInit {
         const parsed = JSON.parse(raw);
         this.keywordStats = parsed.keywordStats || {};
         this.artistStats = parsed.artistStats || {};
-        this.pinnedKeywords = Array.isArray(parsed.pinnedKeywords) ? parsed.pinnedKeywords : [];
-        this.blacklistedKeywords = Array.isArray(parsed.blacklistedKeywords) ? parsed.blacklistedKeywords : [];
+        this.pinnedKeywords = Array.isArray(parsed.pinnedKeywords)
+          ? parsed.pinnedKeywords
+          : [];
+        this.blacklistedKeywords = Array.isArray(parsed.blacklistedKeywords)
+          ? parsed.blacklistedKeywords
+          : [];
         this.searchLogs = (parsed.recentLogs || []).slice(-1000);
         this.logger.log(
           `Loaded ${Object.keys(this.keywordStats).length} keywords, ${Object.keys(this.artistStats).length} artists, ${this.pinnedKeywords.length} pinned, ${this.blacklistedKeywords.length} blacklisted from file.`,
@@ -197,7 +203,11 @@ export class SearchService implements OnModuleInit {
         blacklistedKeywords: this.blacklistedKeywords,
         recentLogs: this.searchLogs.slice(-500),
       };
-      fs.writeFileSync(this.keywordsFilePath, JSON.stringify(payload, null, 2), 'utf-8');
+      fs.writeFileSync(
+        this.keywordsFilePath,
+        JSON.stringify(payload, null, 2),
+        'utf-8',
+      );
     } catch (err) {
       this.logger.error('Failed to save search_keywords.json:', err);
     }
@@ -232,7 +242,11 @@ export class SearchService implements OnModuleInit {
           now - log.timestamp < 5000,
       );
       if (isInstantDuplicate) {
-        return { success: true, isCounted: false, filterReason: '5초 이내 중복 요청 무시' };
+        return {
+          success: true,
+          isCounted: false,
+          filterReason: '5초 이내 중복 요청 무시',
+        };
       }
     }
 
@@ -368,7 +382,10 @@ export class SearchService implements OnModuleInit {
   async getTrendingKeywords(limit = 10): Promise<TrendingKeywordItem[]> {
     const now = Date.now();
 
-    if (this.cachedTrendingKeywords.length > 0 && now - this.lastRankingCalculatedAt < this.RANKING_CACHE_TTL_MS) {
+    if (
+      this.cachedTrendingKeywords.length > 0 &&
+      now - this.lastRankingCalculatedAt < this.RANKING_CACHE_TTL_MS
+    ) {
       return this.cachedTrendingKeywords.slice(0, limit);
     }
 
@@ -382,7 +399,10 @@ export class SearchService implements OnModuleInit {
   async getTrendingArtists(limit = 10): Promise<TrendingArtistItem[]> {
     const now = Date.now();
 
-    if (this.cachedTrendingArtists.length > 0 && now - this.lastRankingCalculatedAt < this.RANKING_CACHE_TTL_MS) {
+    if (
+      this.cachedTrendingArtists.length > 0 &&
+      now - this.lastRankingCalculatedAt < this.RANKING_CACHE_TTL_MS
+    ) {
       return this.cachedTrendingArtists.slice(0, limit);
     }
 
@@ -416,14 +436,21 @@ export class SearchService implements OnModuleInit {
     const scoredMap = new Map<string, number>();
 
     for (const [kw, stat] of Object.entries(this.keywordStats)) {
-      const uniqueUsers = uniqueUserMap.get(kw)?.size || (validCountMap.get(kw) ? 1 : 0);
+      const uniqueUsers =
+        uniqueUserMap.get(kw)?.size || (validCountMap.get(kw) ? 1 : 0);
       const validCounts = validCountMap.get(kw) || 0;
-      const recencyBoost = Math.max(0, 1 - (now - stat.lastSearchedAt) / (7 * 24 * 60 * 60 * 1000));
+      const recencyBoost = Math.max(
+        0,
+        1 - (now - stat.lastSearchedAt) / (7 * 24 * 60 * 60 * 1000),
+      );
 
       const naturalScore = uniqueUsers * 25 + validCounts * 2;
       const baseCount = stat.totalCount || 0;
       // 관리자 직접 부여 점수(totalCount) 우선 반영 및 자연 검색량 가산
-      const score = Math.max(baseCount, naturalScore + baseCount * 0.2 * recencyBoost);
+      const score = Math.max(
+        baseCount,
+        naturalScore + baseCount * 0.2 * recencyBoost,
+      );
       if (score > 0) {
         scoredMap.set(kw, Math.round(score));
       }
@@ -434,7 +461,11 @@ export class SearchService implements OnModuleInit {
       try {
         const liveChartTracks = await this.chartService.getTopCharts(20);
         if (liveChartTracks && liveChartTracks.length > 0) {
-          for (let i = 0; i < liveChartTracks.length && scoredMap.size < 15; i++) {
+          for (
+            let i = 0;
+            i < liveChartTracks.length && scoredMap.size < 15;
+            i++
+          ) {
             const t = liveChartTracks[i];
             const artist = formatArtistName((t.custom_artist || '').trim());
             const title = (t.custom_title || '').trim();
@@ -448,7 +479,10 @@ export class SearchService implements OnModuleInit {
           }
         }
       } catch (err) {
-        this.logger.warn('Failed to get live chart tracks for trending fallback:', err);
+        this.logger.warn(
+          'Failed to get live chart tracks for trending fallback:',
+          err,
+        );
       }
     }
 
@@ -461,12 +495,23 @@ export class SearchService implements OnModuleInit {
     scoredList.sort((a, b) => b.score - a.score);
 
     // 5. 블랙리스트 키워드 필터링
-    const blacklistedSet = new Set(this.blacklistedKeywords.map((k) => k.keyword.toLowerCase().trim()));
-    const filteredList = scoredList.filter((item) => !blacklistedSet.has(item.keyword.toLowerCase().trim()));
+    const blacklistedSet = new Set(
+      this.blacklistedKeywords.map((k) => k.keyword.toLowerCase().trim()),
+    );
+    const filteredList = scoredList.filter(
+      (item) => !blacklistedSet.has(item.keyword.toLowerCase().trim()),
+    );
 
     // 6. 고정(Pinned) 키워드 병합 및 최우선 순위 처리
-    const pinnedSet = new Set(this.pinnedKeywords.map((k) => k.keyword.toLowerCase().trim()));
-    const pinnedList: { keyword: string; score: number; isPinned: boolean; forcedRank?: number }[] = [];
+    const pinnedSet = new Set(
+      this.pinnedKeywords.map((k) => k.keyword.toLowerCase().trim()),
+    );
+    const pinnedList: {
+      keyword: string;
+      score: number;
+      isPinned: boolean;
+      forcedRank?: number;
+    }[] = [];
 
     this.pinnedKeywords.forEach((pinned) => {
       if (!blacklistedSet.has(pinned.keyword.toLowerCase().trim())) {
@@ -484,7 +529,11 @@ export class SearchService implements OnModuleInit {
     pinnedList.sort((a, b) => b.score - a.score);
 
     // 고정 키워드와 일반 키워드 합치기 (중복 제거)
-    const combinedList: { keyword: string; score: number; isPinned: boolean }[] = [...pinnedList];
+    const combinedList: {
+      keyword: string;
+      score: number;
+      isPinned: boolean;
+    }[] = [...pinnedList];
     filteredList.forEach((item) => {
       if (!pinnedSet.has(item.keyword.toLowerCase().trim())) {
         combinedList.push({
@@ -571,11 +620,19 @@ export class SearchService implements OnModuleInit {
     >();
 
     for (const [artName, stat] of Object.entries(this.artistStats)) {
-      const uniqueUsers = uniqueUserArtistMap.get(artName)?.size || (validArtistCounts.get(artName) ? 1 : 0);
+      const uniqueUsers =
+        uniqueUserArtistMap.get(artName)?.size ||
+        (validArtistCounts.get(artName) ? 1 : 0);
       const recentCount = validArtistCounts.get(artName) || 0;
-      const recencyBoost = Math.max(0, 1 - (now - stat.lastSearchedAt) / (7 * 24 * 60 * 60 * 1000));
+      const recencyBoost = Math.max(
+        0,
+        1 - (now - stat.lastSearchedAt) / (7 * 24 * 60 * 60 * 1000),
+      );
 
-      const score = uniqueUsers * 25 + recentCount * 2 + stat.totalCount * 0.3 * recencyBoost;
+      const score =
+        uniqueUsers * 25 +
+        recentCount * 2 +
+        stat.totalCount * 0.3 * recencyBoost;
       if (score > 0) {
         scoredMap.set(artName, {
           score,
@@ -596,7 +653,12 @@ export class SearchService implements OnModuleInit {
 
             // 괄호 한글명 우선 추출 및 피처링 정리
             const cleanArtist = formatArtistName(rawArtist);
-            if (!cleanArtist || cleanArtist.length < 2 || cleanArtist === 'Unknown Artist') return;
+            if (
+              !cleanArtist ||
+              cleanArtist.length < 2 ||
+              cleanArtist === 'Unknown Artist'
+            )
+              return;
 
             const chartBonus = Math.max(1, 30 - i) * 1.5;
             const existing = scoredMap.get(cleanArtist);
@@ -619,11 +681,16 @@ export class SearchService implements OnModuleInit {
           });
         }
       } catch (err) {
-        this.logger.warn('Failed to incorporate chart tracks into trending artists:', err);
+        this.logger.warn(
+          'Failed to incorporate chart tracks into trending artists:',
+          err,
+        );
       }
     }
 
-    const blacklistedSet = new Set(this.blacklistedKeywords.map((k) => k.keyword.toLowerCase().trim()));
+    const blacklistedSet = new Set(
+      this.blacklistedKeywords.map((k) => k.keyword.toLowerCase().trim()),
+    );
 
     const scoredList: {
       name: string;
@@ -719,7 +786,9 @@ export class SearchService implements OnModuleInit {
 
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
-    const logsLast24h = this.searchLogs.filter((l) => l.timestamp >= oneDayAgo).length;
+    const logsLast24h = this.searchLogs.filter(
+      (l) => l.timestamp >= oneDayAgo,
+    ).length;
 
     return {
       trendingKeywords: keywords,
@@ -742,7 +811,10 @@ export class SearchService implements OnModuleInit {
   /**
    * 키워드 상위 고정(Pin) 등록/수정
    */
-  async pinKeyword(keyword: string, rank?: number): Promise<{ success: boolean; data: PinnedKeywordItem[] }> {
+  async pinKeyword(
+    keyword: string,
+    rank?: number,
+  ): Promise<{ success: boolean; data: PinnedKeywordItem[] }> {
     const clean = (keyword || '').trim();
     if (!clean) return { success: false, data: this.pinnedKeywords };
 
@@ -771,7 +843,9 @@ export class SearchService implements OnModuleInit {
   /**
    * 키워드 고정 해제(Unpin)
    */
-  async unpinKeyword(keyword: string): Promise<{ success: boolean; data: PinnedKeywordItem[] }> {
+  async unpinKeyword(
+    keyword: string,
+  ): Promise<{ success: boolean; data: PinnedKeywordItem[] }> {
     const clean = (keyword || '').trim();
     this.pinnedKeywords = this.pinnedKeywords.filter(
       (k) => k.keyword.toLowerCase() !== clean.toLowerCase(),
@@ -786,7 +860,10 @@ export class SearchService implements OnModuleInit {
   /**
    * 금지어(블랙리스트) 추가
    */
-  async addBlacklistKeyword(keyword: string, reason?: string): Promise<{ success: boolean; data: BlacklistedKeywordItem[] }> {
+  async addBlacklistKeyword(
+    keyword: string,
+    reason?: string,
+  ): Promise<{ success: boolean; data: BlacklistedKeywordItem[] }> {
     const clean = (keyword || '').trim();
     if (!clean) return { success: false, data: this.blacklistedKeywords };
 
@@ -815,7 +892,9 @@ export class SearchService implements OnModuleInit {
   /**
    * 금지어(블랙리스트) 삭제/해제
    */
-  async removeBlacklistKeyword(keyword: string): Promise<{ success: boolean; data: BlacklistedKeywordItem[] }> {
+  async removeBlacklistKeyword(
+    keyword: string,
+  ): Promise<{ success: boolean; data: BlacklistedKeywordItem[] }> {
     const clean = (keyword || '').trim();
     this.blacklistedKeywords = this.blacklistedKeywords.filter(
       (k) => k.keyword.toLowerCase() !== clean.toLowerCase(),
@@ -913,4 +992,3 @@ export class SearchService implements OnModuleInit {
     return { success: true };
   }
 }
-

@@ -104,3 +104,15 @@
     transform: scale(0.8);
   }
 }
+
+/* 모바일 뷰포트(768px 이하)에서는 미니 플레이어 및 LP 비닐 영상 강제 숨김 */
+@media (max-width: 768px) {
+  .mini-player-container,
+  .mini-player-container.in-vinyl,
+  .mini-player-container.show {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    transform: scale(0) !important;
+  }
+}

@@ -11,4 +11,3 @@ import { SearchModule } from '../search/search.module';
   exports: [AdminService],
 })
 export class AdminModule {}
-

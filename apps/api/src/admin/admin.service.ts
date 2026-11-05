@@ -56,7 +56,8 @@ export class AdminService {
   /** 시스템 기본 8대 장르 큐레이션 목록 추출 */
   private async getSystemGenrePlaylists(): Promise<CuratedPlaylistDto[]> {
     try {
-      const allCategories = await this.chartService.getCuratedCategoryPlaylists();
+      const allCategories =
+        await this.chartService.getCuratedCategoryPlaylists();
       return allCategories
         .filter((cat) => cat.id && cat.id.startsWith('cat-'))
         .map((cat, idx) => ({
@@ -65,7 +66,7 @@ export class AdminService {
           category_label: cat.categoryLabel || '장르별',
           title: cat.title,
           subtitle: cat.subtitle || '실시간 음원 차트 자동 연동 (50곡)',
-          cover: cat.cover || (cat.tracks?.[0]?.artwork || ''),
+          cover: cat.cover || cat.tracks?.[0]?.artwork || '',
           tag: cat.tag || cat.title,
           author: cat.author || 'sofar',
           display_order: idx - 100, // 시스템 기본 큐레이션은 상단 배치
@@ -82,7 +83,9 @@ export class AdminService {
           })),
         }));
     } catch (err: any) {
-      this.logger.warn(`[Admin] Failed to load system genre playlists: ${err?.message || err}`);
+      this.logger.warn(
+        `[Admin] Failed to load system genre playlists: ${err?.message || err}`,
+      );
       return [];
     }
   }
@@ -215,7 +218,9 @@ export class AdminService {
     data: Partial<CuratedPlaylistDto>,
   ): Promise<CuratedPlaylistDto | null> {
     if (id && id.startsWith('cat-')) {
-      throw new Error('시스템 기본 장르 큐레이션은 실시간 차트와 연동되어 직접 수정할 수 없습니다.');
+      throw new Error(
+        '시스템 기본 장르 큐레이션은 실시간 차트와 연동되어 직접 수정할 수 없습니다.',
+      );
     }
 
     const { url } = this.getSupabaseConfig();
@@ -1149,4 +1154,3 @@ export class AdminService {
     return this.searchService.recalculateTrending(true);
   }
 }
-

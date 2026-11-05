@@ -1,6 +1,19 @@
-import { Controller, Get, Post, Body, Query, Headers, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  Headers,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
-import { SearchService, TrendingKeywordItem, TrendingArtistItem, SearchLogArtistDto } from './search.service';
+import {
+  SearchService,
+  TrendingKeywordItem,
+  TrendingArtistItem,
+  SearchLogArtistDto,
+} from './search.service';
 
 class LogSearchDto {
   keyword: string;
@@ -32,12 +45,22 @@ export class SearchController {
     // 클라이언트 식별자 우선순위: 1) userId 2) body.clientId 3) x-client-id 헤더 4) IP 주소
     let clientId = body?.clientId || clientIdHeader;
     if (!clientId) {
-      const rawIp = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || '127.0.0.1';
+      const rawIp =
+        req.headers['x-forwarded-for'] ||
+        req.socket?.remoteAddress ||
+        req.ip ||
+        '127.0.0.1';
       const ip = Array.isArray(rawIp) ? rawIp[0] : rawIp.split(',')[0].trim();
       clientId = `guest_${ip.replace(/[^a-zA-Z0-9]/g, '_')}`;
     }
 
-    return this.searchService.logSearchKeyword(keyword, clientId, artists, userId, isGuest);
+    return this.searchService.logSearchKeyword(
+      keyword,
+      clientId,
+      artists,
+      userId,
+      isGuest,
+    );
   }
 
   /**
@@ -45,14 +68,14 @@ export class SearchController {
    * GET /api/search/trending
    */
   @Get('trending')
-  async getTrending(
-    @Query('limit') limit?: string,
-  ): Promise<{
+  async getTrending(@Query('limit') limit?: string): Promise<{
     success: boolean;
     data: TrendingKeywordItem[];
     artists: TrendingArtistItem[];
   }> {
-    const limitNum = limit ? Math.min(20, Math.max(1, parseInt(limit, 10))) : 10;
+    const limitNum = limit
+      ? Math.min(20, Math.max(1, parseInt(limit, 10)))
+      : 10;
     const [data, artists] = await Promise.all([
       this.searchService.getTrendingKeywords(limitNum),
       this.searchService.getTrendingArtists(limitNum),
@@ -73,7 +96,9 @@ export class SearchController {
   async getTrendingArtists(
     @Query('limit') limit?: string,
   ): Promise<{ success: boolean; data: TrendingArtistItem[] }> {
-    const limitNum = limit ? Math.min(20, Math.max(1, parseInt(limit, 10))) : 10;
+    const limitNum = limit
+      ? Math.min(20, Math.max(1, parseInt(limit, 10)))
+      : 10;
     const data = await this.searchService.getTrendingArtists(limitNum);
     return {
       success: true,
@@ -81,4 +106,3 @@ export class SearchController {
     };
   }
 }
-

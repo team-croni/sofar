@@ -98,7 +98,10 @@ export class ChartService implements OnModuleInit {
   // 장르 플레이리스트(400곡) 안전한 백그라운드 순차 큐 워커
   private backgroundCategoryEnrichmentQueue: string[] = [];
   private isBackgroundCategoryEnriching = false;
-  private enrichmentErrorMap = new Map<string, { message: string; timestamp: number }>();
+  private enrichmentErrorMap = new Map<
+    string,
+    { message: string; timestamp: number }
+  >();
 
   private dataDir = path.join(process.cwd(), 'data');
   private reportsFilePath = path.join(this.dataDir, 'mismatch_reports.json');
@@ -140,12 +143,16 @@ export class ChartService implements OnModuleInit {
               custom_artist: row.custom_artist || '',
               youtube_video_id: row.youtube_video_id,
               mismatchCount: row.mismatch_count || 1,
-              lastReportedAt: new Date(row.last_reported_at || row.created_at).getTime(),
+              lastReportedAt: new Date(
+                row.last_reported_at || row.created_at,
+              ).getTime(),
               artwork: row.artwork || '',
               thumbnail: row.thumbnail || row.artwork || '',
               logs: Array.isArray(row.logs) ? row.logs : [],
               status: row.status || 'pending',
-              resolvedAt: row.resolved_at ? new Date(row.resolved_at).getTime() : undefined,
+              resolvedAt: row.resolved_at
+                ? new Date(row.resolved_at).getTime()
+                : undefined,
             };
 
             this.mismatchReportsMap.set(report.id, report);
@@ -155,7 +162,10 @@ export class ChartService implements OnModuleInit {
               report.logs.forEach((l) => {
                 if (l.youtube_video_id) {
                   const curr = this.matchPenalties.get(l.youtube_video_id) || 0;
-                  this.matchPenalties.set(l.youtube_video_id, Math.max(curr, l.mismatchCount || 1));
+                  this.matchPenalties.set(
+                    l.youtube_video_id,
+                    Math.max(curr, l.mismatchCount || 1),
+                  );
                 }
               });
             }
@@ -167,7 +177,9 @@ export class ChartService implements OnModuleInit {
         }
       }
     } catch (err: any) {
-      this.logger.warn(`[Supabase] Sync song_match_reports failed: ${err?.message || err}`);
+      this.logger.warn(
+        `[Supabase] Sync song_match_reports failed: ${err?.message || err}`,
+      );
     }
   }
 
@@ -188,8 +200,12 @@ export class ChartService implements OnModuleInit {
         thumbnail: report.thumbnail || report.artwork || '',
         status: report.status || 'pending',
         logs: report.logs || [],
-        last_reported_at: new Date(report.lastReportedAt || Date.now()).toISOString(),
-        resolved_at: report.resolvedAt ? new Date(report.resolvedAt).toISOString() : null,
+        last_reported_at: new Date(
+          report.lastReportedAt || Date.now(),
+        ).toISOString(),
+        resolved_at: report.resolvedAt
+          ? new Date(report.resolvedAt).toISOString()
+          : null,
         updated_at: new Date().toISOString(),
       };
 
@@ -204,7 +220,9 @@ export class ChartService implements OnModuleInit {
         body: JSON.stringify(payload),
       });
     } catch (err: any) {
-      this.logger.warn(`[Supabase] Failed to upsert song_match_report (${report.id}): ${err?.message || err}`);
+      this.logger.warn(
+        `[Supabase] Failed to upsert song_match_report (${report.id}): ${err?.message || err}`,
+      );
     }
   }
 
@@ -499,13 +517,27 @@ export class ChartService implements OnModuleInit {
 
     // 0) 검색 쿼리(곡명/아티스트) 키워드 토큰 매칭 점수 산출
     if (cleanSearchQuery) {
-      const stopWords = new Set(['official', 'audio', 'mv', 'm/v', 'topic', 'feat', 'ft', 'prod', 'lyrics', '가사', '음원', 'music', 'video']);
+      const stopWords = new Set([
+        'official',
+        'audio',
+        'mv',
+        'm/v',
+        'topic',
+        'feat',
+        'ft',
+        'prod',
+        'lyrics',
+        '가사',
+        '음원',
+        'music',
+        'video',
+      ]);
       const queryTokens = cleanSearchQuery
         .replace(/\([^)]*\)|\[[^\]]*\]/g, ' ')
         .replace(/[\-_/\\#,.\+~]/g, ' ')
         .split(/\s+/)
-        .map(t => t.trim())
-        .filter(t => t.length >= 1 && !stopWords.has(t));
+        .map((t) => t.trim())
+        .filter((t) => t.length >= 1 && !stopWords.has(t));
 
       if (queryTokens.length > 0) {
         const normalizedTitle = title.replace(/[\-_/\\#,.\+~]/g, ' ');
@@ -514,7 +546,7 @@ export class ChartService implements OnModuleInit {
         let matchedTitleTokens = 0;
         let matchedChannelTokens = 0;
 
-        queryTokens.forEach(token => {
+        queryTokens.forEach((token) => {
           if (normalizedTitle.includes(token)) {
             matchedTitleTokens++;
           }
@@ -2092,7 +2124,9 @@ export class ChartService implements OnModuleInit {
           }
         }
       } catch (err: any) {
-        this.logger.warn(`Keyless YouTube search trial error for "${q}": ${err?.message || err}`);
+        this.logger.warn(
+          `Keyless YouTube search trial error for "${q}": ${err?.message || err}`,
+        );
       }
     }
 
@@ -2282,11 +2316,15 @@ export class ChartService implements OnModuleInit {
           const artistId = row.match(/artistId="([0-9]+)"/i)?.[1] || null;
           const title =
             row
-              .match(/<p class="title"[^>]*>[\s\S]*?<a[^>]*title="([^"]+)"/i)?.[1]
+              .match(
+                /<p class="title"[^>]*>[\s\S]*?<a[^>]*title="([^"]+)"/i,
+              )?.[1]
               ?.trim() || '';
           const artist =
             row
-              .match(/<p class="artist"[^>]*>[\s\S]*?<a[^>]*title="([^"]+)"/i)?.[1]
+              .match(
+                /<p class="artist"[^>]*>[\s\S]*?<a[^>]*title="([^"]+)"/i,
+              )?.[1]
               ?.trim() || '';
           const album =
             row
@@ -2777,8 +2815,13 @@ export class ChartService implements OnModuleInit {
       }
 
       // ☕ 5곡 연속 처리 완료 시 3초간 쿨다운 휴식
-      if (processedCountInCycle >= 5 && this.backgroundCategoryEnrichmentQueue.length > 0) {
-        this.logger.log(`[Category Enrich Queue] Taking a 3s cooldown after 5 tracks...`);
+      if (
+        processedCountInCycle >= 5 &&
+        this.backgroundCategoryEnrichmentQueue.length > 0
+      ) {
+        this.logger.log(
+          `[Category Enrich Queue] Taking a 3s cooldown after 5 tracks...`,
+        );
         await new Promise((resolve) => setTimeout(resolve, 3000));
         processedCountInCycle = 0;
       } else if (this.backgroundCategoryEnrichmentQueue.length > 0) {

@@ -246,7 +246,10 @@ export class AdminController {
   async pinSearchKeyword(
     @Body() body: { keyword: string; rank?: number },
   ): Promise<{ success: boolean; data?: any }> {
-    const result = await this.adminService.pinSearchKeyword(body?.keyword, body?.rank);
+    const result = await this.adminService.pinSearchKeyword(
+      body?.keyword,
+      body?.rank,
+    );
     return result;
   }
 
@@ -266,7 +269,10 @@ export class AdminController {
   async addBlacklistKeyword(
     @Body() body: { keyword: string; reason?: string },
   ): Promise<{ success: boolean; data?: any }> {
-    const result = await this.adminService.addBlacklistSearchKeyword(body?.keyword, body?.reason);
+    const result = await this.adminService.addBlacklistSearchKeyword(
+      body?.keyword,
+      body?.reason,
+    );
     return result;
   }
 
@@ -276,7 +282,8 @@ export class AdminController {
   async removeBlacklistKeyword(
     @Param('keyword') keyword: string,
   ): Promise<{ success: boolean; data?: any }> {
-    const result = await this.adminService.removeBlacklistSearchKeyword(keyword);
+    const result =
+      await this.adminService.removeBlacklistSearchKeyword(keyword);
     return result;
   }
 
@@ -286,7 +293,10 @@ export class AdminController {
   async addOrUpdateSearchKeyword(
     @Body() body: { keyword: string; count: number },
   ): Promise<{ success: boolean; keyword?: string; count?: number }> {
-    const result = await this.adminService.addOrUpdateSearchKeyword(body?.keyword, body?.count);
+    const result = await this.adminService.addOrUpdateSearchKeyword(
+      body?.keyword,
+      body?.count,
+    );
     return result;
   }
 
@@ -316,4 +326,3 @@ export class AdminController {
     return result;
   }
 }
-

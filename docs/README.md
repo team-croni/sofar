@@ -13,7 +13,7 @@
 | [playback-system-spec.md](./playback-system-spec.md) | 2026-08-07 | 오디오 플레이어 재생 컨텍스트 & 대기열(Queue) 아키텍처 및 작동 규격 문서 신규 작성 | v1.0.0 |
 | [production-deployment-guide.md](./production-deployment-guide.md) | 2026-08-20 | Supabase Auth Hook / OAuth / Email Templates 규격 및 관리자 CORS 인프라 점검 가이드 최신화 | v1.3.0 |
 | [design-system.md](./design-system.md) | 2026-07-11 | UI 공통 컴포넌트 규격 및 디자인 시스템 가이드 문서 신규 추가 | v1.0.0 |
-| [PRD.md](../PRD.md) | 2026-08-20 | 로그인 화면 공식 슬로건, 실무 포지셔닝 및 핵심 기능 명세 최신화 | v2.1.0 |
+| [PRD.md](../PRD.md) | 2026-10-13 | PWA 표준 웹 앱 채택 및 모바일 데스크톱/태블릿 권장 안내 뷰포트 정책 반영 | v2.2.0 |
 | [TDD.md](../TDD.md) | 2026-08-20 | Turborepo 모노레포 아키텍처, NestJS 백엔드 파이프라인, Supabase RLS 스키마 가이드 최신화 | v2.1.0 |
 | [README.md](../README.md) | 2026-08-20 | 공식 브랜드 로고 에셋 삽입, 로그인 화면 슬로건 동기화 및 라이선스 정책 최신화 | v2.1.0 |
 
