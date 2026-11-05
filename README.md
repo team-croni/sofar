@@ -1,17 +1,17 @@
 <div align="center">
     <img src="./packages/assets/sofar-full-logo.svg" width="380px" />
 
-[버그 제보](https://github.com/team-croni/sofar/issues) · [기능 요청](https://github.com/team-croni/sofar/issues)
+[서비스 바로가기](https://sofar-web.vercel.app) · [버그 제보](https://github.com/team-croni/sofar/issues) · [기능 요청](https://github.com/team-croni/sofar/issues)
 
 **"유튜브 기반으로 광고 없이 즐기는 스마트 웹 오디오 스트리밍"**
 
 YouTube 음원을 기반으로 광고 없이 누구나 무료로 음악을 감상하고, 정교한 싱크 가사와 함께 몰입할 수 있는 웹 스트리밍 플랫폼입니다.
 
-·
+<br />
 
-·
+<video src="./docs/sofar-demo.mp4" autoplay loop muted playsinline width="100%"></video>
 
-·
+<br />
 
 </div>
 
