@@ -9,7 +9,9 @@ YouTube 음원을 기반으로 광고 없이 누구나 무료로 음악을 감�
 
 <br />
 
-<video src="./docs/sofar-demo.mp4" autoplay loop muted playsinline width="100%"></video>
+<a href="https://sofar-web.vercel.app" target="_blank">
+  <img src="./docs/screenshot.png" alt="sofar Preview" width="100%" />
+</a>
 
 <br />
 
