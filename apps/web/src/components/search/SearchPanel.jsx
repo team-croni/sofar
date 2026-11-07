@@ -80,7 +80,11 @@ export default function SearchPanel() {
   };
 
   const removeRecentSearch = (searchTerm, e) => {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.nativeEvent?.stopImmediatePropagation?.();
+    }
     setRecentSearches(prev => {
       const updated = prev.filter(s => s !== searchTerm);
       try {
@@ -484,18 +488,21 @@ export default function SearchPanel() {
             <div className="search-header-recents-bar">
               <div className="search-header-recents-list">
                 {recentSearches.map((term) => (
-                  <div 
-                    key={term} 
-                    className="header-recent-chip"
-                    onClick={() => {
-                      const cleanTerm = term.trim();
-                      shouldLogNextSearchRef.current = true;
-                      setQuery(cleanTerm);
-                      setSelectedArtistKey(null);
-                      setSearchParams({ q: cleanTerm });
-                    }}
-                  >
-                    <span className="header-recent-text">{term}</span>
+                  <div key={term} className="header-recent-chip">
+                    <button
+                      type="button"
+                      className="header-recent-chip-btn"
+                      onClick={() => {
+                        const cleanTerm = term.trim();
+                        shouldLogNextSearchRef.current = true;
+                        setQuery(cleanTerm);
+                        setSelectedArtistKey(null);
+                        setSearchParams({ q: cleanTerm });
+                      }}
+                      title={`'${term}' 검색`}
+                    >
+                      <span className="header-recent-text">{term}</span>
+                    </button>
                     <button 
                       type="button"
                       className="header-recent-remove-btn" 
@@ -651,10 +658,9 @@ export default function SearchPanel() {
             ) : (
               /* 검색 결과가 없을 때 (Empty State) */
               <div className="search-empty-state-modern">
-                <div className="empty-icon-wrap">
-                  <Music2 size={40} className="empty-icon" />
-                </div>
-                <h3 className="empty-title">'{query}'에 대한 검색 결과가 없습니다</h3>
+                <h3 className="empty-title">
+                  {searchedQuery ? `'${searchedQuery}'에 대한 검색 결과가 없습니다` : '검색 결과가 없습니다'}
+                </h3>
                 <p className="empty-desc">
                   철자를 확인하시거나 아티스트 이름, 또는 YouTube 링크를 직접 입력해보세요.
                 </p>
