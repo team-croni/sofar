@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAudio } from '../../contexts/AudioContext';
-import { thumbnailCache } from '../../utils/thumbnailCache';
+import { isUsableArtwork, thumbnailCache } from '../../utils/thumbnailCache';
 import { formatArtistName } from '../../utils/trackUtils';
 import sofarLogo from '@sofar/assets/sofar-logo.svg';
 import './VinylPlayer.css';
@@ -42,21 +42,25 @@ export default function VinylPlayer() {
 
   // 앨범 이미지 URL을 구하는 공통 헬퍼
   const getTrackThumbnail = (track, itunesUrl) => {
-    if (itunesUrl && track?.id === currentTrack?.id) {
+    if (itunesUrl && track?.id === currentTrack?.id && isUsableArtwork(itunesUrl)) {
       return itunesUrl;
     }
     // 캐시 확인
     if (track) {
       const cached = thumbnailCache.get(track.custom_artist, track.custom_title);
-      if (cached) return cached;
+      if (isUsableArtwork(cached)) return cached;
+
+      // 트랙 객체 자체의 원본 음원 앨범 아트 확인 (유튜브 영상 썸네일 제외)
+      const trackArt = track.artwork || track.coverUrl || track.album_cover || track.cover || track.thumbnail;
+      if (isUsableArtwork(trackArt)) {
+        return trackArt;
+      }
     }
-    if (track?.youtube_video_id) {
-      return `https://img.youtube.com/vi/${track.youtube_video_id}/hqdefault.jpg`;
-    }
+    // 기본 플레이스홀더 (유튜브 영상 썸네일은 앨범 자켓으로 사용하지 않음)
     return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=400&h=400&q=80';
   };
 
-  // 재생 곡이 변경될 때 썸네일 레벨 리셋 및 iTunes 썸네일 조회
+  // 재생 곡이 변경될 때 썸네일 레벨 리셋 및 앨범 아트 조회
   useEffect(() => {
     setImgFallbackLevel(0);
     setItunesThumbnailUrl(null);
@@ -65,62 +69,30 @@ export default function VinylPlayer() {
       return;
     }
 
-    // 캐시 확인
+    // 1) 트랙 자체에 이미 유효한 정식 음원 앨범 아트가 있는 경우 즉시 반영
+    const initialTrackArt = currentTrack.artwork || currentTrack.coverUrl || currentTrack.album_cover || currentTrack.cover;
+    if (isUsableArtwork(initialTrackArt)) {
+      setItunesThumbnailUrl(initialTrackArt);
+    }
+
+    // 2) 캐시 확인
     const cachedUrl = thumbnailCache.get(currentTrack.custom_artist, currentTrack.custom_title);
-    if (cachedUrl) {
+    if (isUsableArtwork(cachedUrl)) {
       setItunesThumbnailUrl(cachedUrl);
       return;
     }
 
     let active = true;
-    const fetchItunesThumbnail = async () => {
-      try {
-        // 1. Supabase 공용 가사 캐시에서 이미 백업된 앨범 자켓 정보가 있는지 먼저 확인
-        try {
-          const { supabase } = await import('../../contexts/AuthContext');
-          if (supabase) {
-            const { data, error } = await supabase
-              .from('lyric_caches')
-              .select('raw_lrc')
-              .eq('artist', currentTrack.custom_artist?.trim() || '')
-              .eq('title', currentTrack.custom_title?.trim() || '')
-              .maybeSingle();
-
-            if (!error && data && data.raw_lrc && active) {
-              const artworkMatch = data.raw_lrc.match(/^\[artwork:(https?:\/\/[^\]]+)\]/);
-              if (artworkMatch) {
-                const artworkUrl = artworkMatch[1];
-                thumbnailCache.set(currentTrack.custom_artist, currentTrack.custom_title, artworkUrl);
-                setItunesThumbnailUrl(artworkUrl);
-                return;
-              }
-            }
-          }
-        } catch (dbErr) {
-          console.warn('Failed to query album art from DB:', dbErr);
+    // 3) Supabase DB / iTunes / 국내 음원 DB 순차 resolve
+    thumbnailCache.resolve(currentTrack.custom_artist, currentTrack.custom_title)
+      .then((resolvedUrl) => {
+        if (active && isUsableArtwork(resolvedUrl)) {
+          setItunesThumbnailUrl(resolvedUrl);
         }
-
-        // 2. 캐시에도 없고 DB 백업본도 없는 경우에만 iTunes API 요청 진행
-        const query = `${currentTrack.custom_title} ${currentTrack.custom_artist || ''}`.trim();
-        const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=1&country=kr`;
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          if (active && data.results && data.results.length > 0) {
-            const artworkUrl = data.results[0].artworkUrl100;
-            if (artworkUrl) {
-              const highResArtwork = artworkUrl.replace(/\/[0-9]+x[0-9]+/, '/600x600');
-              thumbnailCache.set(currentTrack.custom_artist, currentTrack.custom_title, highResArtwork);
-              setItunesThumbnailUrl(highResArtwork);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch iTunes thumbnail:', err);
-      }
-    };
-
-    fetchItunesThumbnail();
+      })
+      .catch((err) => {
+        console.warn('Failed to resolve thumbnail in VinylPlayer:', err);
+      });
 
     return () => {
       active = false;
@@ -162,18 +134,7 @@ export default function VinylPlayer() {
   }, [currentTrack, itunesThumbnailUrl, vinylTrack]);
 
   const getThumbnailUrl = () => {
-    if (itunesThumbnailUrl) {
-      return itunesThumbnailUrl;
-    }
-    if (currentTrack?.youtube_video_id) {
-      if (imgFallbackLevel === 0) {
-        return `https://img.youtube.com/vi/${currentTrack.youtube_video_id}/maxresdefault.jpg`;
-      }
-      if (imgFallbackLevel === 1) {
-        return `https://img.youtube.com/vi/${currentTrack.youtube_video_id}/hqdefault.jpg`;
-      }
-    }
-    return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=400&h=400&q=80';
+    return getTrackThumbnail(currentTrack, itunesThumbnailUrl);
   };
 
   const handleImageError = () => {

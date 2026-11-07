@@ -1201,6 +1201,7 @@ export class ChartService implements OnModuleInit {
     cover?: string;
     userId?: string;
     isGuest?: boolean;
+    reason?: string;
   }): Promise<{ success: boolean; message?: string }> {
     const videoId = data.youtube_video_id;
     const rawQuery = (
@@ -1211,7 +1212,26 @@ export class ChartService implements OnModuleInit {
 
     if (!videoId || !queryKey) return { success: false };
 
-    // 보안 및 무결성 보호: 게스트 또는 익명 사용자의 피드백은 전역 캐시/DB 변조를 수행하지 않음
+    const compositeKey = `${queryKey}::${videoId}`;
+
+    // 임베드 차단(101/150) 또는 영상 재생 불가 오류로 인한 시스템 자동 신고인 경우
+    if (data.reason === 'embed_disabled' || data.reason === 'player_error') {
+      const qPen = this.matchPenalties.get(compositeKey) || 0;
+      this.matchPenalties.set(compositeKey, qPen + 3);
+      const gPen = this.matchPenalties.get(videoId) || 0;
+      this.matchPenalties.set(videoId, gPen + 3);
+
+      // 현재 resolution 캐시에 이 차단된 videoId가 들어있다면 제거
+      const stored = this.youtubeResolutionStore.get(rawQuery);
+      if (stored && stored.youtube_video_id === videoId) {
+        this.youtubeResolutionStore.delete(rawQuery);
+      }
+      this.logger.log(
+        `[MatchFeedback] Embed blocked/error video penalized: query="${queryKey}", video="${videoId}"`,
+      );
+    }
+
+    // 보안 및 무결성 보호: 게스트 또는 익명 사용자의 일반 수동 피드백은 전역 캐시/DB 변조를 수행하지 않음
     if (data.isGuest || !data.userId) {
       this.logger.log(
         `[MatchFeedback] Guest feedback skipped for global DB/cache mutation: query="${queryKey}", video="${videoId}"`,
@@ -1219,7 +1239,6 @@ export class ChartService implements OnModuleInit {
       return { success: true, message: 'Guest feedback processed locally' };
     }
 
-    const compositeKey = `${queryKey}::${videoId}`;
     const now = Date.now();
     const lastFeedbackTime = this.feedbackTimestampStore.get(compositeKey) || 0;
 

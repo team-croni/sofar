@@ -16,7 +16,7 @@ import { useAuth, supabase } from '../../contexts/AuthContext';
 import { useNowPlaying } from '../../hooks/useNowPlaying';
 import { useAddTrackToPlaylist } from '../../hooks/useTracks';
 import VolumePopover from './VolumePopover';
-import { thumbnailCache } from '../../utils/thumbnailCache';
+import { isUsableArtwork, thumbnailCache } from '../../utils/thumbnailCache';
 import { formatArtistName } from '../../utils/trackUtils';
 import { Modal, Button, Input, Dropdown } from '../ui';
 import './Player.css';
@@ -140,21 +140,20 @@ export default function Player() {
 
   // 앨범 이미지 URL 구하기
   const getThumbnailUrl = () => {
-    if (itunesThumbnailUrl) {
+    if (isUsableArtwork(itunesThumbnailUrl)) {
       return itunesThumbnailUrl;
     }
     if (currentTrack) {
       const cached = thumbnailCache.get(currentTrack.custom_artist, currentTrack.custom_title);
-      if (cached) return cached;
-    }
-    if (currentTrack?.youtube_video_id) {
-      if (imgFallbackLevel === 0) {
-        return `https://img.youtube.com/vi/${currentTrack.youtube_video_id}/maxresdefault.jpg`;
-      }
-      if (imgFallbackLevel === 1) {
-        return `https://img.youtube.com/vi/${currentTrack.youtube_video_id}/hqdefault.jpg`;
+      if (isUsableArtwork(cached)) return cached;
+
+      // 트랙 객체 자체의 원본 음원 앨범 아트 확인 (유튜브 영상 썸네일 제외)
+      const trackArt = currentTrack.artwork || currentTrack.coverUrl || currentTrack.album_cover || currentTrack.cover || currentTrack.thumbnail;
+      if (isUsableArtwork(trackArt)) {
+        return trackArt;
       }
     }
+    // 최후의 플레이스홀더 (유튜브 영상 썸네일은 앨범 자켓으로 사용하지 않음)
     return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=80&h=80&q=80';
   };
 
@@ -253,62 +252,30 @@ export default function Player() {
       return;
     }
 
+    // 1) 트랙 객체에 이미 정식 앨범 자켓이 있다면 우선 반영
+    const initialTrackArt = currentTrack.artwork || currentTrack.coverUrl || currentTrack.album_cover || currentTrack.cover;
+    if (isUsableArtwork(initialTrackArt)) {
+      setItunesThumbnailUrl(initialTrackArt);
+    }
+
+    // 2) 캐시 확인
     const cachedUrl = thumbnailCache.get(currentTrack.custom_artist, currentTrack.custom_title);
-    if (cachedUrl) {
+    if (isUsableArtwork(cachedUrl)) {
       setItunesThumbnailUrl(cachedUrl);
       return;
     }
 
     let active = true;
-    const fetchItunesThumbnail = async () => {
-      try {
-        const hasEnv = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
-        if (hasEnv) {
-          try {
-            const { supabase } = await import('../../contexts/AuthContext');
-            if (supabase) {
-              const { data, error } = await supabase
-                .from('lyric_caches')
-                .select('raw_lrc')
-                .eq('artist', currentTrack.custom_artist?.trim() || '')
-                .eq('title', currentTrack.custom_title?.trim() || '')
-                .maybeSingle();
-
-              if (!error && data && data.raw_lrc && active) {
-                const artworkMatch = data.raw_lrc.match(/^\[artwork:(https?:\/\/[^\]]+)\]/);
-                if (artworkMatch) {
-                  const artworkUrl = artworkMatch[1];
-                  thumbnailCache.set(currentTrack.custom_artist, currentTrack.custom_title, artworkUrl);
-                  setItunesThumbnailUrl(artworkUrl);
-                  return;
-                }
-              }
-            }
-          } catch (dbErr) {
-            console.warn('Failed to query album art from DB:', dbErr);
-          }
+    // 3) Supabase DB / iTunes / 국내 음원 DB 순차 resolve
+    thumbnailCache.resolve(currentTrack.custom_artist, currentTrack.custom_title)
+      .then((resolvedUrl) => {
+        if (active && isUsableArtwork(resolvedUrl)) {
+          setItunesThumbnailUrl(resolvedUrl);
         }
-
-        const query = `${currentTrack.custom_title} ${currentTrack.custom_artist || ''}`.trim();
-        const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=1&country=kr`;
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          if (active && data.results && data.results.length > 0) {
-            const artworkUrl = data.results[0].artworkUrl100;
-            if (artworkUrl) {
-              const highResArtwork = artworkUrl.replace(/\/[0-9]+x[0-9]+/, '/600x600');
-              thumbnailCache.set(currentTrack.custom_artist, currentTrack.custom_title, highResArtwork);
-              setItunesThumbnailUrl(highResArtwork);
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch iTunes thumbnail:', err);
-      }
-    };
-
-    fetchItunesThumbnail();
+      })
+      .catch((err) => {
+        console.warn('Failed to resolve thumbnail in Player:', err);
+      });
 
     return () => {
       active = false;

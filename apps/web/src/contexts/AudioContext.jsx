@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { searchYoutube } from "../utils/youtube";
 import { isMatchTrack } from "../utils/trackUtils";
+import { isUsableArtwork } from "../utils/thumbnailCache";
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from "../utils/audioStorage";
 import { useToast } from "../hooks/useToast";
 import { useAuth, supabase } from "./AuthContext";
@@ -438,9 +439,28 @@ export function AudioProvider({ children }) {
   const handlePlayerError = useCallback(async (event) => {
     console.error("YouTube Player Error:", event.data);
     const failedTrack = currentTrackRef.current;
+    const errorCode = event.data;
+    const isEmbedBlocked = errorCode === 101 || errorCode === 150;
 
     // 만약 영상 재생 차단(101, 150) 또는 영상 없음(100)이고 아직 대체 영상을 찾지 않은 경우, 제외 검색 1회 시도
     if (failedTrack && failedTrack.youtube_video_id && !failedTrack._hasRetriedAlternative) {
+      // 1. 임베드 차단 영상(101/150) 또는 오류 영상은 백엔드로 자동 피드백(페널티) 전달
+      try {
+        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        fetch(`${backendUrl}/api/chart/match-feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            searchQuery: failedTrack.searchQuery || `${failedTrack.custom_artist || ''} ${failedTrack.custom_title || ''}`,
+            youtube_video_id: failedTrack.youtube_video_id,
+            isCorrect: false,
+            custom_title: failedTrack.custom_title,
+            custom_artist: failedTrack.custom_artist,
+            reason: isEmbedBlocked ? 'embed_disabled' : 'player_error',
+          }),
+        }).catch(() => {});
+      } catch (e) {}
+
       try {
         const query = failedTrack.searchQuery || `${failedTrack.custom_artist || ''} ${failedTrack.custom_title || ''}`.trim();
         const altResults = await searchYoutube(query, failedTrack.durationSec || 0, [failedTrack.youtube_video_id]);
@@ -449,11 +469,15 @@ export function AudioProvider({ children }) {
 
         if (altFirst && isValidYoutubeVideoId(altId)) {
           console.log(`[Self-Healing] Alternative video found for '${failedTrack.custom_title}':`, altId);
+          showToast(isEmbedBlocked ? "외부 재생이 제한된 영상입니다. 대체 음원으로 자동 연결합니다." : "대체 음원으로 자동 연결합니다.");
           const repairedTrack = {
             ...failedTrack,
             ...altFirst,
             id: failedTrack.id,
             youtube_video_id: altId,
+            // 트랙의 원래 공식 앨범 아트를 유튜브 썸네일로 덮어쓰지 않도록 보존
+            artwork: failedTrack.artwork || altFirst.artwork,
+            thumbnail: failedTrack.artwork || failedTrack.thumbnail || altFirst.thumbnail,
             _hasRetriedAlternative: true,
           };
           setCurrentTrack(repairedTrack);
@@ -474,7 +498,7 @@ export function AudioProvider({ children }) {
       }
     }
 
-    showToast("재생할 수 없는 영상입니다. 다음 곡으로 이동합니다.");
+    showToast(isEmbedBlocked ? "소유자가 외부 사이트 재생을 제한한 영상입니다. 다음 곡으로 이동합니다." : "재생할 수 없는 영상입니다. 다음 곡으로 이동합니다.");
     setTimeout(() => {
       playNext();
     }, 2000);
@@ -730,7 +754,8 @@ export function AudioProvider({ children }) {
     if (!track) return null;
     const customTitle = track.custom_title || track.title || track.name || '제목 없음';
     const customArtist = track.custom_artist || track.artist || '아티스트 미상';
-    const artwork = track.artwork || track.thumbnail || track.coverUrl || track.cover || track.album_cover || null;
+    const rawArtwork = track.artwork || track.coverUrl || track.cover || track.album_cover || track.thumbnail || null;
+    const artwork = isUsableArtwork(rawArtwork) ? rawArtwork : null;
     const youtubeId = track.youtube_video_id || track.videoId || null;
 
     return {
@@ -741,7 +766,7 @@ export function AudioProvider({ children }) {
       custom_title: customTitle,
       custom_artist: customArtist,
       artwork: artwork,
-      thumbnail: artwork || track.thumbnail,
+      thumbnail: artwork || (isUsableArtwork(track.thumbnail) ? track.thumbnail : null),
       youtube_video_id: youtubeId,
       durationSec: track.durationSec || track.duration || 0,
       searchQuery: track.searchQuery || `${customArtist} ${customTitle}`.trim(),

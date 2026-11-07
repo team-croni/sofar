@@ -105,6 +105,7 @@ export class ChartController {
       cover?: string;
       userId?: string;
       isGuest?: boolean;
+      reason?: string;
     },
   ): Promise<{ success: boolean; message?: string }> {
     return this.chartService.recordMatchFeedback(body || { isCorrect: false });
