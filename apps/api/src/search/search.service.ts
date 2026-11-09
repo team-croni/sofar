@@ -42,6 +42,7 @@ export interface SearchLogEntry {
   artistNames?: string[];
   counted?: boolean;
   filterReason?: string;
+  isBlacklisted?: boolean;
 }
 
 export interface KeywordStats {
@@ -254,10 +255,19 @@ export class SearchService implements OnModuleInit {
     let isCounted = true;
     let filterReason: string | undefined = undefined;
 
+    // 금지어(블랙리스트) 검색어인 경우: 집계 제외
+    const isBlacklisted = this.blacklistedKeywords.some(
+      (b) => b.keyword.toLowerCase().trim() === keyword.toLowerCase().trim(),
+    );
+    if (isBlacklisted) {
+      isCounted = false;
+      filterReason = '금지어(블랙리스트) 등록으로 집계 제외';
+    }
+
     // 게스트(비로그인) 검색어인 경우: 로그만 기록하고 랭킹 점수 집계에서 완전 제외
     if (isGuest || !userId) {
       isCounted = false;
-      filterReason = '게스트(비로그인) 검색 제한';
+      filterReason = filterReason || '게스트(비로그인) 검색 제한';
     }
 
     if (isCounted && clientId) {
@@ -304,6 +314,7 @@ export class SearchService implements OnModuleInit {
       artistNames: artistNames.length > 0 ? artistNames : undefined,
       counted: isCounted,
       filterReason,
+      isBlacklisted,
     });
 
     if (this.searchLogs.length > 3000) {
@@ -790,12 +801,31 @@ export class SearchService implements OnModuleInit {
       (l) => l.timestamp >= oneDayAgo,
     ).length;
 
+    const blacklistedSet = new Set(
+      this.blacklistedKeywords.map((k) => k.keyword.toLowerCase().trim()),
+    );
+
+    const mappedRecentLogs = [...this.searchLogs]
+      .reverse()
+      .slice(0, 100)
+      .map((log) => {
+        const isBanned = blacklistedSet.has(log.keyword.toLowerCase().trim());
+        return {
+          ...log,
+          counted: isBanned ? false : log.counted,
+          filterReason: isBanned
+            ? (log.filterReason || '금지어(블랙리스트) 차단')
+            : log.filterReason,
+          isBlacklisted: isBanned,
+        };
+      });
+
     return {
       trendingKeywords: keywords,
       trendingArtists: artists,
       pinnedKeywords: [...this.pinnedKeywords],
       blacklistedKeywords: [...this.blacklistedKeywords],
-      recentLogs: [...this.searchLogs].reverse().slice(0, 100),
+      recentLogs: mappedRecentLogs,
       stats: {
         totalKeywordsCount: Object.keys(this.keywordStats).length,
         totalArtistsCount: Object.keys(this.artistStats).length,
@@ -883,6 +913,19 @@ export class SearchService implements OnModuleInit {
       addedAt: Date.now(),
     });
 
+    // 기존 검색 로그에서도 해당 금지어 로그의 집계 상태를 미반영(차단)으로 갱신
+    this.searchLogs.forEach((log) => {
+      if (log.keyword.toLowerCase().trim() === clean.toLowerCase()) {
+        log.counted = false;
+        log.filterReason = '금지어(블랙리스트) 차단';
+        log.isBlacklisted = true;
+      }
+    });
+
+    // 키워드/아티스트 통계 캐시에서도 즉시 삭제하여 점수 반영 무효화
+    delete this.keywordStats[clean];
+    delete this.artistStats[clean];
+
     this.saveKeywordsToFile();
     await this.recalculateTrending(true);
 
@@ -899,6 +942,17 @@ export class SearchService implements OnModuleInit {
     this.blacklistedKeywords = this.blacklistedKeywords.filter(
       (k) => k.keyword.toLowerCase() !== clean.toLowerCase(),
     );
+
+    // 차단 해제 시 검색 로그의 isBlacklisted 플래그 해제 및 기본 상태 복구
+    this.searchLogs.forEach((log) => {
+      if (log.keyword.toLowerCase().trim() === clean.toLowerCase()) {
+        log.isBlacklisted = false;
+        if (log.filterReason === '금지어(블랙리스트) 차단') {
+          log.counted = true;
+          log.filterReason = undefined;
+        }
+      }
+    });
 
     this.saveKeywordsToFile();
     await this.recalculateTrending(true);

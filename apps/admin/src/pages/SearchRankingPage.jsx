@@ -482,6 +482,19 @@ export default function SearchRankingPage() {
                 onClick={handleRefresh}
                 title="새로고침"
               />
+
+              {/* Log Clear Button (Logs Tab Only) */}
+              {activeTab === 'logs' && recentLogs.length > 0 && (
+                <Button
+                  size="md"
+                  variant="danger"
+                  leadingIcon={<Trash2 size={14} />}
+                  onClick={handleClearLogs}
+                  title="전체 검색 로그 초기화"
+                >
+                  로그 비우기
+                </Button>
+              )}
             </div>
           </div>
 
@@ -852,82 +865,134 @@ export default function SearchRankingPage() {
                   <thead>
                     <tr>
                       <th style={{ width: '18%' }}>검색 발생 시각</th>
-                      <th style={{ width: '26%' }}>검색 키워드</th>
-                      <th style={{ width: '18%' }}>클라이언트 식별자</th>
+                      <th style={{ width: '22%' }}>검색 키워드</th>
+                      <th style={{ width: '16%' }}>클라이언트 식별자</th>
                       <th style={{ width: '16%' }}>연관 아티스트</th>
                       <th style={{ width: '14%', textAlign: 'center' }}>집계 상태</th>
-                      <th style={{ width: '8%', textAlign: 'right' }}>관리</th>
+                      <th style={{ width: '14%', textAlign: 'right' }}>관리</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredLogs.map((log, idx) => (
-                      <tr key={`${log.timestamp}-${idx}`}>
-                        <td>
-                          <div className="sr-date-group">
-                            <span className="sr-date-main">{formatDateTime(log.timestamp)}</span>
-                            <span className="sr-date-sub">{formatDate(log.timestamp)}</span>
-                          </div>
-                        </td>
+                    {filteredLogs.map((log, idx) => {
+                      const isBlacklisted =
+                        log.isBlacklisted ||
+                        blacklistedKeywords.some(
+                          (b) => b.keyword.toLowerCase().trim() === log.keyword.toLowerCase().trim(),
+                        );
 
-                        <td>
-                          <div className="sr-profile-flex">
-                            <div className="sr-profile-meta">
-                              <span className="sr-profile-name">{log.keyword}</span>
+                      return (
+                        <tr key={`${log.timestamp}-${idx}`}>
+                          <td>
+                            <div className="sr-date-group">
+                              <span className="sr-date-main">{formatDateTime(log.timestamp)}</span>
+                              <span className="sr-date-sub">{formatDate(log.timestamp)}</span>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td>
-                          <span style={{ color: 'var(--text-muted, #777777)', fontFamily: 'monospace', fontSize: '0.725rem' }}>
-                            {log.clientId || '-'}
-                          </span>
-                        </td>
-
-                        <td>
-                          {log.artistNames && log.artistNames.length > 0 ? (
-                            <div className="sr-log-artists">
-                              {log.artistNames.map((art) => (
-                                <span key={art} className="sr-log-artist-pill">
-                                  {art}
-                                </span>
-                              ))}
+                          <td>
+                            <div className="sr-profile-flex">
+                              <div className="sr-profile-meta">
+                                <span className="sr-profile-name">{log.keyword}</span>
+                              </div>
                             </div>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)' }}>-</span>
-                          )}
-                        </td>
+                          </td>
 
-                        <td style={{ textAlign: 'center' }}>
-                          {log.counted === false ? (
-                            <span
-                              className="sr-status-pill same"
-                              title={log.filterReason || '어뷰징/중복 방지 제한'}
-                              style={{ color: 'var(--text-muted)', background: 'rgba(255, 255, 255, 0.05)' }}
-                            >
-                              점수 미반영
+                          <td>
+                            <span style={{ color: 'var(--text-muted, #777777)', fontFamily: 'monospace', fontSize: '0.725rem' }}>
+                              {log.clientId || '-'}
                             </span>
-                          ) : (
-                            <span className="sr-status-pill new">
-                              유효 반영
-                            </span>
-                          )}
-                        </td>
+                          </td>
 
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="sr-table-actions">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleQuickBlacklist(log.keyword)}
-                              title="금지어로 등록"
-                              leadingIcon={<Ban size={13} />}
-                            >
-                              차단
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          <td>
+                            {log.artistNames && log.artistNames.length > 0 ? (
+                              <div className="sr-log-artists">
+                                {log.artistNames.map((art) => (
+                                  <span key={art} className="sr-log-artist-pill">
+                                    {art}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)' }}>-</span>
+                            )}
+                          </td>
+
+                          <td style={{ textAlign: 'center' }}>
+                            {isBlacklisted ? (
+                              <span
+                                className="sr-status-pill banned"
+                                title={log.filterReason || '금지어(블랙리스트) 등록으로 순위 집계 제외'}
+                                style={{
+                                  color: 'var(--error, #e57373)',
+                                  background: 'rgba(229, 115, 115, 0.12)',
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                }}
+                              >
+                                차단됨
+                              </span>
+                            ) : log.counted === false ? (
+                              <span
+                                className="sr-status-pill same"
+                                title={log.filterReason || '어뷰징/중복 방지 제한'}
+                                style={{
+                                  color: 'var(--text-muted)',
+                                  background: 'rgba(255, 255, 255, 0.05)',
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                }}
+                              >
+                                점수 미반영
+                              </span>
+                            ) : (
+                              <span
+                                className="sr-status-pill new"
+                                style={{
+                                  color: 'var(--success, #81c784)',
+                                  background: 'rgba(129, 199, 132, 0.12)',
+                                  padding: '2px 8px',
+                                  borderRadius: '999px',
+                                }}
+                              >
+                                유효 반영
+                              </span>
+                            )}
+                          </td>
+
+                          <td style={{ textAlign: 'right' }}>
+                            <div className="sr-table-actions">
+                              {isBlacklisted ? (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => handleRemoveBlacklist(log.keyword)}
+                                  title="금지어 차단 해제"
+                                >
+                                  차단 해제
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => handleQuickBlacklist(log.keyword)}
+                                  title="금지어로 등록하여 랭킹 및 집계에서 제외"
+                                  leadingIcon={<Ban size={13} />}
+                                >
+                                  차단
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => handleDeleteKeyword(log.keyword)}
+                                title="검색어 통계 및 로그 삭제"
+                                leadingIcon={<Trash2 size={13} />}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )
