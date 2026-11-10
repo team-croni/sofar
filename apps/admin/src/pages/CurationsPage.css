@@ -96,7 +96,7 @@
   border-collapse: collapse;
   text-align: left;
   font-size: 12.5px;
-  background-color: rgba(0, 0, 0, 0.2);
+  background: var(--bg-card);
 }
 
 .admin-table th {
@@ -120,7 +120,7 @@
   border-bottom: none;
 }
 
-.admin-table tr:hover {
+.admin-table tbody tr:hover {
   background: rgba(255, 255, 255, 0.025);
 }
 

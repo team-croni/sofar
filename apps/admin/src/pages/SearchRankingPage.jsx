@@ -368,112 +368,122 @@ export default function SearchRankingPage() {
           />
         </div>
 
-        {/* ── 2. Integrated Main Search Ranking Management Card (UsersPage .users-main-card 규격) ── */}
-        <div className="sr-main-card">
-          {/* Card Header: Tabs (Left) & Search/Filters (Right) - UsersPage와 100% 동일 구조 */}
-          <div className="sr-card-header">
-            {/* Tab Buttons (insights-tab-group style) */}
-            <div className="insights-tab-group">
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'keywords' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('keywords');
-                  setSearchFilter('');
-                }}
-              >
-                <span>실시간 검색어</span>
-                <span className="insights-tab-badge">{trendingKeywords.length}</span>
-              </button>
+        <div className="sr-section">
+          {/* ── 2. Top Header Section (Tabs + Toolbar bundled together) ── */}
+          <div className="sr-header-section">
+            {/* Tabs Bar */}
+            <div className="sr-tabs-bar">
+              <div className="insights-tab-group">
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'keywords' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('keywords');
+                    setSearchFilter('');
+                  }}
+                >
+                  <span>실시간 검색어</span>
+                  <span className="insights-tab-badge">{trendingKeywords.length}</span>
+                </button>
 
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'artists' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('artists');
-                  setSearchFilter('');
-                }}
-              >
-                <span>인기 아티스트</span>
-                <span className="insights-tab-badge">{trendingArtists.length}</span>
-              </button>
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'artists' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('artists');
+                    setSearchFilter('');
+                  }}
+                >
+                  <span>인기 아티스트</span>
+                  <span className="insights-tab-badge">{trendingArtists.length}</span>
+                </button>
 
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'pinned' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('pinned');
-                  setSearchFilter('');
-                }}
-              >
-                <span>고정 키워드</span>
-                <span className="insights-tab-badge">{pinnedKeywords.length}</span>
-              </button>
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'pinned' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('pinned');
+                    setSearchFilter('');
+                  }}
+                >
+                  <span>고정 키워드</span>
+                  <span className="insights-tab-badge">{pinnedKeywords.length}</span>
+                </button>
 
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'blacklist' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('blacklist');
-                  setSearchFilter('');
-                }}
-              >
-                <span>금지어/차단</span>
-                <span className="insights-tab-badge">{blacklistedKeywords.length}</span>
-              </button>
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'blacklist' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('blacklist');
+                    setSearchFilter('');
+                  }}
+                >
+                  <span>금지어/차단</span>
+                  <span className="insights-tab-badge">{blacklistedKeywords.length}</span>
+                </button>
 
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
-                onClick={() => {
-                  setActiveTab('logs');
-                  setSearchFilter('');
-                }}
-              >
-                <span>검색 로그</span>
-                <span className="insights-tab-badge">{recentLogs.length}</span>
-              </button>
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveTab('logs');
+                    setSearchFilter('');
+                  }}
+                >
+                  <span>검색 로그</span>
+                  <span className="insights-tab-badge">{recentLogs.length}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Search, Filters & Refresh Controls Group (UsersPage .users-toolbar-actions 규격) */}
-            <div className="sr-toolbar-actions">
-              {/* Search Input */}
+            {/* Controls Toolbar: Search -> Filters -> Action Buttons */}
+            <div className="sr-toolbar">
               <div className="sr-search-wrapper">
                 <Input
-                  placeholder="검색어, 아티스트 검색..."
+                  placeholder={
+                    activeTab === 'artists'
+                      ? '아티스트 이름, 장르 검색...'
+                      : activeTab === 'logs'
+                        ? '검색어, 클라이언트 ID, 아티스트 검색...'
+                        : '검색어 검색...'
+                  }
                   value={searchFilter}
                   onChange={(e) => setSearchFilter(e.target.value)}
-                  leadingIcon={<Search size={14} />}
+                  leadingIcon={<Search size={18} />}
                 />
               </div>
 
-              {/* Filter 1: Status / Category Filter */}
-              <div className="sr-select-container">
-                <Select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  options={[
-                    { value: 'all', label: '전체 키워드' },
-                    { value: 'pinned', label: '고정 키워드' },
-                    { value: 'normal', label: '일반 키워드' },
-                  ]}
-                />
-              </div>
+              {/* 필터는 키워드/아티스트 탭에서 검색 바로 오른쪽에 표시 */}
+              {(activeTab === 'keywords' || activeTab === 'artists') && (
+                <>
+                  {activeTab === 'keywords' && (
+                    <div className="sr-select-container">
+                      <Select
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        options={[
+                          { value: 'all', label: '전체 키워드' },
+                          { value: 'pinned', label: '고정 키워드' },
+                          { value: 'normal', label: '일반 키워드' },
+                        ]}
+                      />
+                    </div>
+                  )}
+                  <div className="sr-select-container">
+                    <Select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      options={[
+                        { value: 'rank', label: '순위 랭킹순' },
+                        { value: 'score', label: '점수/검색순' },
+                        { value: 'name', label: '이름 가나다순' },
+                      ]}
+                    />
+                  </div>
+                </>
+              )}
 
-              {/* Filter 2: Sort Order */}
-              <div className="sr-select-container">
-                <Select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  options={[
-                    { value: 'rank', label: '순위 랭킹순' },
-                    { value: 'score', label: '점수/검색순' },
-                    { value: 'name', label: '이름 가나다순' },
-                  ]}
-                />
-              </div>
-
-              {/* Refresh Icon Button */}
+              {/* 액션 버튼: 필터 바로 오른쪽에 배치 */}
               <Button
                 size="md"
                 variant="secondary"
@@ -482,8 +492,6 @@ export default function SearchRankingPage() {
                 onClick={handleRefresh}
                 title="새로고침"
               />
-
-              {/* Log Clear Button (Logs Tab Only) */}
               {activeTab === 'logs' && recentLogs.length > 0 && (
                 <Button
                   size="md"
@@ -498,202 +506,341 @@ export default function SearchRankingPage() {
             </div>
           </div>
 
-          {/* Card Body: Table Container with Overflow Guard */}
+          {/* ── 4. Standalone Table Card (Matching CurationsPage .admin-table-card) ── */}
           <div className="sr-table-card">
-            {isSearchRankingLoading && trendingKeywords.length === 0 ? (
-              <div className="empty-state">
-                <Loader2 size={24} className="animate-spin-slow" />
-                <p className="empty-state-text">검색어 랭킹 데이터 불러오는 중...</p>
-              </div>
-            ) : null}
-
-            {/* [TAB 1] 실시간 검색어 순위 */}
-            {activeTab === 'keywords' && (
-              filteredKeywords.length === 0 && !isSearchRankingLoading ? (
+              {/* 초기 데이터 로딩 상태 (모든 탭 공통) */}
+              {isSearchRankingLoading && trendingKeywords.length === 0 && trendingArtists.length === 0 && recentLogs.length === 0 ? (
                 <div className="empty-state">
-                  <Search size={32} />
-                  <p className="empty-state-text">일치하는 검색어가 없습니다.</p>
+                  <Loader2 size={24} className="animate-spin-slow" />
+                  <p className="empty-state-text">검색어 랭킹 데이터 불러오는 중...</p>
                 </div>
-              ) : (
-                <table className="sr-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '8%', textAlign: 'center' }}>순위</th>
-                      <th style={{ width: '8%', textAlign: 'center' }}>변동</th>
-                      <th style={{ width: '38%' }}>검색 키워드</th>
-                      <th style={{ width: '22%' }}>인기도 점수</th>
-                      <th style={{ width: '12%', textAlign: 'center' }}>고정 상태</th>
-                      <th style={{ width: '12%', textAlign: 'right' }}>관리</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredKeywords.map((item) => {
-                      const isPinned = Boolean(
-                        item.isPinned || pinnedKeywords.some((p) => p.keyword === item.keyword),
-                      );
-                      const rankNumberClass =
-                        item.rank === 1 ? 'rank-1' : item.rank === 2 ? 'rank-2' : item.rank === 3 ? 'rank-3' : '';
+              ) : (<>
 
-                      return (
+              {/* [TAB 1] 실시간 검색어 순위 */}
+              {activeTab === 'keywords' && (
+                filteredKeywords.length === 0 ? (
+                  <div className="empty-state">
+                    <Search size={32} />
+                    <p className="empty-state-text">일치하는 검색어가 없습니다.</p>
+                  </div>
+                ) : (
+                  <table className="sr-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '8%', textAlign: 'center' }}>순위</th>
+                        <th style={{ width: '8%', textAlign: 'center' }}>변동</th>
+                        <th style={{ width: '38%' }}>검색 키워드</th>
+                        <th style={{ width: '22%' }}>인기도 점수</th>
+                        <th style={{ width: '12%', textAlign: 'center' }}>고정 상태</th>
+                        <th style={{ width: '12%', textAlign: 'right' }}>관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredKeywords.map((item) => {
+                        const isPinned = Boolean(
+                          item.isPinned || pinnedKeywords.some((p) => p.keyword === item.keyword),
+                        );
+                        const rankNumberClass =
+                          item.rank === 1 ? 'rank-1' : item.rank === 2 ? 'rank-2' : item.rank === 3 ? 'rank-3' : '';
+
+                        return (
+                          <tr key={item.keyword}>
+                            {/* Rank Number */}
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={`sr-rank-number ${rankNumberClass}`}>
+                                {item.rank}
+                              </span>
+                            </td>
+
+                            {/* Diff Status */}
+                            <td style={{ textAlign: 'center' }}>
+                              <RankDiffBadge status={item.status} diff={item.diff} />
+                            </td>
+
+                            {/* Keyword Profile */}
+                            <td>
+                              <div className="sr-profile-flex">
+                                <div className="sr-profile-meta">
+                                  <span className="sr-profile-name">
+                                    {item.keyword}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Activity / Score */}
+                            <td>
+                              <div className="sr-activity-group">
+                                <span className="sr-activity-main">
+                                  {item.count.toLocaleString()} 점
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Pinned Status Pill */}
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={`sr-status-pill ${isPinned ? 'pinned' : 'same'}`}>
+                                {isPinned ? '고정됨' : '일반'}
+                              </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td style={{ textAlign: 'right' }}>
+                              <div className="sr-table-actions">
+                                <Button
+                                  size="sm"
+                                  variant={isPinned ? 'primary' : 'secondary'}
+                                  onClick={() => handleTogglePin(item.keyword, isPinned)}
+                                  title={isPinned ? '고정 해제' : '상위 랭킹 고정'}
+                                  leadingIcon={isPinned ? <PinOff size={13} /> : <Pin size={13} />}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    setKeywordForm({
+                                      keyword: item.keyword,
+                                      count: item.count,
+                                      isPinned,
+                                    });
+                                    setIsKeywordModalOpen(true);
+                                  }}
+                                  title="점수/검색량 수정"
+                                  leadingIcon={<Edit2 size={13} />}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => handleQuickBlacklist(item.keyword)}
+                                  title="금지어로 등록하여 랭킹에서 제외"
+                                  leadingIcon={<Ban size={13} />}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  onClick={() => handleDeleteKeyword(item.keyword)}
+                                  title="검색어 완전 삭제"
+                                  leadingIcon={<Trash2 size={13} />}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )
+              )}
+
+              {/* [TAB 2] 인기 아티스트 순위 */}
+              {activeTab === 'artists' && (
+                filteredArtists.length === 0 ? (
+                  <div className="empty-state">
+                    <User size={32} />
+                    <p className="empty-state-text">일치하는 인기 아티스트가 없습니다.</p>
+                  </div>
+                ) : (
+                  <table className="sr-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '8%', textAlign: 'center' }}>순위</th>
+                        <th style={{ width: '8%', textAlign: 'center' }}>변동</th>
+                        <th style={{ width: '40%' }}>아티스트 프로필</th>
+                        <th style={{ width: '18%' }}>대표 장르</th>
+                        <th style={{ width: '16%' }}>인기도 점수</th>
+                        <th style={{ width: '10%', textAlign: 'right' }}>관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredArtists.map((artist) => {
+                        const rankNumberClass =
+                          artist.rank === 1 ? 'rank-1' : artist.rank === 2 ? 'rank-2' : artist.rank === 3 ? 'rank-3' : '';
+
+                        return (
+                          <tr key={artist.name}>
+                            <td style={{ textAlign: 'center' }}>
+                              <span className={`sr-rank-number ${rankNumberClass}`}>
+                                {artist.rank}
+                              </span>
+                            </td>
+
+                            <td style={{ textAlign: 'center' }}>
+                              <RankDiffBadge status={artist.status} diff={artist.diff} />
+                            </td>
+
+                            <td>
+                              <div className="sr-profile-flex">
+                                <div className="sr-avatar-box">
+                                  {artist.thumbnail ? (
+                                    <img
+                                      src={artist.thumbnail}
+                                      alt={artist.name}
+                                      className="sr-avatar-img"
+                                      onError={(e) => {
+                                        e.target.style.display = 'none';
+                                      }}
+                                    />
+                                  ) : (
+                                    <User size={18} color="var(--text-muted)" />
+                                  )}
+                                </div>
+                                <div className="sr-profile-meta">
+                                  <span className="sr-profile-name">{artist.name}</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td>
+                              {artist.genre ? (
+                                <Badge variant="neutral" size="sm">
+                                  {artist.genre}
+                                </Badge>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)' }}>-</span>
+                              )}
+                            </td>
+
+                            <td>
+                              <div className="sr-activity-group">
+                                <span className="sr-activity-main">{artist.count.toLocaleString()} 점</span>
+                              </div>
+                            </td>
+
+                            <td style={{ textAlign: 'right' }}>
+                              <div className="sr-table-actions">
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => handleQuickBlacklist(artist.name)}
+                                  title="아티스트를 금지어로 등록하여 랭킹에서 제외"
+                                  leadingIcon={<Ban size={13} />}
+                                >
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )
+              )}
+
+              {/* [TAB 3] 고정 키워드 관리 */}
+              {activeTab === 'pinned' && (
+                filteredPinned.length === 0 ? (
+                  <div className="empty-state">
+                    <Pin size={32} />
+                    <p className="empty-state-text">고정된 검색어가 없습니다.</p>
+                  </div>
+                ) : (
+                  <table className="sr-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '15%', textAlign: 'center' }}>우선 순위</th>
+                        <th style={{ width: '45%' }}>고정 키워드</th>
+                        <th style={{ width: '25%' }}>고정 등록 일시</th>
+                        <th style={{ width: '15%', textAlign: 'right' }}>관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredPinned.map((item, idx) => (
                         <tr key={item.keyword}>
-                          {/* Rank Number */}
                           <td style={{ textAlign: 'center' }}>
-                            <span className={`sr-rank-number ${rankNumberClass}`}>
-                              {item.rank}
+                            <span className="sr-status-pill pinned">
+                              {item.rank ? `${item.rank}위 우선` : `${idx + 1}위`}
                             </span>
                           </td>
 
-                          {/* Diff Status */}
-                          <td style={{ textAlign: 'center' }}>
-                            <RankDiffBadge status={item.status} diff={item.diff} />
-                          </td>
-
-                          {/* Keyword Profile */}
                           <td>
                             <div className="sr-profile-flex">
                               <div className="sr-profile-meta">
-                                <span className="sr-profile-name">
-                                  {item.keyword}
-                                </span>
+                                <span className="sr-profile-name">{item.keyword}</span>
                               </div>
                             </div>
                           </td>
 
-                          {/* Activity / Score */}
                           <td>
-                            <div className="sr-activity-group">
-                              <span className="sr-activity-main">
-                                {item.count.toLocaleString()} 점
-                              </span>
+                            <div className="sr-date-group">
+                              <span className="sr-date-main">{formatDate(item.pinnedAt)}</span>
+                              <span className="sr-date-sub">{formatDateTime(item.pinnedAt)}</span>
                             </div>
                           </td>
 
-                          {/* Pinned Status Pill */}
-                          <td style={{ textAlign: 'center' }}>
-                            <span className={`sr-status-pill ${isPinned ? 'pinned' : 'same'}`}>
-                              {isPinned ? '고정됨' : '일반'}
-                            </span>
-                          </td>
-
-                          {/* Actions */}
                           <td style={{ textAlign: 'right' }}>
                             <div className="sr-table-actions">
                               <Button
                                 size="sm"
-                                variant={isPinned ? 'primary' : 'secondary'}
-                                onClick={() => handleTogglePin(item.keyword, isPinned)}
-                                title={isPinned ? '고정 해제' : '상위 랭킹 고정'}
-                                leadingIcon={isPinned ? <PinOff size={13} /> : <Pin size={13} />}
-                              />
-                              <Button
-                                size="sm"
                                 variant="secondary"
                                 onClick={() => {
+                                  const trendItem = trendingKeywords.find((k) => k.keyword === item.keyword);
                                   setKeywordForm({
                                     keyword: item.keyword,
-                                    count: item.count,
-                                    isPinned,
+                                    count: trendItem ? trendItem.count : 1000,
+                                    isPinned: true,
                                   });
                                   setIsKeywordModalOpen(true);
                                 }}
-                                title="점수/검색량 수정"
+                                title="점수/가중치 수정"
                                 leadingIcon={<Edit2 size={13} />}
                               />
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                onClick={() => handleQuickBlacklist(item.keyword)}
-                                title="금지어로 등록하여 랭킹에서 제외"
-                                leadingIcon={<Ban size={13} />}
-                              />
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={() => handleDeleteKeyword(item.keyword)}
-                                title="검색어 완전 삭제"
-                                leadingIcon={<Trash2 size={13} />}
+                                onClick={() => handleTogglePin(item.keyword, true)}
+                                title="고정 해제"
+                                leadingIcon={<PinOff size={13} />}
                               />
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              )}
 
-            {/* [TAB 2] 인기 아티스트 순위 */}
-            {activeTab === 'artists' && (
-              filteredArtists.length === 0 && !isSearchRankingLoading ? (
-                <div className="empty-state">
-                  <User size={32} />
-                  <p className="empty-state-text">일치하는 인기 아티스트가 없습니다.</p>
-                </div>
-              ) : (
-                <table className="sr-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '8%', textAlign: 'center' }}>순위</th>
-                      <th style={{ width: '8%', textAlign: 'center' }}>변동</th>
-                      <th style={{ width: '40%' }}>아티스트 프로필</th>
-                      <th style={{ width: '18%' }}>대표 장르</th>
-                      <th style={{ width: '16%' }}>인기도 점수</th>
-                      <th style={{ width: '10%', textAlign: 'right' }}>관리</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredArtists.map((artist) => {
-                      const rankNumberClass =
-                        artist.rank === 1 ? 'rank-1' : artist.rank === 2 ? 'rank-2' : artist.rank === 3 ? 'rank-3' : '';
-
-                      return (
-                        <tr key={artist.name}>
-                          <td style={{ textAlign: 'center' }}>
-                            <span className={`sr-rank-number ${rankNumberClass}`}>
-                              {artist.rank}
-                            </span>
-                          </td>
-
-                          <td style={{ textAlign: 'center' }}>
-                            <RankDiffBadge status={artist.status} diff={artist.diff} />
-                          </td>
-
+              {/* [TAB 4] 금지어 / 블랙리스트 관리 */}
+              {activeTab === 'blacklist' && (
+                filteredBlacklist.length === 0 ? (
+                  <div className="empty-state">
+                    <ShieldCheck size={32} style={{ color: 'var(--color-accent-primary, #1db954)' }} />
+                    <p className="empty-state-text">등록된 금지어가 없습니다.</p>
+                  </div>
+                ) : (
+                  <table className="sr-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '35%' }}>금지 키워드</th>
+                        <th style={{ width: '35%' }}>차단 사유</th>
+                        <th style={{ width: '20%' }}>등록 일시</th>
+                        <th style={{ width: '10%', textAlign: 'right' }}>관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredBlacklist.map((item) => (
+                        <tr key={item.keyword}>
                           <td>
                             <div className="sr-profile-flex">
-                              <div className="sr-avatar-box">
-                                {artist.thumbnail ? (
-                                  <img
-                                    src={artist.thumbnail}
-                                    alt={artist.name}
-                                    className="sr-avatar-img"
-                                    onError={(e) => {
-                                      e.target.style.display = 'none';
-                                    }}
-                                  />
-                                ) : (
-                                  <User size={18} color="var(--text-muted)" />
-                                )}
+                              <div className="sr-avatar-box" style={{ background: 'rgba(229, 115, 115, 0.1)', borderColor: 'rgba(229, 115, 115, 0.25)' }}>
+                                <Ban size={16} color="var(--error, #e57373)" />
                               </div>
                               <div className="sr-profile-meta">
-                                <span className="sr-profile-name">{artist.name}</span>
+                                <span className="sr-profile-name">{item.keyword}</span>
                               </div>
                             </div>
                           </td>
 
                           <td>
-                            {artist.genre ? (
-                              <Badge variant="neutral" size="sm">
-                                {artist.genre}
-                              </Badge>
-                            ) : (
-                              <span style={{ color: 'var(--text-muted)' }}>-</span>
-                            )}
+                            <span className="sr-status-pill banned">
+                              {item.reason || '관리자 차단'}
+                            </span>
                           </td>
 
                           <td>
-                            <div className="sr-activity-group">
-                              <span className="sr-activity-main">{artist.count.toLocaleString()} 점</span>
+                            <div className="sr-date-group">
+                              <span className="sr-date-main">{formatDate(item.addedAt)}</span>
+                              <span className="sr-date-sub">{formatDateTime(item.addedAt)}</span>
                             </div>
                           </td>
 
@@ -702,304 +849,167 @@ export default function SearchRankingPage() {
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                onClick={() => handleQuickBlacklist(artist.name)}
-                                title="아티스트를 금지어로 등록하여 랭킹에서 제외"
-                                leadingIcon={<Ban size={13} />}
+                                onClick={() => handleRemoveBlacklist(item.keyword)}
                               >
+                                차단 해제
                               </Button>
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )
-            )}
+                      ))}
+                    </tbody>
+                  </table>
+                )
+              )}
 
-            {/* [TAB 3] 고정 키워드 관리 */}
-            {activeTab === 'pinned' && (
-              filteredPinned.length === 0 && !isSearchRankingLoading ? (
-                <div className="empty-state">
-                  <Pin size={32} />
-                  <p className="empty-state-text">고정된 검색어가 없습니다.</p>
-                </div>
-              ) : (
-                <table className="sr-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '15%', textAlign: 'center' }}>우선 순위</th>
-                      <th style={{ width: '45%' }}>고정 키워드</th>
-                      <th style={{ width: '25%' }}>고정 등록 일시</th>
-                      <th style={{ width: '15%', textAlign: 'right' }}>관리</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPinned.map((item, idx) => (
-                      <tr key={item.keyword}>
-                        <td style={{ textAlign: 'center' }}>
-                          <span className="sr-status-pill pinned">
-                            {item.rank ? `${item.rank}위 우선` : `${idx + 1}위`}
-                          </span>
-                        </td>
-
-                        <td>
-                          <div className="sr-profile-flex">
-                            <div className="sr-profile-meta">
-                              <span className="sr-profile-name">{item.keyword}</span>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="sr-date-group">
-                            <span className="sr-date-main">{formatDate(item.pinnedAt)}</span>
-                            <span className="sr-date-sub">{formatDateTime(item.pinnedAt)}</span>
-                          </div>
-                        </td>
-
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="sr-table-actions">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => {
-                                const trendItem = trendingKeywords.find((k) => k.keyword === item.keyword);
-                                setKeywordForm({
-                                  keyword: item.keyword,
-                                  count: trendItem ? trendItem.count : 1000,
-                                  isPinned: true,
-                                });
-                                setIsKeywordModalOpen(true);
-                              }}
-                              title="점수/가중치 수정"
-                              leadingIcon={<Edit2 size={13} />}
-                            />
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleTogglePin(item.keyword, true)}
-                              title="고정 해제"
-                              leadingIcon={<PinOff size={13} />}
-                            />
-                          </div>
-                        </td>
+              {/* [TAB 5] 실시간 검색 로그 */}
+              {activeTab === 'logs' && (
+                filteredLogs.length === 0 ? (
+                  <div className="empty-state">
+                    <Clock size={32} />
+                    <p className="empty-state-text">기록된 검색 로그가 없습니다.</p>
+                  </div>
+                ) : (
+                  <table className="sr-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '18%' }}>검색 발생 시각</th>
+                        <th style={{ width: '22%' }}>검색 키워드</th>
+                        <th style={{ width: '16%' }}>클라이언트 식별자</th>
+                        <th style={{ width: '16%' }}>연관 아티스트</th>
+                        <th style={{ width: '14%', textAlign: 'center' }}>집계 상태</th>
+                        <th style={{ width: '14%', textAlign: 'right' }}>관리</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            )}
+                    </thead>
+                    <tbody>
+                      {filteredLogs.map((log, idx) => {
+                        const isBlacklisted =
+                          log.isBlacklisted ||
+                          blacklistedKeywords.some(
+                            (b) => b.keyword.toLowerCase().trim() === log.keyword.toLowerCase().trim(),
+                          );
 
-            {/* [TAB 4] 금지어 / 블랙리스트 관리 */}
-            {activeTab === 'blacklist' && (
-              filteredBlacklist.length === 0 && !isSearchRankingLoading ? (
-                <div className="empty-state">
-                  <ShieldCheck size={32} style={{ color: 'var(--color-accent-primary, #1db954)' }} />
-                  <p className="empty-state-text">등록된 금지어가 없습니다.</p>
-                </div>
-              ) : (
-                <table className="sr-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '35%' }}>금지 키워드</th>
-                      <th style={{ width: '35%' }}>차단 사유</th>
-                      <th style={{ width: '20%' }}>등록 일시</th>
-                      <th style={{ width: '10%', textAlign: 'right' }}>관리</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredBlacklist.map((item) => (
-                      <tr key={item.keyword}>
-                        <td>
-                          <div className="sr-profile-flex">
-                            <div className="sr-avatar-box" style={{ background: 'rgba(229, 115, 115, 0.1)', borderColor: 'rgba(229, 115, 115, 0.25)' }}>
-                              <Ban size={16} color="var(--error, #e57373)" />
-                            </div>
-                            <div className="sr-profile-meta">
-                              <span className="sr-profile-name">{item.keyword}</span>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td>
-                          <span className="sr-status-pill banned">
-                            {item.reason || '관리자 차단'}
-                          </span>
-                        </td>
-
-                        <td>
-                          <div className="sr-date-group">
-                            <span className="sr-date-main">{formatDate(item.addedAt)}</span>
-                            <span className="sr-date-sub">{formatDateTime(item.addedAt)}</span>
-                          </div>
-                        </td>
-
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="sr-table-actions">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => handleRemoveBlacklist(item.keyword)}
-                            >
-                              차단 해제
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            )}
-
-            {/* [TAB 5] 실시간 검색 로그 */}
-            {activeTab === 'logs' && (
-              filteredLogs.length === 0 && !isSearchRankingLoading ? (
-                <div className="empty-state">
-                  <Clock size={32} />
-                  <p className="empty-state-text">기록된 검색 로그가 없습니다.</p>
-                </div>
-              ) : (
-                <table className="sr-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '18%' }}>검색 발생 시각</th>
-                      <th style={{ width: '22%' }}>검색 키워드</th>
-                      <th style={{ width: '16%' }}>클라이언트 식별자</th>
-                      <th style={{ width: '16%' }}>연관 아티스트</th>
-                      <th style={{ width: '14%', textAlign: 'center' }}>집계 상태</th>
-                      <th style={{ width: '14%', textAlign: 'right' }}>관리</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLogs.map((log, idx) => {
-                      const isBlacklisted =
-                        log.isBlacklisted ||
-                        blacklistedKeywords.some(
-                          (b) => b.keyword.toLowerCase().trim() === log.keyword.toLowerCase().trim(),
-                        );
-
-                      return (
-                        <tr key={`${log.timestamp}-${idx}`}>
-                          <td>
-                            <div className="sr-date-group">
-                              <span className="sr-date-main">{formatDateTime(log.timestamp)}</span>
-                              <span className="sr-date-sub">{formatDate(log.timestamp)}</span>
-                            </div>
-                          </td>
-
-                          <td>
-                            <div className="sr-profile-flex">
-                              <div className="sr-profile-meta">
-                                <span className="sr-profile-name">{log.keyword}</span>
+                        return (
+                          <tr key={`${log.timestamp}-${idx}`}>
+                            <td>
+                              <div className="sr-date-group">
+                                <span className="sr-date-main">{formatDateTime(log.timestamp)}</span>
+                                <span className="sr-date-sub">{formatDate(log.timestamp)}</span>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td>
-                            <span style={{ color: 'var(--text-muted, #777777)', fontFamily: 'monospace', fontSize: '0.725rem' }}>
-                              {log.clientId || '-'}
-                            </span>
-                          </td>
-
-                          <td>
-                            {log.artistNames && log.artistNames.length > 0 ? (
-                              <div className="sr-log-artists">
-                                {log.artistNames.map((art) => (
-                                  <span key={art} className="sr-log-artist-pill">
-                                    {art}
-                                  </span>
-                                ))}
+                            <td>
+                              <div className="sr-profile-flex">
+                                <div className="sr-profile-meta">
+                                  <span className="sr-profile-name">{log.keyword}</span>
+                                </div>
                               </div>
-                            ) : (
-                              <span style={{ color: 'var(--text-muted)' }}>-</span>
-                            )}
-                          </td>
+                            </td>
 
-                          <td style={{ textAlign: 'center' }}>
-                            {isBlacklisted ? (
-                              <span
-                                className="sr-status-pill banned"
-                                title={log.filterReason || '금지어(블랙리스트) 등록으로 순위 집계 제외'}
-                                style={{
-                                  color: 'var(--error, #e57373)',
-                                  background: 'rgba(229, 115, 115, 0.12)',
-                                  padding: '2px 8px',
-                                  borderRadius: '999px',
-                                }}
-                              >
-                                차단됨
+                            <td>
+                              <span style={{ color: 'var(--text-muted, #777777)', fontFamily: 'monospace', fontSize: '0.725rem' }}>
+                                {log.clientId || '-'}
                               </span>
-                            ) : log.counted === false ? (
-                              <span
-                                className="sr-status-pill same"
-                                title={log.filterReason || '어뷰징/중복 방지 제한'}
-                                style={{
-                                  color: 'var(--text-muted)',
-                                  background: 'rgba(255, 255, 255, 0.05)',
-                                  padding: '2px 8px',
-                                  borderRadius: '999px',
-                                }}
-                              >
-                                점수 미반영
-                              </span>
-                            ) : (
-                              <span
-                                className="sr-status-pill new"
-                                style={{
-                                  color: 'var(--success, #81c784)',
-                                  background: 'rgba(129, 199, 132, 0.12)',
-                                  padding: '2px 8px',
-                                  borderRadius: '999px',
-                                }}
-                              >
-                                유효 반영
-                              </span>
-                            )}
-                          </td>
+                            </td>
 
-                          <td style={{ textAlign: 'right' }}>
-                            <div className="sr-table-actions">
-                              {isBlacklisted ? (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => handleRemoveBlacklist(log.keyword)}
-                                  title="금지어 차단 해제"
-                                >
-                                  차단 해제
-                                </Button>
+                            <td>
+                              {log.artistNames && log.artistNames.length > 0 ? (
+                                <div className="sr-log-artists">
+                                  {log.artistNames.map((art) => (
+                                    <span key={art} className="sr-log-artist-pill">
+                                      {art}
+                                    </span>
+                                  ))}
+                                </div>
                               ) : (
+                                <span style={{ color: 'var(--text-muted)' }}>-</span>
+                              )}
+                            </td>
+
+                            <td style={{ textAlign: 'center' }}>
+                              {isBlacklisted ? (
+                                <span
+                                  className="sr-status-pill banned"
+                                  title={log.filterReason || '금지어(블랙리스트) 등록으로 순위 집계 제외'}
+                                  style={{
+                                    color: 'var(--error, #e57373)',
+                                    background: 'rgba(229, 115, 115, 0.12)',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px',
+                                  }}
+                                >
+                                  차단됨
+                                </span>
+                              ) : log.counted === false ? (
+                                <span
+                                  className="sr-status-pill same"
+                                  title={log.filterReason || '어뷰징/중복 방지 제한'}
+                                  style={{
+                                    color: 'var(--text-muted)',
+                                    background: 'rgba(255, 255, 255, 0.05)',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px',
+                                  }}
+                                >
+                                  점수 미반영
+                                </span>
+                              ) : (
+                                <span
+                                  className="sr-status-pill new"
+                                  style={{
+                                    color: 'var(--success, #81c784)',
+                                    background: 'rgba(129, 199, 132, 0.12)',
+                                    padding: '2px 8px',
+                                    borderRadius: '999px',
+                                  }}
+                                >
+                                  유효 반영
+                                </span>
+                              )}
+                            </td>
+
+                            <td style={{ textAlign: 'right' }}>
+                              <div className="sr-table-actions">
+                                {isBlacklisted ? (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleRemoveBlacklist(log.keyword)}
+                                    title="금지어 차단 해제"
+                                  >
+                                    차단 해제
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleQuickBlacklist(log.keyword)}
+                                    title="금지어로 등록하여 랭킹 및 집계에서 제외"
+                                    leadingIcon={<Ban size={13} />}
+                                  >
+                                    차단
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
-                                  variant="secondary"
-                                  onClick={() => handleQuickBlacklist(log.keyword)}
-                                  title="금지어로 등록하여 랭킹 및 집계에서 제외"
-                                  leadingIcon={<Ban size={13} />}
-                                >
-                                  차단
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={() => handleDeleteKeyword(log.keyword)}
-                                title="검색어 통계 및 로그 삭제"
-                                leadingIcon={<Trash2 size={13} />}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )
-            )}
+                                  variant="danger"
+                                  onClick={() => handleDeleteKeyword(log.keyword)}
+                                  title="검색어 통계 및 로그 삭제"
+                                  leadingIcon={<Trash2 size={13} />}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )
+              )}
+              </>)}
+            </div>
           </div>
         </div>
-      </div>
 
       {/* ── 모달 1: 검색어 수동 등록 / 점수 수정 ── */}
       <Modal

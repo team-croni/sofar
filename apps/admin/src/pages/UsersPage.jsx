@@ -255,47 +255,48 @@ export default function UsersPage() {
           />
         </div>
 
-        {/* ── Main Users Management Card (Integrated Tabs, Filters & Table) ── */}
-        <div className="users-main-card">
-          {/* Card Header: Tabs (Left) & Search/Filters (Right) */}
-          <div className="users-card-header">
-            {/* Tab Buttons (insights-tab-group style) */}
-            <div className="insights-tab-group">
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveTab('all')}
-              >
-                <span>전체 사용자</span>
-                <span className="insights-tab-badge">{totalCount}</span>
-              </button>
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'active' ? 'active' : ''}`}
-                onClick={() => setActiveTab('active')}
-              >
-                <span>정상 활성</span>
-                <span className="insights-tab-badge">{activeCount}</span>
-              </button>
-              <button
-                type="button"
-                className={`insight-tab-btn ${activeTab === 'banned' ? 'active' : ''}`}
-                onClick={() => setActiveTab('banned')}
-              >
-                <span>정지/차단</span>
-                <span className="insights-tab-badge">{bannedCount}</span>
-              </button>
+        <div className="users-section">
+          {/* ── Top Header Section (Tabs + Toolbar bundled together) ── */}
+          <div className="users-header-section">
+            {/* Tabs Bar */}
+            <div className="users-tabs-bar">
+              {/* Tab Buttons (insights-tab-group style) */}
+              <div className="insights-tab-group">
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('all')}
+                >
+                  <span>전체 사용자</span>
+                  <span className="insights-tab-badge">{totalCount}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'active' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('active')}
+                >
+                  <span>정상 활성</span>
+                  <span className="insights-tab-badge">{activeCount}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`insight-tab-btn ${activeTab === 'banned' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('banned')}
+                >
+                  <span>정지/차단</span>
+                  <span className="insights-tab-badge">{bannedCount}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Search, Filters & Refresh Controls Group */}
-            <div className="users-toolbar-actions">
-              {/* Search Input using @sofar/ui Input */}
+            {/* Controls Toolbar: Search -> Filters -> Action Buttons */}
+            <div className="users-toolbar">
               <div className="users-search-wrapper">
                 <Input
                   placeholder="닉네임, 이메일, ID 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  leadingIcon={<Search size={14} />}
+                  leadingIcon={<Search size={18} />}
                 />
               </div>
 
@@ -324,6 +325,7 @@ export default function UsersPage() {
                 />
               </div>
 
+              {/* 새로고침 액션 버튼: 필터 바로 오른쪽 배치 */}
               <Button
                 size="md"
                 variant="secondary"
@@ -337,263 +339,262 @@ export default function UsersPage() {
               />
             </div>
           </div>
-
-          {/* Card Body: Table Container with Overflow Guard */}
+          {/* ── Standalone Table Card (Matching CurationsPage .admin-table-card) ── */}
           <div className="users-table-card">
-            {isUsersLoading && users.length === 0 ? (
-              <div className="empty-state">
-                <Loader2 size={24} className="animate-spin-slow" />
-                <p className="empty-state-text">사용자 목록 불러오는 중...</p>
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="empty-state">
-                <Users size={32} />
-                <p className="empty-state-text">일치하는 사용자가 없습니다.</p>
-              </div>
-            ) : (
-              <table className="users-table">
-                <thead>
-                  <tr>
-                    <th style={{ width: '25%' }}>사용자 프로필</th>
-                    <th style={{ width: '22%' }}>이메일 / 로그인 수단</th>
-                    <th style={{ width: '18%' }}>플레이리스트 활동</th>
-                    <th style={{ width: '15%' }}>가입 일시</th>
-                    <th style={{ width: '10%', textAlign: 'center' }}>계정 상태</th>
-                    <th style={{ width: '10%', textAlign: 'right' }}>관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUsers.map((user) => {
-                    const initial = (user.nickname || user.email || 'U').charAt(0).toUpperCase();
-                    const statusConfig = getUserStatusConfig(user.is_banned);
-                    return (
-                      <tr key={user.id}>
-                        {/* Profile (Clickable to open detail modal) */}
-                        <td>
-                          <div
-                            className="user-profile-flex user-profile-clickable"
-                            onClick={() => handleOpenUserDetail(user)}
-                            title="클릭하여 사용자 상세 정보 보기"
-                          >
-                            <div className="user-avatar-gradient">
-                              {user.avatar_url ? (
-                                <img
-                                  src={user.avatar_url}
-                                  alt=""
-                                  onError={(e) => {
-                                    e.target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <span>{initial}</span>
-                              )}
+              {isUsersLoading && users.length === 0 ? (
+                <div className="empty-state">
+                  <Loader2 size={24} className="animate-spin-slow" />
+                  <p className="empty-state-text">사용자 목록 불러오는 중...</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="empty-state">
+                  <Users size={32} />
+                  <p className="empty-state-text">일치하는 사용자가 없습니다.</p>
+                </div>
+              ) : (
+                <table className="users-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '25%' }}>사용자 프로필</th>
+                      <th style={{ width: '22%' }}>이메일 / 로그인 수단</th>
+                      <th style={{ width: '18%' }}>플레이리스트 활동</th>
+                      <th style={{ width: '15%' }}>가입 일시</th>
+                      <th style={{ width: '10%', textAlign: 'center' }}>계정 상태</th>
+                      <th style={{ width: '10%', textAlign: 'right' }}>관리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((user) => {
+                      const initial = (user.nickname || user.email || 'U').charAt(0).toUpperCase();
+                      const statusConfig = getUserStatusConfig(user.is_banned);
+                      return (
+                        <tr key={user.id}>
+                          {/* Profile (Clickable to open detail modal) */}
+                          <td>
+                            <div
+                              className="user-profile-flex user-profile-clickable"
+                              onClick={() => handleOpenUserDetail(user)}
+                              title="클릭하여 사용자 상세 정보 보기"
+                            >
+                              <div className="user-avatar-gradient">
+                                {user.avatar_url ? (
+                                  <img
+                                    src={user.avatar_url}
+                                    alt=""
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <span>{initial}</span>
+                                )}
+                              </div>
+                              <div className="user-profile-meta">
+                                <span className="user-profile-name">{user.nickname || '익명 사용자'}</span>
+                                <span className="user-profile-id">
+                                  {user.id ? `${user.id.substring(0, 8)}...` : '-'}
+                                </span>
+                              </div>
                             </div>
-                            <div className="user-profile-meta">
-                              <span className="user-profile-name">{user.nickname || '익명 사용자'}</span>
-                              <span className="user-profile-id">
-                                {user.id ? `${user.id.substring(0, 8)}...` : '-'}
+                          </td>
+
+                          {/* Email & Provider */}
+                          <td>
+                            <div className="user-email-group">
+                              <span className="user-email-text">{user.email}</span>
+                              <span className={`provider-tag ${user.provider}`}>
+                                {user.provider === 'google' ? 'Google' : '이메일'}
                               </span>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Email & Provider */}
-                        <td>
-                          <div className="user-email-group">
-                            <span className="user-email-text">{user.email}</span>
-                            <span className={`provider-tag ${user.provider}`}>
-                              {user.provider === 'google' ? 'Google' : '이메일'}
+                          {/* Playlists (Guaranteed no single-letter vertical break) */}
+                          <td>
+                            <div className="user-activity-group">
+                              <span className="user-activity-main">
+                                {user.playlist_count || 0}개 플레이리스트
+                              </span>
+                              <span className="user-activity-sub">
+                                총 {user.track_count || 0}곡 수록
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Created At */}
+                          <td>
+                            <div className="user-date-group">
+                              <span className="user-date-created">{formatDate(user.created_at)}</span>
+                              <span className="user-date-recent">
+                                최근: {formatDate(user.last_sign_in_at)}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Status Pill */}
+                          <td style={{ textAlign: 'center' }}>
+                            <span className={`user-status-pill ${statusConfig.badgeClass}`}>
+                              {statusConfig.label}
                             </span>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Playlists (Guaranteed no single-letter vertical break) */}
-                        <td>
-                          <div className="user-activity-group">
-                            <span className="user-activity-main">
-                              {user.playlist_count || 0}개 플레이리스트
-                            </span>
-                            <span className="user-activity-sub">
-                              총 {user.track_count || 0}곡 수록
-                            </span>
-                          </div>
-                        </td>
+                          {/* Actions */}
+                          <td style={{ textAlign: 'right' }}>
+                            <div className="user-table-actions">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                leadingIcon={<Eye size={14} />}
+                                onClick={() => handleOpenUserDetail(user)}
+                                title="상세 정보 보기"
+                              />
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                leadingIcon={
+                                  user.is_banned ? (
+                                    <UserCheck size={14} style={{ color: 'var(--success, #4ade80)' }} />
+                                  ) : (
+                                    <UserX size={14} style={{ color: 'var(--error, #f87171)' }} />
+                                  )
+                                }
+                                onClick={() => handleToggleStatus(user)}
+                                title={statusConfig.actionTitle}
+                              />
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                leadingIcon={<Trash2 size={14} />}
+                                onClick={() => handleDeleteUser(user)}
+                                title="계정 삭제"
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
 
-                        {/* Created At */}
-                        <td>
-                          <div className="user-date-group">
-                            <span className="user-date-created">{formatDate(user.created_at)}</span>
-                            <span className="user-date-recent">
-                              최근: {formatDate(user.last_sign_in_at)}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Status Pill */}
-                        <td style={{ textAlign: 'center' }}>
-                          <span className={`user-status-pill ${statusConfig.badgeClass}`}>
-                            {statusConfig.label}
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="user-table-actions">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              leadingIcon={<Eye size={14} />}
-                              onClick={() => handleOpenUserDetail(user)}
-                              title="상세 정보 보기"
-                            />
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              leadingIcon={
-                                user.is_banned ? (
-                                  <UserCheck size={14} style={{ color: 'var(--success, #4ade80)' }} />
-                                ) : (
-                                  <UserX size={14} style={{ color: 'var(--error, #f87171)' }} />
-                                )
-                              }
-                              onClick={() => handleToggleStatus(user)}
-                              title={statusConfig.actionTitle}
-                            />
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              leadingIcon={<Trash2 size={14} />}
-                              onClick={() => handleDeleteUser(user)}
-                              title="계정 삭제"
-                            />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-
-        {/* ── User Detail Modal ── */}
-        {isDetailModalOpen && selectedUser && (() => {
-          const statusConfig = getUserStatusConfig(selectedUser.is_banned);
-          return (
-            <Modal
-              isOpen={isDetailModalOpen}
-              onClose={() => setIsDetailModalOpen(false)}
-              title="사용자 상세 정보"
-              size="md"
-              footer={
-                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                  <Button
-                    variant={selectedUser.is_banned ? 'primary' : 'danger'}
-                    size="md"
-                    onClick={() => handleToggleStatus(selectedUser)}
-                  >
-                    {statusConfig.toggleBtnLabel}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    onClick={() => setIsDetailModalOpen(false)}
-                  >
-                    닫기
-                  </Button>
-                </div>
-              }
-            >
-              <div className="user-modal-box">
-                {/* Header Profile Box */}
-                <div className="user-modal-profile-card">
-                  <div className="user-modal-avatar">
-                    {selectedUser.avatar_url ? (
-                      <img src={selectedUser.avatar_url} alt="" />
-                    ) : (
-                      <span>{(selectedUser.nickname || selectedUser.email || 'U').charAt(0).toUpperCase()}</span>
-                    )}
+          {/* ── User Detail Modal ── */}
+          {isDetailModalOpen && selectedUser && (() => {
+            const statusConfig = getUserStatusConfig(selectedUser.is_banned);
+            return (
+              <Modal
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                title="사용자 상세 정보"
+                size="md"
+                footer={
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                    <Button
+                      variant={selectedUser.is_banned ? 'primary' : 'danger'}
+                      size="md"
+                      onClick={() => handleToggleStatus(selectedUser)}
+                    >
+                      {statusConfig.toggleBtnLabel}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={() => setIsDetailModalOpen(false)}
+                    >
+                      닫기
+                    </Button>
                   </div>
-                  <div className="user-modal-details">
-                    <div className="user-modal-name-row">
-                      <span className="user-modal-name">{selectedUser.nickname || '익명 사용자'}</span>
-                      <span className={`user-status-pill ${statusConfig.badgeClass}`}>
-                        {statusConfig.modalLabel}
+                }
+              >
+                <div className="user-modal-box">
+                  {/* Header Profile Box */}
+                  <div className="user-modal-profile-card">
+                    <div className="user-modal-avatar">
+                      {selectedUser.avatar_url ? (
+                        <img src={selectedUser.avatar_url} alt="" />
+                      ) : (
+                        <span>{(selectedUser.nickname || selectedUser.email || 'U').charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <div className="user-modal-details">
+                      <div className="user-modal-name-row">
+                        <span className="user-modal-name">{selectedUser.nickname || '익명 사용자'}</span>
+                        <span className={`user-status-pill ${statusConfig.badgeClass}`}>
+                          {statusConfig.modalLabel}
+                        </span>
+                      </div>
+                      <span className="user-modal-email">{selectedUser.email}</span>
+                      <span className="user-modal-id">ID: {selectedUser.id}</span>
+                    </div>
+                  </div>
+
+                  {/* 닉네임 수정 폼 */}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <Input
+                        label="닉네임 변경"
+                        value={editingNickname}
+                        onChange={(e) => setEditingNickname(e.target.value)}
+                        placeholder="새로운 닉네임 입력"
+                      />
+                    </div>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      loading={isSavingNickname}
+                      disabled={editingNickname.trim() === selectedUser.nickname}
+                      onClick={handleSaveNickname}
+                      style={{ marginBottom: '0.2rem' }}
+                    >
+                      변경 저장
+                    </Button>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="user-modal-meta-grid">
+                    <div className="user-modal-meta-item">
+                      <span className="user-modal-meta-label">계정 상태</span>
+                      <span className="user-modal-meta-val" style={{ color: statusConfig.color }}>
+                        {statusConfig.label}
                       </span>
                     </div>
-                    <span className="user-modal-email">{selectedUser.email}</span>
-                    <span className="user-modal-id">ID: {selectedUser.id}</span>
-                  </div>
-                </div>
-
-                {/* 닉네임 수정 폼 */}
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                  <div style={{ flex: 1 }}>
-                    <Input
-                      label="닉네임 변경"
-                      value={editingNickname}
-                      onChange={(e) => setEditingNickname(e.target.value)}
-                      placeholder="새로운 닉네임 입력"
-                    />
-                  </div>
-                  <Button
-                    variant="secondary"
-                    size="md"
-                    loading={isSavingNickname}
-                    disabled={editingNickname.trim() === selectedUser.nickname}
-                    onClick={handleSaveNickname}
-                    style={{ marginBottom: '0.2rem' }}
-                  >
-                    변경 저장
-                  </Button>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="user-modal-meta-grid">
-                  <div className="user-modal-meta-item">
-                    <span className="user-modal-meta-label">계정 상태</span>
-                    <span className="user-modal-meta-val" style={{ color: statusConfig.color }}>
-                      {statusConfig.label}
-                    </span>
-                  </div>
-                  <div className="user-modal-meta-item">
-                    <span className="user-modal-meta-label">인증 제공자</span>
-                    <span className="user-modal-meta-val">
-                      {selectedUser.provider === 'google' ? 'Google OAuth' : '이메일 로그인'}
-                    </span>
-                  </div>
-                  <div className="user-modal-meta-item">
-                    <span className="user-modal-meta-label">가입 일시</span>
-                    <span className="user-modal-meta-val">{formatDateTime(selectedUser.created_at)}</span>
-                  </div>
-                  <div className="user-modal-meta-item">
-                    <span className="user-modal-meta-label">보관 플레이리스트</span>
-                    <span className="user-modal-meta-val">{selectedUser.playlist_count || 0}개 ({selectedUser.track_count || 0}곡)</span>
-                  </div>
-                </div>
-
-                {/* Danger Zone */}
-                <div className="user-modal-danger">
-                  <div>
-                    <div className="user-danger-text-title">계정 영구 삭제</div>
-                    <div className="user-danger-text-desc">
-                      해당 계정 및 생성된 모든 플레이리스트/데이터가 즉각 삭제됩니다.
+                    <div className="user-modal-meta-item">
+                      <span className="user-modal-meta-label">인증 제공자</span>
+                      <span className="user-modal-meta-val">
+                        {selectedUser.provider === 'google' ? 'Google OAuth' : '이메일 로그인'}
+                      </span>
+                    </div>
+                    <div className="user-modal-meta-item">
+                      <span className="user-modal-meta-label">가입 일시</span>
+                      <span className="user-modal-meta-val">{formatDateTime(selectedUser.created_at)}</span>
+                    </div>
+                    <div className="user-modal-meta-item">
+                      <span className="user-modal-meta-label">보관 플레이리스트</span>
+                      <span className="user-modal-meta-val">{selectedUser.playlist_count || 0}개 ({selectedUser.track_count || 0}곡)</span>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    style={{ color: 'var(--error, #e57373)' }}
-                    onClick={() => handleDeleteUser(selectedUser)}
-                  >
-                    삭제
-                  </Button>
+
+                  {/* Danger Zone */}
+                  <div className="user-modal-danger">
+                    <div>
+                      <div className="user-danger-text-title">계정 영구 삭제</div>
+                      <div className="user-danger-text-desc">
+                        해당 계정 및 생성된 모든 플레이리스트/데이터가 즉각 삭제됩니다.
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      style={{ color: 'var(--error, #e57373)' }}
+                      onClick={() => handleDeleteUser(selectedUser)}
+                    >
+                      삭제
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </Modal>
-          );
-        })()}
+              </Modal>
+            );
+          })()}
+        </div>
       </div>
     </AdminLayout>
   );
