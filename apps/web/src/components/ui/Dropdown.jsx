@@ -37,6 +37,10 @@ export default function Dropdown({ options, trigger, align = 'right', children }
 
     if (align === 'right') {
       left = rect.right - menuWidth;
+      // 왼쪽 공간이 부족하면 트리거 왼쪽 끝 기준으로 정렬
+      if (left < 12) {
+        left = rect.left;
+      }
     }
 
     // Horizontal bounds constraint
