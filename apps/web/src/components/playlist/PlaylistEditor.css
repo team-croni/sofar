@@ -1,0 +1,540 @@
+/* ── 플레이리스트 생성 / 편집 모달 ──
+   구조: 헤더 / 탭 / [미리보기 | 설정(스크롤)] / 하단 고정 버튼 */
+
+.pe-modal.sofar-modal-card {
+  max-width: 860px;
+}
+
+.pe-modal .sofar-modal-body {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pe-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+/* ── 상단 탭 (밑줄형) ── */
+.pe-tabs {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.pe-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.95rem 0.1rem 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.pe-tab:hover {
+  color: var(--text-primary);
+}
+
+.pe-tab.active {
+  color: var(--text-primary);
+}
+
+.pe-tab.active svg {
+  color: var(--primary-warm);
+}
+
+.pe-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary-warm);
+}
+
+/* ── 본문: 왼쪽 미리보기 + 오른쪽 설정 ──
+   높이를 고정해서 탭을 바꿔도 모달 크기가 흔들리지 않음 */
+.pe-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: min(560px, calc(85vh - 200px));
+  min-height: 0;
+}
+
+.pe-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.pe-preview-label {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.pe-cover-preview.folder-card-cover-wrapper {
+  width: 200px;
+  height: 200px;
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
+
+.pe-preview-meta {
+  width: 100%;
+  text-align: center;
+}
+
+.pe-preview-title {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pe-preview-title.is-placeholder {
+  color: var(--text-muted);
+}
+
+.pe-preview-sub {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.pe-preview-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.pe-summary {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pe-summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+.pe-summary dt {
+  color: var(--text-muted);
+}
+
+.pe-summary dd {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.pe-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pe-reset-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+/* 설정 영역: 이 부분만 스크롤 */
+.pe-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  padding: 1.5rem 1.5rem 2rem;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.pe-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  transition: opacity 0.2s ease;
+}
+
+.pe-section.is-disabled {
+  opacity: 0.45;
+}
+
+.pe-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.pe-section-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pe-section-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.pe-section-head .pe-section-desc {
+  flex-basis: 100%;
+}
+
+.pe-section-value {
+  font-size: 0.75rem;
+  color: var(--primary-warm);
+  font-variant-numeric: tabular-nums;
+}
+
+.pe-section.is-disabled .pe-section-value {
+  color: var(--text-muted);
+}
+
+/* 슬라이더: 볼륨 조절 바와 같은 스타일 (얇은 트랙 + 채워진 구간 + 작은 원형 핸들) */
+.pe-range {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 6px;
+  margin: 0.35rem 0;
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  transition: var(--transition-fast);
+}
+
+.pe-range:disabled {
+  cursor: default;
+}
+
+.pe-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 99px;
+}
+
+.pe-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary-warm);
+  cursor: pointer;
+  margin-top: -4px;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.pe-range:hover:not(:disabled)::-webkit-slider-thumb {
+  transform: scale(1.3);
+  background: var(--primary-warm-hover);
+}
+
+.pe-range:disabled::-webkit-slider-thumb {
+  background: var(--text-muted);
+  cursor: default;
+}
+
+.pe-range::-moz-range-track {
+  height: 4px;
+  border-radius: 99px;
+}
+
+.pe-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary-warm);
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+
+.pe-range:hover:not(:disabled)::-moz-range-thumb {
+  transform: scale(1.3);
+  background: var(--primary-warm-hover);
+}
+
+.pe-range:disabled::-moz-range-thumb {
+  background: var(--text-muted);
+}
+
+/* 배경 효과 체크 목록 */
+.pe-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.35rem 0.85rem;
+}
+
+.pe-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  transition: opacity 0.2s ease;
+}
+
+.pe-toggle-row + .pe-toggle-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pe-toggle-row.is-disabled {
+  opacity: 0.45;
+}
+
+.pe-toggle-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+/* 날씨 효과 카드 */
+.pe-effect-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.pe-effect-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.85rem 0.25rem 0.75rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.pe-effect-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.pe-effect-card.active {
+  border-color: var(--primary-warm);
+  background: rgba(212, 163, 115, 0.1);
+  color: var(--text-primary);
+}
+
+.pe-effect-card.active svg {
+  color: var(--primary-warm);
+}
+
+/* 효과 양 세그먼트 */
+.pe-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pe-segment {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.pe-segment:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+
+.pe-segment.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.pe-segment:disabled {
+  cursor: default;
+}
+
+/* 하단 고정 버튼 */
+.pe-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.pe-footer .sofar-btn {
+  min-width: 96px;
+}
+
+/* ── Now Playing 축소 미리보기 ── */
+.np-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f0d0b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.np-preview-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.np-preview-bg.is-default {
+  background-image: radial-gradient(circle at 50% 40%, rgba(212, 163, 115, 0.22), transparent 65%);
+  background-color: #1a1715;
+}
+
+/* 배경 미지정: 실제 화면처럼 앨범 커버를 흐리게 */
+.np-preview-bg.is-default.has-cover {
+  filter: blur(14px) grayscale(0.4) brightness(0.45);
+  transform: scale(1.2);
+}
+
+.np-preview-dim {
+  position: absolute;
+  inset: 0;
+  background: #0f0d0b;
+}
+
+.np-preview .np-particle-canvas {
+  z-index: 2;
+}
+
+/* 미리보기 비네트는 축소 화면에 맞게 상단 그라데이션을 조금 약하게 */
+.np-preview-vignette {
+  background:
+    linear-gradient(to bottom, rgba(15, 13, 11, 0.55) 0%, transparent 30%),
+    linear-gradient(to top, rgba(15, 13, 11, 0.55) 0%, transparent 30%),
+    radial-gradient(ellipse at center, transparent 45%, rgba(15, 13, 11, 0.7) 100%);
+}
+
+.np-preview-grain {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* 축소 미리보기에서도 질감이 보이도록 타일을 작게, 조금 진하게 */
+.np-preview-grain .np-grain {
+  background-size: 110px 110px;
+  opacity: 0.6;
+}
+
+.np-preview-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  pointer-events: none;
+}
+
+.np-preview-record {
+  position: relative;
+  width: 34%;
+  aspect-ratio: 1;
+  margin-bottom: 0.7rem;
+  transform: translateX(-12%);
+}
+
+.np-preview-jacket {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #3a332d, #1f1b18);
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.np-preview-disc {
+  position: absolute;
+  top: 4%;
+  left: 38%;
+  width: 92%;
+  height: 92%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #d4a373 0 12%, #111 13% 15%, transparent 16%),
+    repeating-radial-gradient(circle, #1a1a1a 0 1.5px, #262626 1.5px 3px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  box-sizing: border-box;
+}
+
+.np-preview-song {
+  max-width: 80%;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-preview-artist {
+  font-size: 0.58rem;
+  color: rgba(255, 255, 255, 0.55);
+}

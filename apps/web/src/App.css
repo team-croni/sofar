@@ -673,6 +673,21 @@ image {
   animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* 오른쪽 아래 플로팅 영역: 노래 일치 캡슐 + UI 숨기기 토글을 가로로 나란히 */
+.main-bottom-right-actions {
+  position: absolute;
+  bottom: calc(6rem + 1.25rem); /* 하단 플레이어 바(6rem) 위 20px 띄움 */
+  right: 1.5rem;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.main-bottom-right-actions .main-match-feedback {
+  position: static;
+}
+
 @keyframes matchFeedbackSlideUp {
   0% {
     opacity: 0;

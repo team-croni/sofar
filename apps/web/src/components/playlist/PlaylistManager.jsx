@@ -34,6 +34,7 @@ import {
   useReorderTracksMutation
 } from '../../hooks/useTracks';
 import PlaylistModal from './PlaylistModal';
+import { hasCustomTheme } from '../../utils/nowPlayingTheme';
 import { getStaggerStyle } from '../../utils/animation';
 
 export default function PlaylistManager() {
@@ -1078,9 +1079,12 @@ export default function PlaylistManager() {
     }
   }, [selectedPlaylistId, fetchedTracks, setPlaylist]);
 
-  const handleCreatePlaylist = async ({ title, cover_url }) => {
+  const handleCreatePlaylist = async ({ title, cover_url, now_playing_theme }) => {
     try {
       const newPl = await createPlaylistMutation.mutateAsync({ title, cover_url });
+      if (newPl?.id && hasCustomTheme(now_playing_theme)) {
+        await updatePlaylistMutation.mutateAsync({ playlistId: newPl.id, now_playing_theme });
+      }
       setSelectedPlaylistId(newPl.id);
       showToast('플레이리스트가 생성되었습니다.');
     } catch (err) {
@@ -1111,7 +1115,7 @@ export default function PlaylistManager() {
     setEditingPlaylist(pl);
   };
 
-  const handleUpdatePlaylistInfo = async ({ title, cover_url }) => {
+  const handleUpdatePlaylistInfo = async ({ title, cover_url, now_playing_theme }) => {
     if (!editingPlaylist) return;
 
     try {
@@ -1119,6 +1123,7 @@ export default function PlaylistManager() {
         playlistId: editingPlaylist.id,
         title,
         cover_url,
+        now_playing_theme,
       });
       showToast('플레이리스트 정보가 수정되었습니다.');
     } catch (err) {
@@ -1381,6 +1386,15 @@ export default function PlaylistManager() {
     },
     ...(!isReadOnlyShared ? [
       {
+        // 이름 · 커버 · Now Playing 커스텀(배경/효과) 수정
+        label: '정보 수정',
+        icon: <Pencil size={15} />,
+        onClick: (e) => {
+          const currentPl = playlists.find(p => String(p.id) === String(selectedPlaylistId || activeSharedPlaylist?.id));
+          if (currentPl) openEditModal(currentPl, e);
+        }
+      },
+      {
         label: '전체 삭제',
         icon: <Trash2 size={15} />,
         className: 'btn-delete',
@@ -1409,7 +1423,8 @@ export default function PlaylistManager() {
     }
   ];
 
-  const render2x2Cover = (pl) => {
+  // ignoreCustomCover: 수정 모달 미리보기에서 "기본 2x2"를 골랐을 때 저장된 커스텀 커버 대신 타일을 보여주기 위함
+  const render2x2Cover = (pl, { ignoreCustomCover = false } = {}) => {
     const plObj = typeof pl === 'object' ? pl : playlists.find(p => p.id === pl);
     const playlistId = typeof pl === 'object' ? pl?.id : pl;
 
@@ -1419,7 +1434,7 @@ export default function PlaylistManager() {
       if (localCovers) customCoversMap = JSON.parse(localCovers);
     } catch (e) {}
 
-    const customCover = customCoversMap[playlistId] || plObj?.cover_url || plObj?.cover;
+    const customCover = ignoreCustomCover ? null : (customCoversMap[playlistId] || plObj?.cover_url || plObj?.cover);
 
     if (customCover) {
       return (

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../contexts/AuthContext';
 import { useAuth } from '../contexts/AuthContext';
+import { normalizeTheme, saveLocalPlaylistTheme } from '../utils/nowPlayingTheme';
 
 export function usePlaylistsQuery() {
   const { user } = useAuth();
@@ -192,16 +193,21 @@ export function useUpdatePlaylistMutation() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ playlistId, title, cover_url, is_public }) => {
-      const authorName = user?.user_metadata?.full_name 
-        || user?.user_metadata?.name 
-        || user?.email?.split('@')[0] 
+    mutationFn: async ({ playlistId, title, cover_url, is_public, now_playing_theme }) => {
+      const authorName = user?.user_metadata?.full_name
+        || user?.user_metadata?.name
+        || user?.email?.split('@')[0]
         || '나의 공유곡';
 
       const updatePayload = {};
       if (title !== undefined) updatePayload.title = title;
       if (cover_url !== undefined) updatePayload.cover_url = cover_url;
       if (is_public !== undefined) updatePayload.is_public = is_public;
+      if (now_playing_theme !== undefined) {
+        updatePayload.now_playing_theme = now_playing_theme ? normalizeTheme(now_playing_theme) : null;
+        // DB 컬럼이 아직 없는 환경을 위해 로컬 사본도 항상 저장
+        saveLocalPlaylistTheme(playlistId, updatePayload.now_playing_theme);
+      }
 
       const localPl = localStorage.getItem('sofar_playlists');
       const playlists = localPl ? JSON.parse(localPl) : [];
@@ -249,6 +255,20 @@ export function useUpdatePlaylistMutation() {
             .single();
 
           if (error && (error.code === 'PGRST204' || error.status === 400)) {
+            // now_playing_theme 컬럼이 없는 경우: 테마를 제외하고 나머지 필드만 다시 저장 (테마는 로컬 사본 사용)
+            if (updatePayload.now_playing_theme !== undefined) {
+              const { now_playing_theme: _theme, ...restPayload } = updatePayload;
+              if (Object.keys(restPayload).length === 0) {
+                return { id: playlistId, ...updatePayload };
+              }
+              const { data: restData, error: restError } = await supabase
+                .from('playlists')
+                .update(restPayload)
+                .eq('id', playlistId)
+                .select()
+                .single();
+              if (!restError && restData) return restData;
+            }
             if (title !== undefined) {
               const { data: titleData } = await supabase
                 .from('playlists')
@@ -268,7 +288,16 @@ export function useUpdatePlaylistMutation() {
 
       return { id: playlistId, ...updatePayload };
     },
-    onSuccess: () => {
+    onSuccess: (_data, { playlistId, now_playing_theme }) => {
+      // 테마는 refetch를 기다리지 않고 캐시에 즉시 반영
+      if (now_playing_theme !== undefined) {
+        const theme = now_playing_theme ? normalizeTheme(now_playing_theme) : null;
+        queryClient.setQueriesData({ queryKey: ['playlists'] }, (old) =>
+          Array.isArray(old)
+            ? old.map((pl) => (pl.id === playlistId ? { ...pl, now_playing_theme: theme } : pl))
+            : old
+        );
+      }
       queryClient.invalidateQueries({ queryKey: ['playlists'] });
       queryClient.invalidateQueries({ queryKey: ['home-top-feed'] });
     },
