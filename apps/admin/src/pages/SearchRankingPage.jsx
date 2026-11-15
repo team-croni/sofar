@@ -492,17 +492,15 @@ export default function SearchRankingPage() {
                 onClick={handleRefresh}
                 title="새로고침"
               />
-              {activeTab === 'logs' && recentLogs.length > 0 && (
+              {activeTab === 'logs' && recentLogs.length > 0 &&
                 <Button
                   size="md"
                   variant="danger"
                   leadingIcon={<Trash2 size={14} />}
                   onClick={handleClearLogs}
                   title="전체 검색 로그 초기화"
-                >
-                  로그 비우기
-                </Button>
-              )}
+                />
+              }
             </div>
           </div>
 

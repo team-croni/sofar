@@ -61,11 +61,8 @@ export default function AdminLayout({
           <div className="admin-login-card">
             <div className="admin-login-header">
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
-                <Logo iconSize={36} titleSize="1.75rem" showSubtitle onClick={() => {}} />
+                <Logo iconSize={36} titleSize="2.5rem" showSubtitle onClick={() => {}} />
               </div>
-              <p className="admin-login-subtitle">
-                큐레이션 플레이리스트 및 데이터 관리를 위한 Admin API Key를 입력하세요.
-              </p>
             </div>
             <form onSubmit={handleLogin} className="admin-login-form">
               <Input
@@ -83,7 +80,7 @@ export default function AdminLayout({
                 loading={isVerifying}
                 style={{ width: '100%', marginTop: '0.5rem' }}
               >
-                인증하고 입장하기
+                관리자 로그인하기
               </Button>
             </form>
           </div>
