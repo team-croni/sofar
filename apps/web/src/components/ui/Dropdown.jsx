@@ -3,8 +3,23 @@ import { createPortal } from 'react-dom';
 import { MoreVertical } from 'lucide-react';
 import './Dropdown.css';
 
+// 한 번에 하나의 드롭다운만 열리도록 현재 열린 드롭다운의 close 함수를 추적
+let closeActiveDropdown = null;
+
 export default function Dropdown({ options, trigger, align = 'right', children }) {
   const [isOpen, setIsOpen] = useState(false);
+  const closeSelf = useCallback(() => setIsOpen(false), []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (closeActiveDropdown && closeActiveDropdown !== closeSelf) {
+      closeActiveDropdown();
+    }
+    closeActiveDropdown = closeSelf;
+    return () => {
+      if (closeActiveDropdown === closeSelf) closeActiveDropdown = null;
+    };
+  }, [isOpen, closeSelf]);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const [isMeasured, setIsMeasured] = useState(false);
   const triggerRef = useRef(null);
