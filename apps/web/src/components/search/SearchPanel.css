@@ -1032,6 +1032,14 @@
   flex-shrink: 0;
 }
 
+/* 로딩 후 표시되는 곡 썸네일(.popular-row__thumb)과 같은 모양 유지 */
+@supports (corner-shape: squircle) {
+  .skeleton-thumb {
+    border-radius: 100%;
+    corner-shape: squircle;
+  }
+}
+
 .skeleton-track-title-box {
   width: 65%;
   height: 16px;

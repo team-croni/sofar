@@ -112,13 +112,29 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-muted);
 }
 
 .search-ac-thumb--artist {
   border-radius: 50%;
+}
+
+/*
+ * 곡 앨범 아트는 검색 결과 목록 썸네일(.popular-row__thumb)과 동일하게 squircle 적용, 아티스트는 원형 유지.
+ * 로딩 행 썸네일은 .skeleton-pulse(SearchPanel.css, 나중에 로드됨)의 radius에 덮이지 않도록 상위 선택자로 지정
+ */
+@supports (corner-shape: squircle) {
+  .search-ac-dropdown .search-ac-thumb {
+    border-radius: 100%;
+    corner-shape: squircle;
+  }
+
+  .search-ac-dropdown .search-ac-thumb--artist {
+    border-radius: 50%;
+    corner-shape: round;
+  }
 }
 
 .search-ac-thumb img {
