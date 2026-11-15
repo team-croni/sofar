@@ -44,6 +44,7 @@
 
 .search-input-inner {
   position: relative;
+  z-index: 20; /* 자동완성 드롭다운이 아래 최근 검색어 바/결과 위로 오도록 */
   flex: 1;
   height: 48px;
   box-sizing: border-box;

@@ -85,6 +85,16 @@ export class ChartService implements OnModuleInit {
 
   private youtubeCache = new Map<string, any[]>();
 
+  // 국내 음원 검색(Bugs 크롤링) 결과 캐시: 자동완성처럼 짧은 시간에 같은 검색어가 반복되는 요청을 즉시 응답
+  private domesticSearchCache = new Map<
+    string,
+    { at: number; tracks: any[] }
+  >();
+  private readonly DOMESTIC_SEARCH_CACHE_TTL_MS = 10 * 60 * 1000; // 10분
+  private readonly DOMESTIC_SEARCH_CACHE_MAX = 500;
+  // 같은 검색어가 동시에 들어오면 Bugs 요청을 한 번만 보내도록 진행 중인 요청 공유
+  private domesticSearchInflight = new Map<string, Promise<any[]>>();
+
   // 추가: searchQuery 단위로 youtube_video_id + durationSec을 영구 저장 (서버 종료 전까지 유지)
   private youtubeResolutionStore = new Map<
     string,
@@ -2310,11 +2320,44 @@ export class ChartService implements OnModuleInit {
   // 국내 음원 검색 엔진 (Bugs 공식 음원 검색 기반 100% 한국어 정식 메타데이터 파싱)
   async searchDomestic(query: string, limit = 20): Promise<any[]> {
     if (!query || !query.trim()) return [];
+    const cleanQ = query
+      .replace(/\s*\([^)]*\)/g, '')
+      .replace(/\s*\[[^\]]*\]/g, '')
+      .trim();
+    const cacheKey = (cleanQ || query).toLowerCase().replace(/\s+/g, ' ').trim();
+
+    const cached = this.domesticSearchCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < this.DOMESTIC_SEARCH_CACHE_TTL_MS) {
+      return cached.tracks.slice(0, limit);
+    }
+
+    let pending = this.domesticSearchInflight.get(cacheKey);
+    if (!pending) {
+      pending = this.fetchDomesticTracks(query, cleanQ).finally(() => {
+        this.domesticSearchInflight.delete(cacheKey);
+      });
+      this.domesticSearchInflight.set(cacheKey, pending);
+    }
+    const tracks = await pending;
+
+    // 실패(빈 결과)는 캐시하지 않음. 가장 오래된 항목부터 제거해 크기 제한 유지
+    if (tracks.length > 0) {
+      this.domesticSearchCache.delete(cacheKey);
+      this.domesticSearchCache.set(cacheKey, { at: Date.now(), tracks });
+      if (this.domesticSearchCache.size > this.DOMESTIC_SEARCH_CACHE_MAX) {
+        const oldestKey = this.domesticSearchCache.keys().next().value;
+        if (oldestKey !== undefined) this.domesticSearchCache.delete(oldestKey);
+      }
+    }
+    return tracks.slice(0, limit);
+  }
+
+  /** Bugs 검색 페이지를 파싱해 전체 결과를 반환 (limit 적용 전) */
+  private async fetchDomesticTracks(
+    query: string,
+    cleanQ: string,
+  ): Promise<any[]> {
     try {
-      const cleanQ = query
-        .replace(/\s*\([^)]*\)/g, '')
-        .replace(/\s*\[[^\]]*\]/g, '')
-        .trim();
       const url = `https://music.bugs.co.kr/search/track?q=${encodeURIComponent(cleanQ || query)}`;
       const res = await fetch(url, {
         headers: {
@@ -2371,7 +2414,7 @@ export class ChartService implements OnModuleInit {
         })
         .filter((t) => t.custom_title && t.custom_artist);
 
-      return tracks.slice(0, limit);
+      return tracks;
     } catch (err: any) {
       this.logger.warn(`searchDomestic error: ${err?.message || err}`);
       return [];

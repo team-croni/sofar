@@ -1,0 +1,201 @@
+/*
+ * 검색 자동완성 드롭다운
+ * 앱 공통 팝오버(.sofar-dropdown-menu, components/ui/Dropdown.css)와 동일한 패널/항목 규격을 따릅니다.
+ * - 웜 컬러(--primary-warm)는 사용하지 않음 (design-system.md 규칙 5)
+ * - 호버/선택은 배경 보간만 사용, 발광 그림자 없음 (규칙 2, 4)
+ */
+.search-ac-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: -1.5px;
+  right: -1.5px;
+  z-index: 30;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.45rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-height: min(440px, 60vh);
+  overflow-y: auto;
+  background: var(--bg-popover);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-cozy-hover);
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  animation: searchAcFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes searchAcFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-ac-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-height: 38px;
+  padding: 0.45rem 0.85rem;
+  box-sizing: border-box;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.search-ac-item--artist,
+.search-ac-item--track,
+.search-ac-item--skeleton {
+  min-height: 48px;
+  padding-left: 0.6rem;
+}
+
+.search-ac-item.is-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* 그룹 제목 (아티스트 / 곡). 첫 그룹이 아니면 위에 구분선 */
+.search-ac-group-title {
+  position: relative;
+  padding: 0.5rem 0.85rem 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--text-muted);
+  cursor: default;
+  user-select: none;
+}
+
+.search-ac-group-title.has-divider {
+  margin-top: 0.3rem;
+  padding-top: 0.75rem;
+}
+
+.search-ac-group-title.has-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0.65rem;
+  right: 0.65rem;
+  height: 1px;
+  background: var(--border-cozy);
+  pointer-events: none;
+}
+
+.search-ac-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.search-ac-item.is-active .search-ac-icon {
+  color: var(--text-secondary);
+}
+
+.search-ac-thumb {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.search-ac-thumb--artist {
+  border-radius: 50%;
+}
+
+.search-ac-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+}
+
+.search-ac-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.search-ac-label,
+.search-ac-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-ac-label {
+  line-height: 1.25;
+}
+
+.search-ac-sub {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--text-muted);
+}
+
+.search-ac-item--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.search-ac-skeleton-line {
+  display: block;
+  height: 11px;
+  border-radius: 4px;
+}
+
+.search-ac-skeleton-line--sub {
+  height: 9px;
+}
+
+.search-ac-highlight {
+  background: transparent;
+  color: var(--text-active);
+  font-weight: 600;
+}
+
+.search-ac-badge {
+  flex-shrink: 0;
+}
+
+.search-ac-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin-right: -0.35rem;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.search-ac-remove:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}

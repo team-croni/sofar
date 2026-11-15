@@ -16,6 +16,8 @@ import SearchLandingView from './SearchLandingView';
 import SearchTrackRow from './SearchTrackRow';
 import SearchArtistCard from './SearchArtistCard';
 import SearchSkeleton from './SearchSkeleton';
+import SearchAutocomplete, { getSuggestionOptionId } from './SearchAutocomplete';
+import useSearchSuggestions from '../../hooks/useSearchSuggestions';
 import { getSearchCache, setSearchCache } from '../../utils/searchCache';
 import { formatArtistName } from '../../utils/trackUtils';
 
@@ -59,6 +61,80 @@ export default function SearchPanel() {
       return [];
     }
   });
+
+  // ── 검색어 자동완성 ──
+  const SUGGEST_LIST_ID = 'search-suggest-list';
+  const [isSuggestOpen, setIsSuggestOpen] = useState(false);
+  const [activeSuggestIndex, setActiveSuggestIndex] = useState(-1);
+  const { items: suggestions, musicLoading: suggestionsLoading } = useSearchSuggestions(query, {
+    recentSearches,
+    enabled: isSuggestOpen,
+  });
+  const showSuggestions = isSuggestOpen && (suggestions.length > 0 || suggestionsLoading);
+
+  // 입력이 바뀌면 키보드 선택 위치 초기화
+  useEffect(() => {
+    setActiveSuggestIndex(-1);
+  }, [query]);
+
+  const closeSuggestions = () => {
+    setIsSuggestOpen(false);
+    setActiveSuggestIndex(-1);
+  };
+
+  // 검색어 칩/추천/자동완성 항목 클릭 등으로 검색을 실행하는 공통 경로
+  const runSearchTerm = (term) => {
+    const cleanTerm = term.trim();
+    if (!cleanTerm) return;
+    closeSuggestions();
+    shouldLogNextSearchRef.current = true;
+    setQuery(cleanTerm);
+    setSelectedArtistKey(null);
+    if (searchParams.get('q') !== cleanTerm) {
+      setSearchParams({ q: cleanTerm });
+    } else {
+      executeSearch(cleanTerm);
+    }
+  };
+
+  const handleSearchKeyDown = (e) => {
+    // 한글 등 IME 조합 중에는 키 입력을 가로채지 않음 (마지막 글자 중복/선택 꼬임 방지)
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+
+    if (e.key === 'Escape') {
+      if (isSuggestOpen) {
+        e.preventDefault();
+        closeSuggestions();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!isSuggestOpen) {
+        if (query.trim()) {
+          e.preventDefault();
+          setIsSuggestOpen(true);
+        }
+        return;
+      }
+      if (suggestions.length === 0) return;
+      e.preventDefault();
+      const count = suggestions.length;
+      setActiveSuggestIndex((prev) => {
+        if (e.key === 'ArrowDown') return prev >= count - 1 ? -1 : prev + 1;
+        return prev <= -1 ? count - 1 : prev - 1;
+      });
+      return;
+    }
+
+    if (e.key === 'Enter' && showSuggestions && activeSuggestIndex >= 0) {
+      const item = suggestions[activeSuggestIndex];
+      if (item) {
+        e.preventDefault();
+        runSearchTerm(item.term);
+      }
+    }
+  };
 
   // 마운트 시 검색 입력창에 포커스
   useEffect(() => {
@@ -280,6 +356,7 @@ export default function SearchPanel() {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    closeSuggestions();
     setSelectedArtistKey(null);
     const target = query.trim();
     if (target) {
@@ -294,6 +371,7 @@ export default function SearchPanel() {
   };
 
   const clearSearch = () => {
+    closeSuggestions();
     setQuery('');
     setResults([]);
     setHasSearched(false);
@@ -449,7 +527,27 @@ export default function SearchPanel() {
                 className="search-text-input"
                 placeholder="곡 제목, 아티스트, 장르 또는 YouTube 링크를 입력하세요..."
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setIsSuggestOpen(true);
+                }}
+                onFocus={() => {
+                  // 이미 검색한 결과를 보고 있는 상태에서는 다시 띄우지 않음
+                  if (query.trim() && query.trim() !== searchedQuery.trim()) {
+                    setIsSuggestOpen(true);
+                  }
+                }}
+                onBlur={closeSuggestions}
+                onKeyDown={handleSearchKeyDown}
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showSuggestions}
+                aria-controls={SUGGEST_LIST_ID}
+                aria-activedescendant={
+                  showSuggestions && activeSuggestIndex >= 0
+                    ? getSuggestionOptionId(SUGGEST_LIST_ID, activeSuggestIndex)
+                    : undefined
+                }
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -471,6 +569,19 @@ export default function SearchPanel() {
               <div className="search-shortcut-hint" title="단축키 /">
                 <span>/</span>
               </div>
+
+              {showSuggestions && (
+                <SearchAutocomplete
+                  listId={SUGGEST_LIST_ID}
+                  items={suggestions}
+                  query={query}
+                  activeIndex={activeSuggestIndex}
+                  onSelect={(item) => runSearchTerm(item.term)}
+                  onHover={setActiveSuggestIndex}
+                  onRemoveRecent={removeRecentSearch}
+                  loading={suggestionsLoading}
+                />
+              )}
             </div>
 
             <Button 
