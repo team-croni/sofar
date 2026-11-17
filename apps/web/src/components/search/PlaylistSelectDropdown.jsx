@@ -22,10 +22,17 @@ export default function PlaylistSelectDropdown({ track, buttonVariant = 'icon', 
     };
 
     const handleScroll = (e) => {
-      if (dropdownRef.current && dropdownRef.current.contains(e.target)) {
+      const target = e.target;
+      if (dropdownRef.current && dropdownRef.current.contains(target)) {
         return;
       }
-      setIsOpen(false);
+      // 드롭다운을 품고 있는 컨테이너(또는 문서)가 스크롤될 때만 닫기 (가사 자동 스크롤 등 무관한 스크롤은 무시)
+      const movesDropdown =
+        target === document ||
+        target === document.documentElement ||
+        target === document.body ||
+        (target instanceof Node && dropdownRef.current && target.contains(dropdownRef.current));
+      if (movesDropdown) setIsOpen(false);
     };
 
     document.addEventListener('mousedown', handleClickOutside);

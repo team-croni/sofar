@@ -17,10 +17,10 @@
 export const SURFACE_INTERACTION_ENABLED = true;
 
 const SURFACE_SELECTOR = '[data-particle-surface]';
-// 콘텐츠보다 위에 떠 있는 불투명한 UI(하단 컨트롤러 등): 앞쪽 캔버스가 이 영역 위로는 그리지 않음
+// 콘텐츠보다 위에 떠 있는 불투명한 UI(하단 컨트롤러 · 볼륨 팝오버 · 드롭다운 메뉴 등): 앞쪽 캔버스가 이 영역 위로는 그리지 않음
 const OCCLUDER_SELECTOR = '[data-particle-occluder]';
-// LP판 회전 속도 (VinylPlayer.css spinRecord 12s 기준, 프레임당 라디안)
-const DISC_SPIN_PER_FRAME = (Math.PI * 2) / (12 * 60);
+// LP판 회전 속도 (VinylPlayer.css spinRecord 11s 기준, 프레임당 라디안)
+const DISC_SPIN_PER_FRAME = (Math.PI * 2) / (11 * 60);
 const SHAKE_PX = 8; // 한 프레임에 이만큼 넘게 갑자기 움직이면 쌓인 것을 조금 털어냄
 const SHAKE_RATE = 0.09; // data-particle-shake 중 프레임당 털어내는 비율
 const PILE_BIN = 3; // 눈 높이맵 칸 너비(px)
@@ -193,7 +193,8 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
 
   const pileMax = (s) => s.pileLimit || clamp(5 + s.w * 0.018, 5, 12);
   let occluderEls = [];
-  let occluderRects = [];
+  let occluderRects = []; // 불투명한 가림 영역 (아예 그리지 않음)
+  let fadingOccluders = []; // 열리고 닫히며 반투명한 가림 영역 { r, a } (투명도만큼만 지움)
 
   function rescan() {
     const found = new Set(document.querySelectorAll(SURFACE_SELECTOR));
@@ -207,7 +208,6 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
     found.forEach((el) => {
       if (!surfaces.has(el)) surfaces.set(el, createSurface(el));
     });
-    occluderEls = [...document.querySelectorAll(OCCLUDER_SELECTOR)];
   }
 
   function pushDebris(d) {
@@ -270,9 +270,29 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
 
   function measure(dt) {
     occluderRects = [];
+    fadingOccluders = [];
+    // 팝오버 · 드롭다운은 열리자마자 가려야 하므로 가리는 요소는 매 프레임 다시 찾음
+    occluderEls = document.querySelectorAll(OCCLUDER_SELECTOR);
     for (const el of occluderEls) {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) occluderRects.push(r);
+      // 팝오버처럼 닫혀 있을 때 투명하게 숨겨 두는 요소는 가리지 않음
+      if (r.width <= 0 || r.height <= 0 || !isElementVisible(el)) continue;
+      // 열리고 닫히는 중(투명도 전환 중)에는 지금 보이는 만큼만 가려서,
+      // 팝오버가 거의 사라졌는데 그 자리의 눈만 빈 채로 남아 있지 않게 함
+      const cs = window.getComputedStyle(el);
+      const a = Number.parseFloat(cs.opacity);
+      // 둥근 모서리(볼륨 팝업의 반원형 아랫부분 등)는 그 모양대로 가려야
+      // 모서리 바깥의 눈까지 지워져 팝업 그림자가 까맣게 드러나지 않음
+      const occ = {
+        x: r.left,
+        y: r.top + 0.5,
+        w: r.width,
+        h: r.height - 0.5,
+        radii: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius]
+          .map((v) => clamp(Number.parseFloat(v) || 0, 0, Math.min(r.width, r.height) / 2)),
+      };
+      if (!(a < 0.99)) occluderRects.push(occ);
+      else if (a > 0.01) fadingOccluders.push({ ...occ, a });
     }
     surfaces.forEach((s) => {
       const el = s.el;
@@ -795,12 +815,21 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
     }
   }
 
+  function occluderPath(o) {
+    if (o.radii.some((v) => v > 0) && typeof ctx.roundRect === 'function') ctx.roundRect(o.x, o.y, o.w, o.h, o.radii);
+    else ctx.rect(o.x, o.y, o.w, o.h);
+  }
+
   function clipOccluders() {
-    if (!occluderRects.length) return;
-    ctx.beginPath();
-    ctx.rect(0, 0, w, h);
-    for (const r of occluderRects) ctx.rect(r.left, r.top + 0.5, r.width, r.height);
-    ctx.clip('evenodd');
+    // 가림 영역마다 따로 잘라냄: 한 경로에 모아 evenodd 로 자르면 두 영역이 겹치는 곳
+    // (예: 하단 컨트롤러 안으로 내려온 볼륨 팝업 아랫부분)이 다시 그려지는 영역이 되어
+    // 쌓인 눈의 그림자 등이 팝업 위에 까맣게 그려졌음
+    for (const r of occluderRects) {
+      ctx.beginPath();
+      ctx.rect(0, 0, w, h);
+      occluderPath(r);
+      ctx.clip('evenodd');
+    }
   }
 
   /**
@@ -816,7 +845,23 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
 
   function endForeground() {
     ctx.restore();
+    eraseFadingOccluders();
     ctx.globalAlpha = 1;
+  }
+
+  // 반투명한 가림 영역은 그 투명도만큼 지워서, 팝오버가 사라지는 속도에 맞춰 뒤의 눈이 드러나게 함
+  function eraseFadingOccluders() {
+    if (!fadingOccluders.length) return;
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = 'destination-out';
+    for (const o of fadingOccluders) {
+      ctx.globalAlpha = o.a;
+      ctx.beginPath();
+      occluderPath(o);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function update(dt, opts) {

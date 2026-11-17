@@ -196,7 +196,7 @@
 }
 
 .animate-spin-slow {
-  animation: spinRecord 12s linear infinite;
+  animation: spinRecord 11s linear infinite;
 }
 
 .animate-spin-paused {

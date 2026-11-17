@@ -167,7 +167,10 @@ export default function MiniPlayer() {
 
   const showMiniPlayer = !!currentTrack;
 
-  const displayInVinyl = showVideoInVinyl && !isLyricsExpanded && isNowPlayingPage;
+  // 사이드바로 복귀(hiding-video)가 시작되면 바로 사이드바 배치로 바꿔서
+  // 투명해지지 않고 크기 · 위치가 그대로 사이드바 슬롯으로 이어지며 옮겨지게 함
+  const displayInVinyl = showVideoInVinyl && !isLyricsExpanded && isNowPlayingPage
+    && videoVinylState !== 'hiding-video';
 
   const handleMiniPlayerClick = () => {
     const isNowPlayingPage = location.pathname === '/now' || location.pathname === '/now-playing';
@@ -184,7 +187,7 @@ export default function MiniPlayer() {
       triggerReturnToVinyl();
     } else {
       // 미니플레이어 모드에서 앨범 자켓 모드로 전환
-      if (videoVinylState === 'slipping-in' || videoVinylState === 'video') return;
+      if (videoVinylState === 'slipping-in' || videoVinylState === 'video' || videoVinylState === 'hiding-video') return;
       setVideoVinylState('slipping-in');
       setTimeout(() => {
         setShowVideoInVinyl(true);
@@ -222,15 +225,12 @@ export default function MiniPlayer() {
   return createPortal(
     <div 
       ref={containerRef}
-      className={`mini-player-container ${showMiniPlayer ? 'show' : ''} ${displayInVinyl ? 'in-vinyl' : 'in-sidebar'} ${
-        videoVinylState === 'hiding-video' ? 'hiding' : ''
-      } ${isUnderModal ? 'under-modal' : ''}`}
+      className={`mini-player-container ${showMiniPlayer ? 'show' : ''} ${displayInVinyl ? 'in-vinyl' : 'in-sidebar'} ${isUnderModal ? 'under-modal' : ''}`}
       style={containerStyle}
       onClick={handleMiniPlayerClick}
       {...(displayInVinyl && showMiniPlayer ? {
         'data-particle-surface': 'rect',
         'data-particle-radius': '22',
-        'data-particle-shake': videoVinylState === 'hiding-video' ? '1' : '0',
       } : {})}
     >
       <div 

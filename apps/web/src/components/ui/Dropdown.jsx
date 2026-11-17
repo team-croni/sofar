@@ -144,8 +144,15 @@ export default function Dropdown({ options, trigger, align = 'right', children }
         return;
       }
 
-      // 2. 드롭다운 메뉴 외부의 어떤 요소든 스크롤 발생 시 즉시 닫기
-      setIsOpen(false);
+      // 2. 트리거를 품고 있는 컨테이너(또는 문서)가 스크롤될 때만 닫기
+      //    (가사 자동 스크롤처럼 트리거와 무관한 영역의 스크롤로는 닫히지 않게 함)
+      const target = e.target;
+      const movesTrigger =
+        target === document ||
+        target === document.documentElement ||
+        target === document.body ||
+        (target instanceof Node && triggerRef.current && target.contains(triggerRef.current));
+      if (movesTrigger) setIsOpen(false);
     };
 
     const handleResize = () => {
@@ -210,6 +217,7 @@ export default function Dropdown({ options, trigger, align = 'right', children }
         <div 
           ref={dropdownMenuRef}
           className={`sofar-dropdown-menu ${isMeasured ? 'is-ready' : ''}`}
+          data-particle-occluder=""
           style={{ 
             position: 'fixed',
             top: `${coords.top}px`, 
