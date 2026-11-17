@@ -221,15 +221,15 @@ function HomePage() {
 
         {/* 유튜브 바로가기 버튼 (right-panel-column 기준 왼쪽 아래 고정 플로팅) */}
         {isNowPlayingPage && !isLyricsExpanded && currentTrack?.youtube_video_id && (
-          <Button
-            variant="icon"
-            size="lg"
-            leadingIcon={<YoutubeIcon size={24} />}
+          <button
+            type="button"
             onClick={() => window.open(`https://www.youtube.com/watch?v=${currentTrack.youtube_video_id}`, '_blank', 'noopener,noreferrer')}
             className="main-youtube-btn"
-            title="YouTube에서 열기"
-            aria-label="YouTube에서 열기"
-          />
+            title="재생 중인 영상을 YouTube에서 열기"
+          >
+            <YoutubeIcon size={14} />
+            YouTube에서 보기
+          </button>
         )}
 
         {/* 오른쪽 아래 플로팅 영역: 노래 일치 피드백 캡슐 + UI 숨기기 토글 (right-panel-column 기준) */}

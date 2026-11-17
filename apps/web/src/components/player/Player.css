@@ -274,7 +274,7 @@
   font-weight: 500;
   min-width: 2.25rem;
   text-align: center;
-  font-family: monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .bottom-timeline-slider {

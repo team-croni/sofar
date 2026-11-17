@@ -70,6 +70,10 @@ export interface PlayLogEvent {
   youtube_video_id?: string;
 }
 
+// 3D/8D/공간음향 등 원곡을 가공한 변형 오디오 영상 판별 패턴
+const SPATIAL_AUDIO_PATTERN =
+  /(\b(3|4|8|9|16|360)\s*d\b|spatial audio|binaural|dolby atmos|use (ear|head)phones|이어폰\s*(을\s*)?(착용|필수|권장|끼고)|입체\s*음향|공간\s*음향)/;
+
 @Injectable()
 export class ChartService implements OnModuleInit {
   private readonly logger = new Logger(ChartService.name);
@@ -591,10 +595,13 @@ export class ChartService implements OnModuleInit {
       channel === 'topic'
     )
       score += 2500;
+    // 3D/8D/공간음향 등 변형 오디오는 'audio'가 들어가도 원곡 음원이 아니므로 가산점 대상에서 제외
+    const isSpatialVariant = SPATIAL_AUDIO_PATTERN.test(title);
     if (
-      title.includes('official audio') ||
-      title.includes('audio') ||
-      title.includes('음원')
+      !isSpatialVariant &&
+      (title.includes('official audio') ||
+        /\baudio\b/.test(title) ||
+        title.includes('음원'))
     )
       score += 1200;
     if (title.includes('official mv') || title.includes('official video'))
@@ -772,6 +779,14 @@ export class ChartService implements OnModuleInit {
 
     if (hasVersionPenalty) {
       score -= 2500;
+    }
+
+    // 5) 3D/8D/입체음향/이어폰 착용 권장 영상 감점 (원곡과 길이가 같아 재생길이 검증으로는 걸러지지 않음)
+    if (
+      isSpatialVariant &&
+      !(cleanSearchQuery && SPATIAL_AUDIO_PATTERN.test(cleanSearchQuery))
+    ) {
+      score -= 4000;
     }
 
     return score;

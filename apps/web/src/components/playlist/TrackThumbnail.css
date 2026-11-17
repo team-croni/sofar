@@ -48,3 +48,10 @@
   border-radius: 50%;
   background: #2a2b30;
 }
+
+.thumbnail-fallback-logo {
+  width: 45%;
+  height: 45%;
+  opacity: 0.45;
+  user-select: none;
+}

@@ -6,6 +6,7 @@ import TrackThumbnail from './TrackThumbnail';
 import TrackTitleMarquee from './TrackTitleMarquee';
 import { durationCache, saveDurationCache, formatDuration } from '../../utils/durationCache';
 import { fetchVideoDurations } from '../../utils/youtube';
+import { itunesDurationCache } from '../../utils/thumbnailCache';
 import { useAudio } from '../../contexts/AudioContext';
 import { isMatchTrack, formatArtistName } from '../../utils/trackUtils';
 import { handleTrackDragStart } from '../../utils/dragUtils';
@@ -35,7 +36,8 @@ export default function TrackRowItem({
   const isPlayingCurrent = isCurrent && (isPlaying || isLoadingTrack);
 
   const [trackDurationSec, setTrackDurationSec] = useState(() => {
-    return track?.duration || track?.durationSec || durationCache.get(track?.youtube_video_id) || null;
+    return track?.duration || track?.durationSec || durationCache.get(track?.youtube_video_id)
+      || itunesDurationCache.get(track?.custom_artist, track?.custom_title) || null;
   });
 
   useEffect(() => {
@@ -64,11 +66,30 @@ export default function TrackRowItem({
       return;
     }
 
+    let active = true;
     const isValidVideoId = typeof track?.youtube_video_id === 'string' && /^[a-zA-Z0-9_-]{11}$/.test(track.youtube_video_id);
-    if (isValidVideoId) {
-      fetchVideoDurations([track.youtube_video_id]);
-    }
-  }, [track?.id, track?.duration, track?.durationSec, track?.youtube_video_id, isCurrent, audioDuration]);
+    const videoLookup = isValidVideoId
+      ? fetchVideoDurations([track.youtube_video_id]).then((res) => res?.[track.youtube_video_id] || 0)
+      : Promise.resolve(0);
+
+    // 영상 길이를 알 수 없으면(미매칭·삭제된 영상·백엔드 조회 실패) iTunes 원곡 길이로 대신 표시한다.
+    // 재생을 시작하면 실제 재생 길이로 바뀐다.
+    videoLookup.then((videoSec) => {
+      if (!active || videoSec > 0) return;
+      const cachedItunes = itunesDurationCache.get(track?.custom_artist, track?.custom_title);
+      if (cachedItunes) {
+        setTrackDurationSec(cachedItunes);
+        return;
+      }
+      itunesDurationCache.resolve(track?.custom_artist, track?.custom_title).then((sec) => {
+        if (active && sec > 0) setTrackDurationSec((prev) => prev || sec);
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [track?.id, track?.duration, track?.durationSec, track?.youtube_video_id, track?.custom_title, track?.custom_artist, isCurrent, audioDuration]);
 
   useEffect(() => {
     const handleDurationCached = (e) => {

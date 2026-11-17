@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DEFAULT_COVER from '../../assets/sofar-default-cover.svg';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { useAudio } from '../../contexts/AudioContext';
 import { isUsableArtwork, thumbnailCache } from '../../utils/thumbnailCache';
@@ -57,7 +58,7 @@ export default function VinylPlayer() {
       }
     }
     // 기본 플레이스홀더 (유튜브 영상 썸네일은 앨범 자켓으로 사용하지 않음)
-    return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=400&h=400&q=80';
+    return DEFAULT_COVER;
   };
 
   // 재생 곡이 변경될 때 썸네일 레벨 리셋 및 앨범 아트 조회

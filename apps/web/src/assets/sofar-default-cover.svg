@@ -1,0 +1,18 @@
+<svg width="600" height="600" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="600" y2="600" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#232326"/>
+      <stop offset="1" stop-color="#141416"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="300" cy="300" r="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D4A373" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#D4A373" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="600" height="600" fill="url(#bg)"/>
+  <rect width="600" height="600" fill="url(#glow)"/>
+  <g transform="translate(240 240) scale(2)" opacity="0.55">
+    <path d="M23.6902 27.1724C30.9866 34.4689 20.8527 3.58695 47.2753 30.0098C73.698 56.4327 51.7343 13.7209 44.4379 6.4244C37.1415 -0.872077 26.5821 -2.14244 20.8527 3.58695C15.1234 9.31635 16.3938 19.8759 23.6902 27.1724Z" fill="#D4A373"/>
+    <path d="M36.2525 32.827C28.9561 25.5306 39.09 56.4125 12.6674 29.9896C-13.7553 3.5667 8.20837 46.2785 15.5048 53.575C22.8012 60.8715 33.3606 62.1419 39.09 56.4125C44.8193 50.6831 43.5489 40.1235 36.2525 32.827Z" fill="#D4A373"/>
+  </g>
+</svg>

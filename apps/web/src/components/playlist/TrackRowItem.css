@@ -103,7 +103,6 @@
   min-width: 2rem;
   text-align: center;
   font-size: 11px;
-  font-family: monospace;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
