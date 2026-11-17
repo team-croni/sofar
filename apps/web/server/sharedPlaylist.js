@@ -12,7 +12,7 @@ export const OG_IMAGE_HEIGHT = 630;
  * 카드 디자인 버전. api/og.js의 카드 디자인을 바꾸면 반드시 올릴 것.
  * 이미지 URL(v)에 포함되어, 디자인 변경 시에도 메신저·미리보기 서비스가 새 이미지를 받아가게 한다.
  */
-export const OG_CARD_DESIGN_VERSION = 2;
+export const OG_CARD_DESIGN_VERSION = 3;
 
 const FETCH_TIMEOUT_MS = 2500;
 
