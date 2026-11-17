@@ -8,6 +8,12 @@ export const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a
 export const OG_IMAGE_WIDTH = 1200;
 export const OG_IMAGE_HEIGHT = 630;
 
+/**
+ * 카드 디자인 버전. api/og.js의 카드 디자인을 바꾸면 반드시 올릴 것.
+ * 이미지 URL(v)에 포함되어, 디자인 변경 시에도 메신저·미리보기 서비스가 새 이미지를 받아가게 한다.
+ */
+export const OG_CARD_DESIGN_VERSION = 2;
+
 const FETCH_TIMEOUT_MS = 2500;
 
 export async function fetchWithTimeout(resource, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
@@ -93,9 +99,10 @@ export function getAuthorLabel(playlist) {
   return author || null;
 }
 
-/** 카드 내용이 바뀌면 이미지 URL도 바뀌도록 하는 짧은 해시 (카카오톡 등 이미지 캐시 무효화) */
+/** 카드 내용이나 디자인이 바뀌면 이미지 URL도 바뀌도록 하는 짧은 해시 (카카오톡 등 이미지 캐시 무효화) */
 export function getCardVersion(playlist) {
   const source = [
+    `design${OG_CARD_DESIGN_VERSION}`,
     playlist.title,
     playlist.author,
     playlist.cover_url,
