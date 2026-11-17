@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAudio } from '../../contexts/AudioContext';
@@ -18,7 +18,9 @@ export default function MiniPlayer() {
     videoVinylState,
     setVideoVinylState,
     triggerReturnToVinyl,
-    isLyricsExpanded
+    isLyricsExpanded,
+    isModalOpen,
+    togglePlay
   } = useAudio();
 
   const navigate = useNavigate();
@@ -26,6 +28,66 @@ export default function MiniPlayer() {
 
   const [jacketRect, setJacketRect] = useState(null);
   const [slotRect, setSlotRect] = useState(null);
+
+  // ── 모달과 겹칠 때 처리 (YouTube 정책: 재생 중인 플레이어 위를 다른 요소가 덮으면 안 됨) ──
+  // 모달 창이 플레이어와 실제로 겹칠 때만 재생을 멈추고 플레이어를 모달 오버레이 아래로 내림.
+  // 겹치지 않으면(넓은 화면) 계속 재생하며 플레이어를 맨 위에 둠.
+  // 모달이 닫히면 이 로직이 멈춘 경우에만 다시 재생.
+  const containerRef = useRef(null);
+  const [isUnderModal, setIsUnderModal] = useState(false);
+  const pausedByModalRef = useRef(false);
+  const isPlayingRef = useRef(isPlaying);
+  const togglePlayRef = useRef(togglePlay);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+    togglePlayRef.current = togglePlay;
+  }, [isPlaying, togglePlay]);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      setIsUnderModal(false);
+      if (pausedByModalRef.current) {
+        pausedByModalRef.current = false;
+        if (!isPlayingRef.current) togglePlayRef.current?.();
+      }
+      return undefined;
+    }
+
+    const checkOverlap = () => {
+      const playerEl = containerRef.current;
+      const cards = document.querySelectorAll('.sofar-modal-card');
+      if (!playerEl || cards.length === 0) return;
+      const p = playerEl.getBoundingClientRect();
+      const playerVisible = p.width > 0 && p.height > 0;
+      const overlaps = playerVisible && Array.from(cards).some((card) => {
+        const c = card.getBoundingClientRect();
+        return c.left < p.right && c.right > p.left && c.top < p.bottom && c.bottom > p.top;
+      });
+      setIsUnderModal(overlaps);
+    };
+
+    // 모달 등장 애니메이션 이후 크기로 다시 확인
+    checkOverlap();
+    const raf = requestAnimationFrame(checkOverlap);
+    const timer = setTimeout(checkOverlap, 260);
+    // LP 영역 → 사이드바 복귀 애니메이션(0.35s)이 끝난 위치로 한 번 더 확인
+    const timer2 = setTimeout(checkOverlap, 500);
+    window.addEventListener('resize', checkOverlap);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+      clearTimeout(timer2);
+      window.removeEventListener('resize', checkOverlap);
+    };
+  }, [isModalOpen]);
+
+  // 오버레이 아래로 내려간 동안에는 재생하지 않음 (사용자가 재생을 눌러도 다시 멈춤)
+  useEffect(() => {
+    if (isUnderModal && isPlaying) {
+      pausedByModalRef.current = true;
+      togglePlay();
+    }
+  }, [isUnderModal, isPlaying, togglePlay]);
 
   useEffect(() => {
     if (isPlayerReady) {
@@ -159,9 +221,10 @@ export default function MiniPlayer() {
 
   return createPortal(
     <div 
+      ref={containerRef}
       className={`mini-player-container ${showMiniPlayer ? 'show' : ''} ${displayInVinyl ? 'in-vinyl' : 'in-sidebar'} ${
         videoVinylState === 'hiding-video' ? 'hiding' : ''
-      }`}
+      } ${isUnderModal ? 'under-modal' : ''}`}
       style={containerStyle}
       onClick={handleMiniPlayerClick}
     >

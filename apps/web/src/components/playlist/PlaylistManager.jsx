@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAudio } from '../../contexts/AudioContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../contexts/AuthContext';
-import { Trash2, Plus, ChevronLeft, Music, MoreVertical, MoreHorizontal, Pencil, ListPlus, ListMusic, Search, Home, Headphones, Share2, Play, Shuffle, TvMinimal, LayoutGrid, Loader2 } from 'lucide-react';
+import { Trash2, Plus, ChevronLeft, Music, MoreVertical, MoreHorizontal, Pencil, ListPlus, ListMusic, Search, Home, Headphones, Share2, Link2, Play, Shuffle, TvMinimal, LayoutGrid, Loader2 } from 'lucide-react';
 
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -15,6 +15,7 @@ import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube, fetch
 import { durationCache } from '../../utils/durationCache';
 import { extractTracksFromDragData, handleTrackDragStart } from '../../utils/dragUtils';
 import { isMatchTrack } from '../../utils/trackUtils';
+import { isShareablePlaylistId, copyPlaylistShareUrl } from '../../utils/shareLink';
 import { Button, Logo, Dropdown } from '../ui';
 import './PlaylistManager.css';
 
@@ -34,10 +35,14 @@ import {
   useReorderTracksMutation
 } from '../../hooks/useTracks';
 import PlaylistModal from './PlaylistModal';
+import { hasCustomTheme } from '../../utils/nowPlayingTheme';
 import { getStaggerStyle } from '../../utils/animation';
 
+const SELECTED_PLAYLIST_STORAGE_KEY = 'sofar_selected_playlist_id';
+const SELECTED_PLAYLIST_TITLE_STORAGE_KEY = 'sofar_selected_playlist_title';
+
 export default function PlaylistManager() {
-  const { user } = useAuth();
+  const { user, loading: isAuthLoading } = useAuth();
   const { 
     setPlaylist, 
     queue, setQueue, 
@@ -76,7 +81,61 @@ export default function PlaylistManager() {
     };
   }, [queryClient]);
 
-  const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
+  // 새로고침 후에도 마지막으로 열어둔 플레이리스트를 유지 (사이드바는 라우트와 독립된 패널이므로 URL 대신 저장소 사용)
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState(() => {
+    try {
+      return localStorage.getItem(SELECTED_PLAYLIST_STORAGE_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (selectedPlaylistId) {
+        localStorage.setItem(SELECTED_PLAYLIST_STORAGE_KEY, String(selectedPlaylistId));
+      } else {
+        localStorage.removeItem(SELECTED_PLAYLIST_STORAGE_KEY);
+        localStorage.removeItem(SELECTED_PLAYLIST_TITLE_STORAGE_KEY);
+      }
+    } catch {
+      // 저장소 접근 불가 환경 대비
+    }
+  }, [selectedPlaylistId]);
+
+  // 새로고침 직후 플레이리스트 목록 로딩 전에도 제목을 바로 표시하기 위해 제목도 함께 보관
+  const [cachedSelectedTitle] = useState(() => {
+    try {
+      return localStorage.getItem(SELECTED_PLAYLIST_TITLE_STORAGE_KEY) || '';
+    } catch {
+      return '';
+    }
+  });
+  const selectedPlaylistTitle = playlists.find(p => String(p.id) === String(selectedPlaylistId))?.title;
+  useEffect(() => {
+    if (!selectedPlaylistId || !selectedPlaylistTitle) return;
+    try {
+      localStorage.setItem(SELECTED_PLAYLIST_TITLE_STORAGE_KEY, selectedPlaylistTitle);
+    } catch {
+      // ignore
+    }
+  }, [selectedPlaylistId, selectedPlaylistTitle]);
+  const restoredSelectedIdRef = useRef(selectedPlaylistId);
+  const selectedHeaderTitle = selectedPlaylistTitle
+    || ((isAuthLoading || isPlaylistsLoading)
+      ? (String(selectedPlaylistId) === String(restoredSelectedIdRef.current) ? cachedSelectedTitle : '')
+      : '플레이리스트');
+
+  // 복원한 플레이리스트가 삭제되었거나 다른 계정의 것이면 목록 화면으로 되돌림 (최초 로드 시 1회만 검사)
+  const restoredSelectionCheckedRef = useRef(false);
+  useEffect(() => {
+    if (restoredSelectionCheckedRef.current) return;
+    if (isAuthLoading || isPlaylistsLoading) return;
+    restoredSelectionCheckedRef.current = true;
+    if (selectedPlaylistId && !playlists.some(p => String(p.id) === String(selectedPlaylistId))) {
+      setSelectedPlaylistId(null);
+    }
+  }, [isAuthLoading, isPlaylistsLoading, playlists, selectedPlaylistId]);
   const { 
     data: fetchedTracks = [], 
     isLoading: isTracksLoading, 
@@ -559,7 +618,7 @@ export default function PlaylistManager() {
         newTracks.splice(finalInsert, 0, movedItem);
 
         // TanStack Query 캐시 즉각 낙관적 갱신
-        queryClient.setQueryData(['tracks', selectedPlaylistId], newTracks);
+        queryClient.setQueriesData({ queryKey: ['tracks', selectedPlaylistId] }, newTracks);
         reorderTracksMutation.mutate({ playlistId: selectedPlaylistId, reorderedTracks: newTracks });
       }
       return;
@@ -584,7 +643,7 @@ export default function PlaylistManager() {
           const finalInsert = Math.max(0, Math.min(insertIndex, newTracks.length));
           newTracks.splice(finalInsert, 0, movedItem);
 
-          queryClient.setQueryData(['tracks', selectedPlaylistId], newTracks);
+          queryClient.setQueriesData({ queryKey: ['tracks', selectedPlaylistId] }, newTracks);
           reorderTracksMutation.mutate({ playlistId: selectedPlaylistId, reorderedTracks: newTracks });
         }
         return;
@@ -1078,9 +1137,12 @@ export default function PlaylistManager() {
     }
   }, [selectedPlaylistId, fetchedTracks, setPlaylist]);
 
-  const handleCreatePlaylist = async ({ title, cover_url }) => {
+  const handleCreatePlaylist = async ({ title, cover_url, now_playing_theme }) => {
     try {
       const newPl = await createPlaylistMutation.mutateAsync({ title, cover_url });
+      if (newPl?.id && hasCustomTheme(now_playing_theme)) {
+        await updatePlaylistMutation.mutateAsync({ playlistId: newPl.id, now_playing_theme });
+      }
       setSelectedPlaylistId(newPl.id);
       showToast('플레이리스트가 생성되었습니다.');
     } catch (err) {
@@ -1111,7 +1173,7 @@ export default function PlaylistManager() {
     setEditingPlaylist(pl);
   };
 
-  const handleUpdatePlaylistInfo = async ({ title, cover_url }) => {
+  const handleUpdatePlaylistInfo = async ({ title, cover_url, now_playing_theme }) => {
     if (!editingPlaylist) return;
 
     try {
@@ -1119,6 +1181,7 @@ export default function PlaylistManager() {
         playlistId: editingPlaylist.id,
         title,
         cover_url,
+        now_playing_theme,
       });
       showToast('플레이리스트 정보가 수정되었습니다.');
     } catch (err) {
@@ -1126,6 +1189,12 @@ export default function PlaylistManager() {
       showToast('정보 수정 중 오류가 발생했습니다.');
       throw err;
     }
+  };
+
+  const handleCopyPlaylistLink = async (playlistId, e) => {
+    if (e) e.stopPropagation();
+    const ok = await copyPlaylistShareUrl(playlistId);
+    showToast(ok ? '공유 링크가 복사되었습니다.' : '링크를 복사하지 못했습니다.');
   };
 
   const handleToggleSharePlaylist = async (pl, e) => {
@@ -1142,7 +1211,10 @@ export default function PlaylistManager() {
         is_public: nextPublicState,
       });
       if (nextPublicState) {
-        showToast(`'${pl.title}' 플레이리스트가 공유 플레이리스트에 등록되었습니다.`);
+        const copied = isShareablePlaylistId(pl.id) && await copyPlaylistShareUrl(pl.id);
+        showToast(copied
+          ? `'${pl.title}' 플레이리스트를 공유했습니다. 링크가 복사되었습니다.`
+          : `'${pl.title}' 플레이리스트가 공유 플레이리스트에 등록되었습니다.`);
       } else {
         showToast(`'${pl.title}' 공유가 해제되었습니다.`);
       }
@@ -1160,7 +1232,9 @@ export default function PlaylistManager() {
         .from('tracks')
         .select('*')
         .eq('playlist_id', playlistId)
-        .order('sequence', { ascending: true });
+        .order('sequence', { ascending: true })
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
       if (data && data.length > 0) tracks = data;
     } else {
       const localTr = localStorage.getItem('sofar_tracks');
@@ -1209,6 +1283,19 @@ export default function PlaylistManager() {
     }
     return fetchedTracks || [];
   };
+
+  // 뷰 진입 직후 미리보기 → 실제 트랙 데이터로 교체되며 순서가 바뀌면 활성 곡 위치 재보정
+  const detailOrderKey = (activeTab === 'playlists' ? getCurrentDetailTracks() : [])
+    .map(t => t.id || t.youtube_video_id)
+    .join('|');
+  useLayoutEffect(() => {
+    if (!detailOrderKey) return;
+    if (Date.now() - lastViewSwitchTimeRef.current > 1500) return;
+    const activeEl = document.querySelector('.playlist-sidebar-container .track-row-item.active');
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+    }
+  }, [detailOrderKey]);
 
   const handlePlayAllDetail = (e) => {
     if (e) e.stopPropagation();
@@ -1349,6 +1436,13 @@ export default function PlaylistManager() {
     }
   };
 
+  const detailShareId = activeSharedPlaylist
+    ? (!activeSharedPlaylist.isChartContext ? activeSharedPlaylist.id : null)
+    : selectedPlaylistId;
+  const detailOwnPlaylist = playlists.find(p => String(p.id) === String(detailShareId));
+  const canCopyDetailLink = isShareablePlaylistId(detailShareId)
+    && (detailOwnPlaylist ? !!detailOwnPlaylist.is_public : !!activeSharedPlaylist);
+
   const playlistDetailDropdownOptions = [
     {
       label: '전체 재생',
@@ -1379,7 +1473,23 @@ export default function PlaylistManager() {
         }
       }
     },
+    ...(canCopyDetailLink ? [
+      {
+        label: '링크 복사',
+        icon: <Link2 size={15} />,
+        onClick: (e) => handleCopyPlaylistLink(detailShareId, e)
+      }
+    ] : []),
     ...(!isReadOnlyShared ? [
+      {
+        // 이름 · 커버 · Now Playing 커스텀(배경/효과) 수정
+        label: '정보 수정',
+        icon: <Pencil size={15} />,
+        onClick: (e) => {
+          const currentPl = playlists.find(p => String(p.id) === String(selectedPlaylistId || activeSharedPlaylist?.id));
+          if (currentPl) openEditModal(currentPl, e);
+        }
+      },
       {
         label: '전체 삭제',
         icon: <Trash2 size={15} />,
@@ -1409,7 +1519,8 @@ export default function PlaylistManager() {
     }
   ];
 
-  const render2x2Cover = (pl) => {
+  // ignoreCustomCover: 수정 모달 미리보기에서 "기본 2x2"를 골랐을 때 저장된 커스텀 커버 대신 타일을 보여주기 위함
+  const render2x2Cover = (pl, { ignoreCustomCover = false } = {}) => {
     const plObj = typeof pl === 'object' ? pl : playlists.find(p => p.id === pl);
     const playlistId = typeof pl === 'object' ? pl?.id : pl;
 
@@ -1419,7 +1530,7 @@ export default function PlaylistManager() {
       if (localCovers) customCoversMap = JSON.parse(localCovers);
     } catch (e) {}
 
-    const customCover = customCoversMap[playlistId] || plObj?.cover_url || plObj?.cover;
+    const customCover = ignoreCustomCover ? null : (customCoversMap[playlistId] || plObj?.cover_url || plObj?.cover);
 
     if (customCover) {
       return (
@@ -2026,6 +2137,13 @@ export default function PlaylistManager() {
                               onClick: (e) => handleToggleSharePlaylist(pl, e)
                             }
                           ] : []),
+                          ...(pl.is_public && isShareablePlaylistId(pl.id) ? [
+                            {
+                              label: '링크 복사',
+                              icon: <Link2 size={14} />,
+                              onClick: (e) => handleCopyPlaylistLink(pl.id, e)
+                            }
+                          ] : []),
                           {
                             label: '삭제',
                             icon: <Trash2 size={14} />,
@@ -2109,7 +2227,7 @@ export default function PlaylistManager() {
                     
                     <div className="playlist-detail-title-area">
                       <h3 className="playlist-detail-title">
-                        {activeSharedPlaylist ? activeSharedPlaylist.title : (playlists.find(p => p.id === selectedPlaylistId)?.title || '플레이리스트')}
+                        {activeSharedPlaylist ? activeSharedPlaylist.title : selectedHeaderTitle}
                       </h3>
                       {!isReadOnlyShared && (
                         <button 

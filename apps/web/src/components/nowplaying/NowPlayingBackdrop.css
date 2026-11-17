@@ -1,0 +1,171 @@
+/* ── Now Playing 플레이리스트 테마 배경 ── */
+.np-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background: #0f0d0b;
+}
+
+.np-backdrop-image {
+  position: absolute;
+  inset: -2%;
+  background-size: cover;
+  background-position: center;
+}
+
+.np-backdrop-dim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to bottom, rgba(15, 13, 11, 0.6) 0%, transparent 18%, transparent 80%, rgba(15, 13, 11, 0.5) 100%),
+    #0f0d0b;
+  transition: opacity 0.3s ease;
+}
+
+/* ── 밝은 배경에서 가사·곡 정보 가독성 확보 ──
+   useAdaptiveTextContrast가 실제 글자가 놓인 자리의 배경 밝기를 재서
+   밝으면 <html>에 영역별 클래스를 붙임 (곡 정보: np-contrast-track / 가사: np-contrast-lyrics).
+   회색 글자를 흰색으로 올리고, 은은한 그림자로 배경과 분리 */
+html.np-contrast-lyrics .now-playing-container .lyric-line,
+html.np-contrast-lyrics .now-playing-container .lyric-line:hover,
+html.np-contrast-lyrics .now-playing-container .raw-lyric-line {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+}
+
+html.np-contrast-lyrics .now-playing-container .lyric-line.active {
+  color: var(--primary-warm);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
+}
+
+html.np-contrast-track .now-playing-container .track-title {
+  color: #ffffff;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);
+}
+
+html.np-contrast-track .now-playing-container .track-artist {
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
+}
+
+/* 비네트: 위·아래를 같은 세기로 어둡게 + 가장자리를 어둡게 하는 원형 그라데이션
+   (위쪽만 어두우면 UI를 숨겼을 때 위아래 균형이 어긋나 보임) */
+.np-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(15, 13, 11, 0.85) 0%, rgba(15, 13, 11, 0.3) 15%, transparent 40%),
+    linear-gradient(to top, rgba(15, 13, 11, 0.85) 0%, rgba(15, 13, 11, 0.3) 15%, transparent 40%),
+    radial-gradient(ellipse at center, transparent 45%, rgba(15, 13, 11, 0.7) 100%);
+}
+
+/* 필름 질감 (노이즈)
+   - SVG 노이즈를 흑/백 쪽으로 대비를 크게 늘린 뒤(feComponentTransfer)
+   - overlay 블렌딩으로 깔아서 전체 밝기는 거의 그대로 두고 입자만 또렷하게 보이게 함
+     (일반 블렌딩은 어두운 배경을 뿌옇게 띄우고, 대비를 안 늘리면 입자가 거의 안 보임)
+   - 움직임 없이 정적으로 깔림
+   mix-blend-mode는 바깥 레이어에 있어야 함: 안쪽 요소에 두면 등장 애니메이션(opacity) 때문에
+   레이어 안에서만 섞여서 배경과 블렌딩되지 않음 */
+.np-grain-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: npEffectFadeIn 1.2s ease-out 0.4s both;
+}
+
+.np-grain {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='3' intercept='-1'/%3E%3CfeFuncG type='linear' slope='3' intercept='-1'/%3E%3CfeFuncB type='linear' slope='3' intercept='-1'/%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  opacity: 0.5;
+}
+
+/* 파티클 효과는 배경 위, 화면 콘텐츠 뒤에 깔림
+   배경(fade-in-bg 1.4s)이 어느 정도 나타난 뒤에 이어서 서서히 나타남 */
+.np-effect-layer {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: npEffectFadeIn 1.2s ease-out 0.6s both;
+}
+
+@keyframes npEffectFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.np-particle-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* ── UI 숨기기: 사이드바 · 하단 컨트롤러와 레이아웃 크기는 그대로 두고 (자리는 유지한 채 visibility로 숨김)
+      Now Playing 영역의 헤더 · 조작 UI만 숨김 ── */
+html.ui-hidden .right-panel-header,
+html.ui-hidden .lyrics-sync-bar,
+html.ui-hidden .lyrics-empty-actions,
+html.ui-hidden .main-match-feedback,
+html.ui-hidden .main-youtube-btn {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s ease, visibility 0.3s;
+}
+
+/* ── UI 숨기기 토글 버튼 (오른쪽 아래, 노래 일치 캡슐 오른쪽) ── */
+.main-hide-ui-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  background: var(--bg-popover);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.4s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.main-hide-ui-btn:hover {
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* 숨긴 상태에서 마우스를 가만히 두면 토글 버튼도 사라짐 */
+.main-hide-ui-btn.is-idle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* UI 숨기기 중 Now Playing 영역 왼쪽 위(숨겨진 헤더 자리)에 sofar 로고 표시
+   헤더(높이 64px, 좌우 여백 2.5rem)와 같은 위치에 맞춤 */
+.np-brand-mark {
+  position: absolute;
+  top: 32px;
+  left: 2.5rem;
+  transform: translateY(-50%);
+  z-index: 110;
+  opacity: 0.85;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: npEffectFadeIn 0.4s ease-out both;
+}
+
+.np-brand-mark .sofar-brand-logo {
+  cursor: default;
+}

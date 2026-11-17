@@ -8,17 +8,22 @@ import Player from './components/player/Player';
 import VinylPlayer from './components/player/VinylPlayer';
 import LyricsViewer from './components/lyrics/LyricsViewer';
 import PlaylistManager from './components/playlist/PlaylistManager';
+import SharedPlaylistLinkOpener from './components/playlist/SharedPlaylistLinkOpener';
 import MiniPlayer from './components/player/MiniPlayer';
 import LoginPage from './pages/LoginPage';
 import PasswordResetPage from './pages/PasswordResetPage';
 import LegalPage from './pages/LegalPage';
 import HomePanel from './components/home/HomePanel';
+import NowPlayingBackdrop from './components/nowplaying/NowPlayingBackdrop';
+import HideUiToggle from './components/nowplaying/HideUiToggle';
+import { useActiveNowPlayingTheme } from './hooks/useActiveNowPlayingTheme';
+import { useHideUi } from './hooks/useHideUi';
 
 import SearchPanel from './components/search/SearchPanel';
 import RightHeader from './components/header/RightHeader';
 
 import { thumbnailCache } from './utils/thumbnailCache';
-import { Button, Modal, LoadingScreen, YoutubeIcon } from './components/ui';
+import { Button, Modal, LoadingScreen, YoutubeIcon, Logo } from './components/ui';
 import MobileNoticeScreen from './components/common/MobileNoticeScreen';
 import './App.css';
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
@@ -41,6 +46,16 @@ function AppShell({ children }) {
     setShowVideoInVinyl, 
     setVideoVinylState 
   } = useAudio();
+
+  const location = useLocation();
+  const isNowPlayingRoute = location.pathname === '/now';
+  const { theme: nowPlayingTheme } = useActiveNowPlayingTheme();
+  const { isUiHidden, setUiHidden } = useHideUi();
+
+  // Now Playing 화면을 벗어나면 UI 숨기기 자동 해제
+  useEffect(() => {
+    if (!isNowPlayingRoute && isUiHidden) setUiHidden(false);
+  }, [isNowPlayingRoute, isUiHidden, setUiHidden]);
 
   // 유튜브 정책 준수: 데스크톱 너비(> 768px)에서 모바일 너비(<= 768px)로 줄어드는 순간 재생 중인 영상 강제 정지 및 비닐 영상 닫기
   const isPlayingRef = useRef(isPlaying);
@@ -90,17 +105,21 @@ function AppShell({ children }) {
   }
 
   const bgUrl = getTrackThumbnail(currentTrack);
+  const hasThemeBackground = isNowPlayingRoute && Boolean(nowPlayingTheme.background);
 
   return (
     <div className="app-container">
       {/* 실시간 앨범 커버 블러 배경 */}
-      {currentTrack && bgUrl && (
+      {currentTrack && bgUrl && !hasThemeBackground && (
         <div 
           key={currentTrack.id}
           className="app-blurred-bg fade-in-bg"
           style={{ backgroundImage: `url(${bgUrl})` }}
         />
       )}
+
+      {/* Now Playing 플레이리스트 테마 (배경 이미지 / 눈·비 효과) */}
+      <NowPlayingBackdrop theme={nowPlayingTheme} active={isNowPlayingRoute} />
 
       {/* 모바일 환경 감지 시 데스크톱/태블릿 권장 안내 화면 */}
       <MobileNoticeScreen />
@@ -144,6 +163,7 @@ function HomePage() {
     isMatchFeedbackLoading
   } = useAudio();
   const location = useLocation();
+  const { isUiHidden } = useHideUi();
   const contentRef = React.useRef(null);
   const isSearchPage = location.pathname === '/search';
   const isNowPlayingPage = location.pathname === '/now' || location.pathname === '/now-playing';
@@ -192,6 +212,13 @@ function HomePage() {
           {toastMessage}
         </div>
 
+        {/* UI 숨기기 중: 왼쪽 위(숨겨진 헤더 자리)에 sofar 로고 */}
+        {isNowPlayingPage && isUiHidden && (
+          <div className="np-brand-mark" aria-hidden="true">
+            <Logo iconSize={20} titleSize="1.3rem" onClick={(e) => e.preventDefault()} />
+          </div>
+        )}
+
         {/* 유튜브 바로가기 버튼 (right-panel-column 기준 왼쪽 아래 고정 플로팅) */}
         {isNowPlayingPage && !isLyricsExpanded && currentTrack?.youtube_video_id && (
           <Button
@@ -205,38 +232,47 @@ function HomePage() {
           />
         )}
 
-        {/* 노래 일치 여부 매칭 피드백 (right-panel-column 기준 고정 플로팅 캡슐) */}
-        {isNowPlayingPage && !isLyricsExpanded && currentTrack && (!hasVotedCurrentTrack || isMatchFeedbackLoading) && (
-          <div className={`main-match-feedback ${isMatchFeedbackLoading ? 'is-loading' : ''}`} title="노래 일치 여부 피드백">
-            {isMatchFeedbackLoading ? (
-              <span className="main-match-label match-loading-text">
-                <Loader2 size={13} className="match-spin-icon" /> 다른 영상으로 매칭 중...
-              </span>
-            ) : (
-              <>
-                <span className="main-match-label">노래가 일치하나요?</span>
-                <div className="main-match-buttons">
-                  <button
-                    onClick={() => reportMatchFeedback(true)}
-                    disabled={isMatchFeedbackLoading}
-                    className="main-match-btn match-correct"
-                    title="원곡 음원이 맞아요 (긍정 평가)"
-                  >
-                    <ThumbsUp size={12} /> 네
-                  </button>
-                  <button
-                    onClick={() => reportMatchFeedback(false)}
-                    disabled={isMatchFeedbackLoading}
-                    className="main-match-btn match-incorrect"
-                    title="원곡 음원이 아니에요 (서버 반영 및 다음 순위 영상으로 즉시 교체)"
-                  >
-                    <ThumbsDown size={12} /> 아니요
-                  </button>
-                </div>
-              </>
+        {/* 오른쪽 아래 플로팅 영역: 노래 일치 피드백 캡슐 + UI 숨기기 토글 (right-panel-column 기준) */}
+        {isNowPlayingPage && !isLyricsExpanded && currentTrack && (
+          <div className="main-bottom-right-actions">
+            {/* 노래 일치 여부 매칭 피드백 캡슐 */}
+            {(!hasVotedCurrentTrack || isMatchFeedbackLoading) && (
+              <div className={`main-match-feedback ${isMatchFeedbackLoading ? 'is-loading' : ''}`} title="노래 일치 여부 피드백">
+                {isMatchFeedbackLoading ? (
+                  <span className="main-match-label match-loading-text">
+                    <Loader2 size={13} className="match-spin-icon" /> 다른 영상으로 매칭 중...
+                  </span>
+                ) : (
+                  <>
+                    <span className="main-match-label">노래가 일치하나요?</span>
+                    <div className="main-match-buttons">
+                      <button
+                        onClick={() => reportMatchFeedback(true)}
+                        disabled={isMatchFeedbackLoading}
+                        className="main-match-btn match-correct"
+                        title="원곡 음원이 맞아요 (긍정 평가)"
+                      >
+                        <ThumbsUp size={12} /> 네
+                      </button>
+                      <button
+                        onClick={() => reportMatchFeedback(false)}
+                        disabled={isMatchFeedbackLoading}
+                        className="main-match-btn match-incorrect"
+                        title="원곡 음원이 아니에요 (서버 반영 및 다음 순위 영상으로 즉시 교체)"
+                      >
+                        <ThumbsDown size={12} /> 아니요
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
+
+            {/* UI 숨기기 토글 (헤더·가사 툴바·플로팅 버튼 숨김) */}
+            <HideUiToggle />
           </div>
         )}
+
         <Player />
       </div>
     </main>
@@ -297,6 +333,9 @@ export default function App() {
             <Route path="/search" element={<AppShell><HomePage /></AppShell>} />
             <Route path="/now" element={<AppShell><HomePage /></AppShell>} />
             <Route path="/now-playing" element={<Navigate to="/now" replace />} />
+
+            {/* 플레이리스트 공유 링크 (진입 후 홈으로 교체) */}
+            <Route path="/p/:playlistId" element={<AppShell><HomePage /><SharedPlaylistLinkOpener /></AppShell>} />
 
             {/* 인증 페이지 */}
             <Route path="/login"  element={<LoginPage />} />

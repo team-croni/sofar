@@ -1,0 +1,283 @@
+.isp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── 추천 / 검색 / 링크 세그먼트 ── */
+.isp-modes {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 0.15rem;
+  padding: 0.2rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.isp-mode {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 0.38rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.isp-mode:hover {
+  color: var(--text-primary);
+}
+
+.isp-mode.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+/* ── 이미지 그리드 (자체 스크롤 없음) ── */
+.isp-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.isp-grid.is-square {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.isp-grid.is-wide {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.isp-tile {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.isp-grid.is-square .isp-tile {
+  aspect-ratio: 1;
+}
+
+.isp-grid.is-wide .isp-tile {
+  aspect-ratio: 16 / 10;
+}
+
+.isp-tile:hover {
+  transform: translateY(-1px);
+}
+
+.isp-tile:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+/* 선택된 타일: 안쪽 테두리 + 체크 */
+.isp-tile.selected {
+  box-shadow: 0 0 0 2px var(--primary-warm);
+}
+
+.isp-tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.isp-tile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.isp-tile-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 1rem 0.45rem 0.35rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  color: #fff;
+  font-size: 0.68rem;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.isp-tile-check {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary-warm);
+  color: #1a1715;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.isp-skeleton {
+  cursor: default;
+}
+
+/* ── 검색 ── */
+.isp-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.3rem 0.3rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 0.15s ease;
+}
+
+.isp-search:focus-within {
+  border-color: rgba(212, 163, 115, 0.6);
+}
+
+.isp-search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.isp-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  padding: 0.4rem 0;
+}
+
+.isp-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.isp-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.isp-search-clear:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.isp-search-btn {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 9px;
+  padding: 0.45rem 0.85rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.isp-search-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.isp-search-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.isp-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.isp-keyword {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.isp-keyword:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.isp-keyword.active {
+  border-color: var(--primary-warm);
+  color: var(--text-primary);
+}
+
+.isp-message {
+  margin: 0.5rem 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.isp-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.55rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.isp-more:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.isp-credit,
+.isp-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+/* ── 링크 ── */
+.isp-url {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
