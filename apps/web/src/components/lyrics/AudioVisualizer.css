@@ -1,0 +1,31 @@
+/* 오디오 비주얼라이저 — 바닥에서 자라는 스펙트럼 막대 (왼쪽 저음 → 오른쪽 고음) */
+.audio-visualizer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  height: 30px;
+  animation: lyricsFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* 배경 사진 위에서도 윤곽이 보이도록 은은한 그림자 */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 6px rgba(0, 0, 0, 0.25));
+  /* 양 끝을 흐리게 녹여 위젯처럼 딱 잘린 느낌을 줄임 */
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 18%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 18%, #000 82%, transparent 100%);
+}
+
+.audio-visualizer-bar {
+  width: 3px;
+  height: 100%;
+  border-radius: 1.5px 1.5px 0.5px 0.5px;
+  background: rgba(250, 244, 238, 0.9);
+  transform: scaleY(0.02);
+  transform-origin: bottom center;
+  opacity: 0.3;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .audio-visualizer {
+    animation: none;
+  }
+}

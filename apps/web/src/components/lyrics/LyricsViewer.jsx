@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAudio } from '../../contexts/AudioContext';
 import { useLyrics } from '../../hooks/useLyrics';
+import { useHideUi } from '../../hooks/useHideUi';
 import LyricsSearchModal from './LyricsSearchModal';
 import LyricsEditModal from './LyricsEditModal';
+import AudioVisualizer from './AudioVisualizer';
 import { formatArtistName } from '../../utils/trackUtils';
 import './LyricsViewer.css';
 import { Card } from '../ui';
@@ -32,6 +34,8 @@ export default function LyricsViewer() {
     currentTrack?.custom_lyrics || null,
     currentTrack?.durationSec || 0
   );
+
+  const { isUiHidden } = useHideUi();
 
   const [activeIndex, setActiveIndex] = useState(-1);
   // 가사 작성/수정 모달 — 검색 모달과 같이 열린 시점의 곡에 고정
@@ -287,6 +291,13 @@ export default function LyricsViewer() {
     if (showToast) showToast('자동 매칭 가사로 되돌렸습니다.');
   };
 
+  // 오디오 비주얼라이저 (가사 숨김 시, 또는 가사가 없는 상태에서 UI 숨기기 시)
+  const renderVisualizer = (keyPrefix) => (
+    <div key={`${keyPrefix}-${currentTrack?.id}`} className="lyrics-viewport scrollbar-none lyrics-visualizer-container">
+      <AudioVisualizer isPlaying={isPlaying} />
+    </div>
+  );
+
   const renderCardContent = (isExpandedCard) => {
     return (
       <>
@@ -424,34 +435,14 @@ export default function LyricsViewer() {
 
         {/* 가사 렌더링 영역 또는 가사 숨김 시 오디오 비주얼라이저 영역 */}
         {isLyricsHidden ? (
-          <div key={`visualizer-${currentTrack?.id}`} className="lyrics-viewport scrollbar-none lyrics-visualizer-container">
-            <div className={`lyrics-audio-visualizer ${isPlaying ? 'is-playing' : 'is-paused'}`}>
-              <div className="visualizer-bars">
-                {Array.from({ length: 6 }).map((_, i) => {
-                  const animType = ((i * 7 + 3) % 6) + 1;
-                  const duration = (1 + ((i * 11) % 6) * 0.16).toFixed(2); // 1s ~ 1.80s
-                  const delay = (((i * 13) % 8) * 0.12).toFixed(2); // 0.00s ~ 0.84s
-                  const maxScale = (0.5 + ((i * 7) % 5) * 0.08).toFixed(2); // 0.75 ~ 1.07
-
-                  return (
-                    <span
-                      key={i}
-                      className={`visualizer-bar eq-anim-${animType}`}
-                      style={{
-                        '--bar-dur': `${duration}s`,
-                        '--bar-del': `${delay}s`,
-                        '--bar-scale': maxScale,
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          renderVisualizer('visualizer')
         ) : loading ? (
           <div key={`loading-${currentTrack?.id}`} className="lyrics-viewport scrollbar-none lyrics-loading-container">
             가사를 불러오는 중입니다...
           </div>
+        ) : (error || (lyrics.length === 0 && (!rawLrc || rawLrc.trim().length === 0))) && isUiHidden ? (
+          // 가사가 없을 때 UI 숨기기(녹화 등) 상태에서는 안내 문구 대신 비주얼라이저
+          renderVisualizer('empty-visualizer')
         ) : error || (lyrics.length === 0 && (!rawLrc || rawLrc.trim().length === 0)) ? (
           <div key={`empty-${currentTrack?.id}`} className="lyrics-viewport scrollbar-none lyrics-empty-container">
             등록된 싱크 가사가 없습니다.
