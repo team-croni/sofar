@@ -360,7 +360,7 @@ export default function Player() {
       data-particle-surface="rect"
       data-particle-pile-max="3"
       data-particle-accum="1"
-      data-particle-melt="1.3"
+      data-particle-melt="2"
       data-particle-occluder=""
     >
       {/* 1. 좌측 영역: 곡 정보 및 즐겨찾기 */}
