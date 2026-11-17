@@ -30,7 +30,7 @@ const COLORS = {
 
 const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 64" fill="none"><path d="M23.6902 27.1724C30.9866 34.4689 20.8527 3.58695 47.2753 30.0098C73.698 56.4327 51.7343 13.7209 44.4379 6.4244C37.1415 -0.872077 26.5821 -2.14244 20.8527 3.58695C15.1234 9.31635 16.3938 19.8759 23.6902 27.1724Z" fill="#D4A373"/><path d="M36.2525 32.827C28.9561 25.5306 39.09 56.4125 12.6674 29.9896C-13.7553 3.5667 8.20837 46.2785 15.5048 53.575C22.8012 60.8715 33.3606 62.1419 39.09 56.4125C44.8193 50.6831 43.5489 40.1235 36.2525 32.827Z" fill="#D4A373"/></svg>`;
 const LOGO_DATA_URI = `data:image/svg+xml;base64,${btoa(LOGO_SVG)}`;
-const PLAY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z" fill="#121212"/></svg>`;
+const PLAY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="20" fill="#121212"/><path d="M16 13.2v13.6a1.4 1.4 0 0 0 2.12 1.2l11.1-6.8a1.4 1.4 0 0 0 0-2.4l-11.1-6.8A1.4 1.4 0 0 0 16 13.2z" fill="#D4A373" stroke="#D4A373" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
 const PLAY_DATA_URI = `data:image/svg+xml;base64,${btoa(PLAY_SVG)}`;
 
 const TAGLINE = '유튜브 음악을 실시간 가사와 함께';
@@ -71,10 +71,10 @@ function ctaPill() {
   return h('div', {
     display: 'flex', alignItems: 'center', gap: 12,
     background: COLORS.warm, color: COLORS.bg,
-    borderRadius: 999, padding: '16px 30px 16px 24px',
-    fontSize: 26, fontWeight: 700,
+    borderRadius: 999, padding: '10px 30px 10px 10px',
+    fontSize: 26, fontWeight: 500,
   },
-    img(PLAY_DATA_URI, { width: 24, height: 24 }),
+    img(PLAY_DATA_URI, { width: 44, height: 44 }),
     CTA_TEXT,
   );
 }
@@ -107,15 +107,31 @@ function coverArt(playlist, size) {
   }, ...cells.map((src, i) => img(src, { width: cell, height: cell, objectFit: 'cover', ...cornerRadius[i] })));
 }
 
+const COVER_SIZE = 440;
+const VISIBLE_TRACKS = 3;
+
+const trackRow = (marker, text, color) =>
+  h('div', { display: 'flex', alignItems: 'center', gap: 14, fontSize: 24, color, lineHeight: 1.3 },
+    h('div', { display: 'flex', alignItems: 'center', width: 22, color: COLORS.dim }, marker),
+    text,
+  );
+
+// 폰트 글리프 대신 원으로 그린 말줄임 점 (곡 목록이 더 있음을 표시)
+const moreDots = () => h('div', { display: 'flex', gap: 4 },
+  ...[0, 1, 2].map(() => h('div', { display: 'flex', width: 5, height: 5, borderRadius: 999, background: COLORS.dim })));
+
 function playlistCard(playlist) {
-  const title = truncate(playlist.title || '플레이리스트', 36);
+  const rawTitle = playlist.title || '플레이리스트';
+  const title = truncate(rawTitle, 36);
+  const isLongTitle = Array.from(rawTitle).length > 13;
   const author = getAuthorLabel(playlist);
-  const meta = `${author ? `${truncate(author, 16)} · ` : ''}${playlist.tracks.length}곡`;
-  const trackLines = playlist.tracks.slice(0, 3).map((t, i) =>
-    h('div', { display: 'flex', gap: 14, fontSize: 24, color: COLORS.sub, lineHeight: 1.3 },
-      h('span', { color: COLORS.dim, width: 18 }, String(i + 1)),
-      truncate([t.custom_title, t.custom_artist].filter(Boolean).join(' · '), 30),
-    ));
+  const total = playlist.tracks.length;
+  const meta = `${author ? `${truncate(author, 16)} · ` : ''}${total}곡`;
+  const trackLines = playlist.tracks.slice(0, VISIBLE_TRACKS).map((t, i) =>
+    trackRow(String(i + 1), truncate([t.custom_title, t.custom_artist].filter(Boolean).join(' · '), 30), COLORS.sub));
+  if (total > VISIBLE_TRACKS) {
+    trackLines.push(trackRow(moreDots(), `외 ${total - VISIBLE_TRACKS}곡`, COLORS.dim));
+  }
 
   return h('div', {
     display: 'flex', width: '100%', height: '100%', padding: 72, gap: 64,
@@ -123,13 +139,17 @@ function playlistCard(playlist) {
     backgroundColor: COLORS.bg,
     backgroundImage: `radial-gradient(circle at 18% 30%, ${COLORS.bgWarm} 0%, ${COLORS.bg} 60%)`,
   },
-    coverArt(playlist, 440),
-    h('div', { display: 'flex', flexDirection: 'column', flex: 1, height: 486, justifyContent: 'space-between' },
+    coverArt(playlist, COVER_SIZE),
+    // 오른쪽 섹션 높이를 커버와 동일하게 맞춰 위(라벨)·아래(CTA) 끝선을 커버와 정렬
+    h('div', { display: 'flex', flexDirection: 'column', flex: 1, height: COVER_SIZE, justifyContent: 'space-between' },
       h('div', { display: 'flex', flexDirection: 'column' },
-        h('div', { display: 'flex', fontSize: 22, fontWeight: 700, color: COLORS.warm, letterSpacing: '0.12em', marginBottom: 14 }, 'PLAYLIST'),
-        h('div', { display: 'flex', fontSize: 58, fontWeight: 700, lineHeight: 1.2, maxHeight: 140, overflow: 'hidden' }, title),
-        h('div', { display: 'flex', fontSize: 28, color: COLORS.sub, marginTop: 14 }, meta),
-        h('div', { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 26 }, ...trackLines),
+        h('div', { display: 'flex', fontSize: 22, fontWeight: 700, color: COLORS.warm, letterSpacing: '0.12em', lineHeight: 1, marginBottom: 16 }, 'PLAYLIST'),
+        h('div', {
+          display: 'block', fontSize: isLongTitle ? 44 : 58, fontWeight: 700, lineHeight: 1.2,
+          lineClamp: 2, overflow: 'hidden',
+        }, title),
+        h('div', { display: 'flex', fontSize: 28, color: COLORS.sub, marginTop: 12, lineHeight: 1.2 }, meta),
+        h('div', { display: 'flex', flexDirection: 'column', gap: 6, marginTop: 22 }, ...trackLines),
       ),
       h('div', { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
         logoRow(40, 40),
@@ -179,8 +199,9 @@ export default async function handler(request) {
   const tree = playlist ? playlistCard(playlist) : brandCard();
   const allText = collectText(tree).join('') + 'PLAYLIST0123456789·…';
 
-  const [notoRegular, notoBold, outfitLight, outfitRegular] = await Promise.all([
+  const [notoRegular, notoMedium, notoBold, outfitLight, outfitRegular] = await Promise.all([
     loadGoogleFont('Noto Sans KR', 400, allText),
+    loadGoogleFont('Noto Sans KR', 500, CTA_TEXT),
     loadGoogleFont('Noto Sans KR', 700, allText),
     loadGoogleFont('Outfit', 300, 'so'),
     loadGoogleFont('Outfit', 400, 'far'),
@@ -196,6 +217,7 @@ export default async function handler(request) {
     height: OG_IMAGE_HEIGHT,
     fonts: [
       { name: 'Noto Sans KR', data: notoRegular, weight: 400, style: 'normal' },
+      { name: 'Noto Sans KR', data: notoMedium, weight: 500, style: 'normal' },
       { name: 'Noto Sans KR', data: notoBold, weight: 700, style: 'normal' },
       { name: 'Outfit', data: outfitLight, weight: 300, style: 'normal' },
       { name: 'Outfit', data: outfitRegular, weight: 400, style: 'normal' },
