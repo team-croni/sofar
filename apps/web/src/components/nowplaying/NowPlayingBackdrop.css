@@ -227,3 +227,16 @@ html.ui-hidden .main-youtube-btn {
 .np-brand-mark .sofar-brand-logo {
   cursor: default;
 }
+
+/* 표면(앨범 자켓 · LP판 · LP 자리 미니플레이어)에 쌓인 눈 · 튄 빗방울 · 내려앉은 꽃잎
+   콘텐츠 위에 그려야 하므로 앞쪽에 둠 (모달 오버레이 z-index 10000 보다는 아래)
+   쌓이는 것은 모두 표면 윗변보다 위쪽에 그려지므로 미니플레이어(더 높은 z-index)에 가려지지 않음 */
+.np-particle-front-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9500;
+  pointer-events: none;
+  display: block;
+}

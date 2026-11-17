@@ -1,4 +1,6 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { createSurfaceSystem, supportsSurfaces } from './particleSurfaces';
 import './NowPlayingBackdrop.css';
 
 /**
@@ -21,6 +23,10 @@ const DENSITY = {
 };
 
 const MAX_PARTICLES = 900;
+
+// 이 깊이(z)보다 가까운 입자는 콘텐츠(LP판·미니플레이어) 앞을 지나감 → 표면에 닿지 않음
+// (벚꽃은 초점이 나간 가까운 꽃잎 = blurred 가 앞을 지나감)
+const FG_DEPTH = { snow: 0.82, rain: 0.8 };
 
 const rand = (min, max) => min + Math.random() * (max - min);
 // 멀리 있는 입자가 더 많도록 깊이 분포를 치우침
@@ -78,36 +84,88 @@ function buildRainSprite() {
   return c;
 }
 
-function drawPetal(ctx, s, tint) {
-  // 끝이 살짝 갈라진 벚꽃잎 (아래가 꽃잎 밑동, 위가 갈라진 끝)
-  ctx.beginPath();
-  ctx.moveTo(s * 0.5, s * 0.95);
-  ctx.bezierCurveTo(s * 0.06, s * 0.72, s * 0.04, s * 0.22, s * 0.36, s * 0.07);
-  ctx.quadraticCurveTo(s * 0.45, s * 0.16, s * 0.5, s * 0.2);
-  ctx.quadraticCurveTo(s * 0.55, s * 0.16, s * 0.64, s * 0.07);
-  ctx.bezierCurveTo(s * 0.96, s * 0.22, s * 0.94, s * 0.72, s * 0.5, s * 0.95);
-  ctx.closePath();
-  const g = ctx.createLinearGradient(0, s * 0.95, 0, s * 0.05);
-  g.addColorStop(0, tint.base);
-  g.addColorStop(0.55, tint.mid);
-  g.addColorStop(1, tint.edge);
+// 실제 벚꽃잎(왕벚나무) 모양: 밑동(꽃잎 자루)은 가늘고, 위쪽 1/3 지점이 가장 넓고,
+// 끝은 거의 평평한 가운데에 얕은 홈이 하나 있음 (하트처럼 둥근 두 볼이 아님)
+// 꽃잎마다 폭 · 홈 깊이 · 좌우 비대칭 · 색을 조금씩 다르게 해서 여러 장의 스프라이트로 만듦
+function drawPetal(ctx, s, v) {
+  const cx = s * 0.5 + v.lean * s * 0.03;
+  const by = s * 0.97; // 밑동
+  const L = s * 0.9; // 길이
+  const ty = by - L; // 끝
+  const wl = s * v.width * (1 + v.asym); // 왼쪽 반폭
+  const wr = s * v.width * (1 - v.asym); // 오른쪽 반폭
+  const nd = L * v.notch; // 홈 깊이
+  const nw = Math.min(wl, wr) * 0.16; // 홈 반폭
+
+  const claw = Math.min(wl, wr) * 0.16; // 밑동(꽃잎 자루) 반폭: 뾰족하지 않고 좁고 둥근 끝
+  const path = new Path2D();
+  path.moveTo(cx - claw, by - L * 0.03);
+  path.quadraticCurveTo(cx, by + L * 0.015, cx + claw, by - L * 0.03);
+  // 오른쪽: 거의 곧게 넓어지다가 위쪽 3/4 지점에서 가장 넓고, 어깨가 넓게 둥글어지며 끝으로
+  path.bezierCurveTo(cx + wr * 0.4, by - L * 0.2, cx + wr * 0.92, by - L * 0.46, cx + wr * 0.99, by - L * 0.72);
+  path.bezierCurveTo(cx + wr * 1.03, by - L * 0.9, cx + wr * 0.5, ty + L * 0.008, cx + nw, ty + nd * 0.1);
+  // 끝의 작고 얕은 V 홈
+  path.lineTo(cx, ty + nd);
+  path.lineTo(cx - nw, ty + nd * 0.1);
+  // 왼쪽
+  path.bezierCurveTo(cx - wl * 0.5, ty + L * 0.008, cx - wl * 1.03, by - L * 0.9, cx - wl * 0.99, by - L * 0.72);
+  path.bezierCurveTo(cx - wl * 0.92, by - L * 0.46, cx - wl * 0.4, by - L * 0.2, cx - claw, by - L * 0.03);
+  path.closePath();
+
+  // 밑동 쪽이 조금 더 진한 분홍, 끝으로 갈수록 거의 흰색
+  const g = ctx.createLinearGradient(0, by, 0, ty);
+  g.addColorStop(0, v.base);
+  g.addColorStop(0.35, v.mid);
+  g.addColorStop(1, v.tip);
   ctx.fillStyle = g;
-  ctx.fill();
+  ctx.fill(path);
+
+  ctx.save();
+  ctx.clip(path);
+  // 꽃잎이 살짝 오목하게 휜 느낌: 양옆 가장자리를 아주 약간 어둡게
+  const side = ctx.createLinearGradient(cx - wl, 0, cx + wr, 0);
+  side.addColorStop(0, 'rgba(190,110,140,0.22)');
+  side.addColorStop(0.3, 'rgba(255,255,255,0)');
+  side.addColorStop(0.7, 'rgba(255,255,255,0)');
+  side.addColorStop(1, 'rgba(190,110,140,0.18)');
+  ctx.fillStyle = side;
+  ctx.fillRect(0, 0, s, s);
+  // 밑동에서 부채꼴로 퍼지는 가는 잎맥
+  ctx.strokeStyle = 'rgba(214,140,168,0.22)';
+  ctx.lineWidth = s * 0.012;
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(cx, by - L * 0.04);
+    ctx.quadraticCurveTo(cx + i * wl * 0.25, by - L * 0.5, cx + i * wl * 0.42, ty + L * 0.12);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
+const SAKURA_VARIANTS = 8;
+
 function buildSakuraSprites() {
-  const tints = [
-    { base: 'rgba(255,248,250,0.98)', mid: 'rgba(252,214,226,0.95)', edge: 'rgba(240,168,192,0.95)' },
-    { base: 'rgba(255,240,244,0.98)', mid: 'rgba(248,200,216,0.95)', edge: 'rgba(232,150,178,0.95)' },
-    { base: 'rgba(255,252,252,0.98)', mid: 'rgba(255,226,234,0.95)', edge: 'rgba(246,186,204,0.95)' },
+  const palettes = [
+    { base: 'rgba(244,184,204,0.97)', mid: 'rgba(252,222,232,0.96)', tip: 'rgba(255,246,249,0.96)' },
+    { base: 'rgba(238,166,192,0.97)', mid: 'rgba(250,210,224,0.96)', tip: 'rgba(255,240,245,0.96)' },
+    { base: 'rgba(248,204,218,0.97)', mid: 'rgba(254,234,240,0.96)', tip: 'rgba(255,252,252,0.96)' },
+    { base: 'rgba(232,150,182,0.97)', mid: 'rgba(246,196,214,0.96)', tip: 'rgba(253,232,240,0.96)' },
   ];
   const size = 64;
   const pad = 12; // 흐림 여백
-  return tints.map((tint) => {
+  const sprites = [];
+  for (let i = 0; i < SAKURA_VARIANTS; i++) {
+    const v = {
+      ...palettes[i % palettes.length],
+      width: rand(0.25, 0.33),
+      notch: rand(0.025, 0.065),
+      asym: rand(-0.12, 0.12),
+      lean: rand(-1, 1),
+    };
     const sharp = makeCanvas(size + pad * 2);
     const sctx = sharp.getContext('2d');
     sctx.translate(pad, pad);
-    drawPetal(sctx, size, tint);
+    drawPetal(sctx, size, v);
 
     let blurred = sharp;
     if (supportsCanvasFilter) {
@@ -116,8 +174,9 @@ function buildSakuraSprites() {
       bctx.filter = 'blur(4px)';
       bctx.drawImage(sharp, 0, 0);
     }
-    return { sharp, blurred };
-  });
+    sprites.push({ sharp, blurred });
+  }
+  return sprites;
 }
 
 function buildFireflySprite() {
@@ -135,6 +194,12 @@ function buildFireflySprite() {
 // 천천히 세기가 바뀌는 돌풍 (+ 약간 오른쪽으로 치우침)
 function windAt(t) {
   return 0.18 + 0.35 * Math.sin(t * 0.00021) + 0.22 * Math.sin(t * 0.00057 + 1.3) + 0.08 * Math.sin(t * 0.0019 + 0.4);
+}
+
+// 벚꽃용 바람: 꽃잎은 가벼워 바람에 크게 밀리므로, 방향이 거의 바뀌지 않고 아주 천천히 세기만 바뀌는 산들바람
+// (주기 약 1분 · 25초, 항상 오른쪽으로 부는 쪽)
+function sakuraWindAt(t) {
+  return 0.34 + 0.2 * Math.sin(t * 0.00011) + 0.09 * Math.sin(t * 0.00027 + 1.3);
 }
 
 /* ── 파티클 생성 ─────────────────────────────── */
@@ -182,7 +247,8 @@ function createParticle(effect, w, h, initial) {
         vrot: rand(-0.02, 0.02),
         drift: rand(0, Math.PI * 2),
         alpha: z > 0.82 ? 0.75 : 0.55 + z * 0.4,
-        tint: Math.floor(Math.random() * 3),
+        tint: Math.floor(Math.random() * SAKURA_VARIANTS),
+        aspect: rand(0.85, 1.15), // 꽃잎마다 폭을 조금씩 다르게
         blurred: z > 0.82,
       };
     }
@@ -207,30 +273,43 @@ function createParticle(effect, w, h, initial) {
 /* ── 프레임 그리기 ─────────────────────────────── */
 
 function drawFrame(state, dt) {
-  const { ctx, effect, particles, w, h, dpr, sprites } = state;
+  const { ctx, effect, particles, w, h, dpr, sprites, surfaces } = state;
   const speed = state.speed;
   const scale = state.sizeScale;
   state.time += dt * (1000 / 60);
   const t = state.time;
-  const wind = windAt(t);
+  const wind = effect === 'sakura' ? sakuraWindAt(t) : windAt(t);
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
   ctx.clearRect(0, 0, w, h);
 
+  // 표면에 쌓인 눈 · 튄 물방울 · 내려앉은 꽃잎은 콘텐츠 위 캔버스에 그림
+  // 렌즈 가까이 지나가는 큰 입자(fg)도 그 위에 그려서 LP판 · 미니플레이어 앞으로 떨어지게 함
+  if (surfaces) surfaces.update(dt, { speed, wind });
+  const fctx = surfaces ? surfaces.beginForeground() : null;
+
   if (effect === 'snow') {
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
       p.phase += p.freq * dt;
+      const prevY = p.y;
       p.y += p.vy * dt * speed;
       p.x += (wind * (0.35 + p.z * 1.1) + Math.sin(p.phase) * p.sway) * dt * speed;
       const d = p.size * scale;
+      // 렌즈 가까이 지나가는 보케·아주 먼 입자는 표면에 닿지 않고 지나감
+      const fg = fctx && p.z > FG_DEPTH.snow;
+      if (surfaces && !fg && p.z > 0.1 && surfaces.tryLand(p, prevY, d)) {
+        Object.assign(p, createParticle(effect, w, h, false));
+        continue;
+      }
       if (p.y - d > h) Object.assign(p, createParticle(effect, w, h, false));
       if (p.x < -w * 0.15) p.x += w * 1.3;
       else if (p.x > w * 1.15) p.x -= w * 1.3;
-      ctx.globalAlpha = p.alpha;
-      ctx.drawImage(sprites[p.sprite], p.x - d / 2, p.y - d / 2, d, d);
+      const c = fg ? fctx : ctx;
+      c.globalAlpha = p.alpha;
+      c.drawImage(sprites[p.sprite], p.x - d / 2, p.y - d / 2, d, d);
     }
   } else if (effect === 'rain') {
     const angle = -(0.06 + wind * 0.1); // 바람 방향으로 기울어진 빗줄기
@@ -239,34 +318,48 @@ function drawFrame(state, dt) {
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
       const step = p.vy * dt * speed;
+      const prevY = p.y;
       p.y += step * cos;
       p.x -= step * sin;
       const len = p.len * scale;
+      const fg = fctx && p.z > FG_DEPTH.rain;
+      if (surfaces && !fg && p.z > 0.15 && surfaces.tryLand(p, prevY, p.width)) {
+        Object.assign(p, createParticle(effect, w, h, false));
+        continue;
+      }
       if (p.y - len > h || p.x > w * 1.2) Object.assign(p, createParticle(effect, w, h, false));
-      ctx.globalAlpha = p.alpha;
-      ctx.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, p.x * dpr, p.y * dpr);
-      ctx.drawImage(sprites, -p.width / 2, -len, p.width, len);
+      const c = fg ? fctx : ctx;
+      c.globalAlpha = p.alpha;
+      c.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, p.x * dpr, p.y * dpr);
+      c.drawImage(sprites, -p.width / 2, -len, p.width, len);
     }
   } else if (effect === 'sakura') {
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
       p.flip += p.vflip * dt;
       p.rot += p.vrot * dt;
-      p.drift += 0.012 * dt;
+      p.drift += 0.008 * dt;
       // 꽃잎이 평평하게 누울수록(공기 저항) 천천히 떨어짐
       const flat = Math.abs(Math.cos(p.flip));
+      const prevY = p.y;
       p.y += p.vy * (0.55 + 0.45 * (1 - flat)) * dt * speed;
-      p.x += (wind * (0.7 + p.z * 1.6) + Math.sin(p.drift) * 0.35 * (0.4 + p.z)) * dt * speed;
+      p.x += (wind * (0.6 + p.z * 1.2) + Math.sin(p.drift) * 0.28 * (0.4 + p.z)) * dt * speed;
       const s = p.size * scale;
+      const fg = fctx && p.blurred;
+      if (surfaces && !fg && !p.blurred && surfaces.tryLand(p, prevY, s)) {
+        Object.assign(p, createParticle(effect, w, h, false));
+        continue;
+      }
       if (p.y - s > h || p.x - s > w * 1.1) Object.assign(p, createParticle(effect, w, h, false));
-      const sx = Math.max(0.12, flat);
+      const sx = Math.max(0.12, flat) * p.aspect;
       const cos = Math.cos(p.rot);
       const sin = Math.sin(p.rot);
       const sprite = p.blurred ? sprites[p.tint].blurred : sprites[p.tint].sharp;
       const full = s * (sprite.width / 64);
-      ctx.globalAlpha = p.alpha;
-      ctx.setTransform(dpr * cos * sx, dpr * sin * sx, -dpr * sin, dpr * cos, p.x * dpr, p.y * dpr);
-      ctx.drawImage(sprite, -full / 2, -full / 2, full, full);
+      const c = fg ? fctx : ctx;
+      c.globalAlpha = p.alpha;
+      c.setTransform(dpr * cos * sx, dpr * sin * sx, -dpr * sin, dpr * cos, p.x * dpr, p.y * dpr);
+      c.drawImage(sprite, -full / 2, -full / 2, full, full);
     }
   } else if (effect === 'fireflies') {
     ctx.globalCompositeOperation = 'lighter';
@@ -299,6 +392,7 @@ function drawFrame(state, dt) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
+  if (fctx) surfaces.endForeground();
 }
 
 function buildSprites(effect) {
@@ -311,8 +405,11 @@ function buildSprites(effect) {
   }
 }
 
-export default function ParticleEffect({ effect = 'none', intensity = 'medium', className = '' }) {
+export default function ParticleEffect({ effect = 'none', intensity = 'medium', className = '', interactive = false }) {
   const canvasRef = useRef(null);
+  const frontCanvasRef = useRef(null);
+  // 실제 Now Playing 화면에서만 LP·미니플레이어와 상호작용 (테마 편집기 미리보기는 제외)
+  const withSurfaces = interactive && supportsSurfaces(effect);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -334,7 +431,15 @@ export default function ParticleEffect({ effect = 'none', intensity = 'medium', 
       sizeScale: 1,
       time: Math.random() * 100000,
       sprites: buildSprites(effect),
+      surfaces: null,
     };
+    const frontCanvas = frontCanvasRef.current;
+    if (withSurfaces && frontCanvas && !reducedMotion) {
+      // 효과가 많을수록 표면에 닿는 입자도 많으므로 한 번에 쌓이는 양을 줄임 ("적게" 기준)
+      const density = DENSITY[effect][intensity] ?? DENSITY[effect].medium;
+      const accumScale = Math.pow(DENSITY[effect].low / density, 0.75);
+      state.surfaces = createSurfaceSystem(effect, frontCanvas, state.sprites, { accumScale });
+    }
     let rafId = null;
     let lastTime = 0;
 
@@ -349,6 +454,7 @@ export default function ParticleEffect({ effect = 'none', intensity = 'medium', 
       // 작은 미리보기에서도 큰 화면과 비슷한 체감이 나도록 높이에 비례해 속도/크기 보정
       state.speed = Math.max(0.35, Math.min(1.4, state.h / 850));
       state.sizeScale = Math.max(0.4, Math.min(1.2, state.h / 900));
+      if (state.surfaces) state.surfaces.resize(state.w, state.h, state.dpr);
 
       const density = DENSITY[effect][intensity] ?? DENSITY[effect].medium;
       const target = Math.min(MAX_PARTICLES, Math.round(((state.w * state.h) / 100000) * density));
@@ -392,11 +498,20 @@ export default function ParticleEffect({ effect = 'none', intensity = 'medium', 
       if (observer) observer.disconnect();
       else window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', handleVisibility);
+      if (state.surfaces) state.surfaces.destroy();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, [effect, intensity]);
+  }, [effect, intensity, withSurfaces]);
 
   if (!DENSITY[effect]) return null;
-  return <canvas ref={canvasRef} className={`np-particle-canvas ${className}`} aria-hidden="true" />;
+  return (
+    <>
+      <canvas ref={canvasRef} className={`np-particle-canvas ${className}`} aria-hidden="true" />
+      {withSurfaces && createPortal(
+        <canvas ref={frontCanvasRef} className="np-particle-front-canvas" aria-hidden="true" />,
+        document.body
+      )}
+    </>
+  );
 }

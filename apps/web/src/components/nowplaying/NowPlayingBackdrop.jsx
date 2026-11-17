@@ -74,7 +74,7 @@ export default function NowPlayingBackdrop({ theme, active }) {
 
       {showEffect && (
         <div className="np-effect-layer" aria-hidden="true">
-          <ParticleEffect effect={theme.effect} intensity={theme.intensity} />
+          <ParticleEffect effect={theme.effect} intensity={theme.intensity} interactive />
         </div>
       )}
     </>

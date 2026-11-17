@@ -353,7 +353,16 @@ export default function Player() {
   }
 
   return (
-    <div className="bottom-player-bar">
+    <div
+      className="bottom-player-bar"
+      // Now Playing 눈·비·벚꽃 효과: 하단 컨트롤러 윗면에도 얕게 쌓이고, 효과가 컨트롤러 앞으로 그려지지 않게 가림
+      // (하단 컨트롤러는 넓어서 최대 높이를 낮추고 조금 더 빨리 녹게 함 · 쌓이는 것만 끄려면 data-particle-surface 부터 data-particle-melt 까지 지우면 됨)
+      data-particle-surface="rect"
+      data-particle-pile-max="3"
+      data-particle-accum="1"
+      data-particle-melt="1.3"
+      data-particle-occluder=""
+    >
       {/* 1. 좌측 영역: 곡 정보 및 즐겨찾기 */}
       <div className="bottom-player-left">
         {currentTrack ? (

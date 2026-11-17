@@ -192,8 +192,8 @@ export default function VinylPlayer() {
             container.style.removeProperty('--sheen-y');
           }}
         >
-          <div className="vinyl-container">
-            <div className="album-jacket empty-jacket">
+          <div className="vinyl-container" data-particle-tilt>
+            <div className="album-jacket empty-jacket" data-particle-surface="rect" data-particle-radius="10">
               <div className="empty-jacket-placeholder">
                 <img src={sofarLogo} alt="sofar" className="empty-jacket-logo" />
               </div>
@@ -251,9 +251,14 @@ export default function VinylPlayer() {
           container.style.removeProperty('--sheen-y');
         }}
       >
-        <div className="vinyl-container">
+        <div className="vinyl-container" data-particle-tilt>
         {/* 사각형 앨범 자켓 */}
-        <div className="album-jacket">
+        <div
+          className="album-jacket"
+          data-particle-surface="rect"
+          data-particle-radius="10"
+          data-particle-shake={videoVinylState !== 'idle' && videoVinylState !== 'vinyl' ? '1' : '0'}
+        >
           <img 
             key={getThumbnailUrl()}
             src={getThumbnailUrl()} 
@@ -269,7 +274,12 @@ export default function VinylPlayer() {
         {(() => {
           const isHiddenInJacket = !currentTrack || isTransitioning || (videoVinylState !== 'idle' && videoVinylState !== 'vinyl');
           return (
-            <div className={`vinyl-record-disc ${isHiddenInJacket ? 'transition-in' : ''}`}>
+            <div
+              className={`vinyl-record-disc ${isHiddenInJacket ? 'transition-in' : ''}`}
+              data-particle-surface="circle"
+              data-particle-spin={isPlaying ? '1' : '0'}
+              data-particle-shake={isHiddenInJacket ? '1' : '0'}
+            >
               {/* 실제로 회전하는 LP판 바디 */}
               <div className={`vinyl-record-body animate-spin-slow ${isPlaying ? '' : 'animate-spin-paused'}`}>
                 <div className="vinyl-grooves"></div>
