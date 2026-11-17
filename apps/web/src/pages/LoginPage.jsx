@@ -354,13 +354,13 @@ export default function LoginPage({ heroImage = DEFAULT_HERO_IMAGE }) {
             <div className="showcase-center-body">
 
               <h2 className="showcase-title">
-                듣고 싶던 모든 음악,<br />
-                <span className="text-gradient-warm">실시간 가사와 함께</span> 편안하게
+                광고 없이<br />
+                <span className="text-gradient-warm">가사 보며 듣는</span> 유튜브 음악
               </h2>
 
               <p className="showcase-subtitle">
-                나만의 취향과 분위기에 온전히 집중할 수 있도록,<br />
-                실시간 가사와 함께 더 깊이 있는 음악 감상을 경험해 보세요.
+                노래에 맞춰 가사가 실시간으로 넘어갑니다.<br />
+                마음에 드는 곡은 플레이리스트에 담아 두세요.
               </p>
 
               {/* Service Feature Highlights */}
@@ -371,7 +371,7 @@ export default function LoginPage({ heroImage = DEFAULT_HERO_IMAGE }) {
                   </div>
                   <div className="feature-item-text">
                     <span className="feature-item-title">실시간 싱크 가사</span>
-                    <span className="feature-item-desc">음악의 흐름에 맞춰 실시간으로 펼쳐지는 가사</span>
+                    <span className="feature-item-desc">노래에 맞춰 실시간으로 넘어가는 가사</span>
                   </div>
                 </div>
 

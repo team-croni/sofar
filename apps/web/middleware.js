@@ -38,21 +38,22 @@ function buildMeta(playlist, origin) {
   const author = getAuthorLabel(playlist);
   const count = playlist.tracks.length;
 
-  const title = `${name} · ${author ? `${author}의 ` : ''}플레이리스트 (${count}곡) | sofar - 유튜브 음악을 실시간 가사와 함께`;
+  const title = `${name} · ${count}곡 플레이리스트 | sofar`;
 
   const trackNames = playlist.tracks
     .slice(0, MAX_TRACK_NAMES)
     .map(t => t.custom_title)
     .filter(Boolean);
-  const rest = count - trackNames.length;
-  const trackSummary = trackNames.length > 0
-    ? `${trackNames.join(', ')}${rest > 0 ? ` 외 ${rest}곡` : ''}`
-    : `${count}곡`;
-  const description = `${author ? `${author}님이` : 'sofar 리스너가'} 공유한 플레이리스트 '${name}'. `
-    + `${trackSummary}을 유튜브 음원과 실시간 싱크 가사로 구독 없이 무료로 감상하세요.`;
+  const description = [
+    `${author ? `${author}님이` : 'sofar 리스너가'} 공유한 플레이리스트입니다.`,
+    trackNames.length > 0
+      ? `${trackNames.join(', ')}${count > trackNames.length ? ' 등' : ''} ${count}곡이 담겨 있습니다.`
+      : `${count}곡이 담겨 있습니다.`,
+    'sofar에서 광고 없이 가사를 보며 들어 보세요.',
+  ].join(' ');
 
   const image = `${origin}/api/og?id=${playlist.id}&v=${getCardVersion(playlist)}`;
-  const imageAlt = `${name} 플레이리스트 · sofar`;
+  const imageAlt = `${name} · ${count}곡 플레이리스트 | sofar`;
 
   return [
     `<title>${escapeHtml(title)}</title>`,

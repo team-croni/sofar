@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon-96x96.png', 'apple-touch-icon.png'],
       manifest: {
-        name: 'sofar — 실시간 싱크 가사 오디오 스트리밍',
+        name: 'sofar - 광고 없이 가사 보며 듣는 유튜브 음악',
         short_name: 'sofar',
-        description: '듣고 싶던 모든 음악, 실시간 가사와 함께 편안하게. 유튜브 기반 미니멀 웹 오디오 플레이어',
+        description: 'sofar는 유튜브 음악을 광고 없이 들을 수 있는 무료 음악 플레이어입니다. 노래에 맞춰 가사가 실시간으로 넘어가고, 가입하지 않아도 바로 쓸 수 있습니다. 플레이리스트를 만들어 친구에게 링크로 공유해 보세요.',
         theme_color: '#121212',
         background_color: '#121212',
         display: 'standalone',
@@ -47,8 +47,8 @@ export default defineConfig({
       workbox: {
         // 정적 빌드 에셋 캐싱 대상
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
-        // 백엔드 API 및 외부 URL은 SPA 내비게이션 폴백에서 제외
-        navigateFallbackDenylist: [/^\/api/, /^https:\/\/www\.youtube\.com/],
+        // 백엔드 API, 외부 URL, robots.txt·sitemap.xml·llms.txt는 SPA 내비게이션 폴백에서 제외
+        navigateFallbackDenylist: [/^\/api/, /^https:\/\/www\.youtube\.com/, /\.(txt|xml)$/],
         runtimeCaching: [
           {
             // YouTube IFrame, 미디어 스트림 및 썸네일: 정책 준수를 위해 캐시하지 않고 항상 네트워크 직접 호출

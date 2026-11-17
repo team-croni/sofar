@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sofar-web.vercel.app/sitemap.xml
