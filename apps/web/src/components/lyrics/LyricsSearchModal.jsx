@@ -185,7 +185,7 @@ export default function LyricsSearchModal({
         <div className="lsm-state">
           <SearchX size={20} />
           <span>검색 결과가 없습니다.</span>
-          <span className="lsm-state-hint">제목을 짧게 줄이거나 아티스트를 비워 보세요.</span>
+          <span className="lsm-state-hint">제목을 짧게 줄이거나 아티스트를 비워서 검색해 주세요.</span>
         </div>
       );
     }
@@ -291,7 +291,7 @@ export default function LyricsSearchModal({
               </>
             ) : (
               <div className="lsm-state">
-                <span>결과를 선택하면 전체 가사를 미리 볼 수 있어요.</span>
+                <span>결과를 선택하면 전체 가사를 미리 볼 수 있습니다.</span>
               </div>
             )}
           </section>

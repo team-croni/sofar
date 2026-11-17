@@ -26,7 +26,7 @@ export default function LyricsViewer() {
   const trackTitle = currentTrack?.custom_title || currentTrack?.title || '';
   const trackArtist = currentTrack?.custom_artist || currentTrack?.artist || '';
   
-  const { lyrics, rawLrc, loading, error, isFallback, refetchLyrics } = useLyrics(
+  const { lyrics, rawLrc, loading, error, isFallback, isRematching, rematchLyrics } = useLyrics(
     trackTitle,
     trackArtist,
     currentTrack?.custom_lyrics || null,
@@ -42,11 +42,18 @@ export default function LyricsViewer() {
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showSyncControls, setShowSyncControls] = useState(false);
 
-  const handleForceRefresh = () => {
-    if (refetchLyrics) {
-      refetchLyrics();
-      if (showToast) showToast('최신 가사 DB에서 가사를 다시 조회합니다.');
-    }
+  // 가사 다시 찾기 — 결과에 따라 안내
+  const REMATCH_MESSAGES = {
+    updated: '더 잘 맞는 가사로 바꿨습니다.',
+    confirmed: '현재 가사가 곡과 일치합니다.',
+    same: '현재 가사가 가장 잘 맞습니다. 다른 가사는 가사 검색에서 고를 수 있습니다.',
+    notfound: '다른 가사를 찾지 못했습니다. 가사 검색에서 직접 선택해 주세요.',
+    error: '가사 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  };
+  const handleRematch = async () => {
+    if (isRematching) return;
+    const result = await rematchLyrics();
+    if (showToast && REMATCH_MESSAGES[result]) showToast(REMATCH_MESSAGES[result]);
   };
 
   const scrollToCurrentLyric = () => {
@@ -316,14 +323,23 @@ export default function LyricsViewer() {
                 >
                   <Edit3 size={15} />
                 </button>
-                <button 
-                  type="button"
-                  onClick={handleForceRefresh} 
-                  className={`sync-bar-side-btn ${isFallback ? 'is-fallback-warn' : ''}`}
-                  title={isFallback ? "임시 매칭된 가사입니다. 최신 가사 재매칭" : "최신 가사 DB에서 재매칭"}
-                >
-                  <RotateCw size={14} />
-                </button>
+                {/* 직접 지정한 가사는 자동으로 찾은 가사가 아니므로 다시 찾기 대상이 아님 (검색/수정 모달에서 되돌리기) */}
+                {!currentTrack?.custom_lyrics && (
+                  <button
+                    type="button"
+                    onClick={handleRematch}
+                    disabled={isRematching || loading}
+                    className={`sync-bar-side-btn ${isFallback ? 'is-low-confidence' : ''} ${isRematching ? 'is-busy' : ''}`}
+                    title={isRematching
+                      ? '다시 찾는 중...'
+                      : isFallback
+                        ? '정확도가 낮은 가사 · 다시 찾기'
+                        : '다시 찾기'}
+                    aria-label="다시 찾기"
+                  >
+                    <RotateCw size={14} className={isRematching ? 'spin-animation' : ''} />
+                  </button>
+                )}
                 {lyrics.length > 0 && (
                   <button 
                     type="button"

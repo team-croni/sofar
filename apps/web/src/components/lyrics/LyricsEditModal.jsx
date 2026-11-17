@@ -127,7 +127,7 @@ export default function LyricsEditModal({
 
   const statusText = {
     empty: '가사를 입력하세요',
-    plain: `일반 가사 · ${summary.lines}줄 (타임태그가 없으면 자동 스크롤되지 않아요)`,
+    plain: `일반 가사 · ${summary.lines}줄 (타임태그가 없으면 자동 스크롤되지 않습니다)`,
     partial: `싱크 가사 · ${summary.lines}줄 중 ${summary.tagged}줄에 타임태그`,
     synced: `싱크 가사 · ${summary.lines}줄`,
   }[summary.kind];

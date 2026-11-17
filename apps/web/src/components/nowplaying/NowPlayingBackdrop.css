@@ -40,6 +40,64 @@ html.np-contrast-lyrics .now-playing-container .lyric-line.active {
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.7);
 }
 
+/* 가사 하단 버튼 줄(검색·수정·다시 찾기·싱크 조절 등)
+   글자와 달리 조작 버튼은 어떤 사진 위에서도 보여야 하므로, 지금 재생 화면에서는
+   밝기 판정과 상관없이 항상 밝은 색 + 또렷한 그림자로 표시 */
+.now-playing-container .sync-bar-side-btn,
+.now-playing-container .sync-adjust-btn {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.now-playing-container .sync-bar-side-btn:hover,
+.now-playing-container .sync-adjust-btn:hover {
+  color: #ffffff;
+}
+
+/* 정확도 낮은 가사 표시(강조색)는 유지 */
+.now-playing-container .sync-bar-side-btn.is-low-confidence {
+  color: var(--primary-warm);
+}
+
+.now-playing-container .sync-bar-side-btn.is-low-confidence:hover {
+  color: var(--primary-warm-hover);
+}
+
+.now-playing-container .sync-bar-side-btn svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 6px rgba(0, 0, 0, 0.45));
+}
+
+.now-playing-container .sync-bar-placeholder-text {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.now-playing-container .sync-adjust-btn,
+.now-playing-container .sync-value,
+.now-playing-container .sync-bar-placeholder-text {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75), 0 0 6px rgba(0, 0, 0, 0.45);
+}
+
+/* 밝은 배경으로 판정되면 한 단계 더 밝게 */
+html.np-contrast-lyrics .now-playing-container .sync-bar-side-btn:not(.is-low-confidence),
+html.np-contrast-lyrics .now-playing-container .sync-adjust-btn {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 가사가 없을 때의 버튼(가사 검색·작성·숨기기)도 조작 버튼이므로 항상 또렷하게 */
+.now-playing-container .lyrics-empty-btn {
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75), 0 0 6px rgba(0, 0, 0, 0.45);
+}
+
+.now-playing-container .lyrics-empty-btn svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 6px rgba(0, 0, 0, 0.45));
+}
+
+/* 안내 문구는 가사 글자와 같이 밝은 배경일 때만 밝게 */
+html.np-contrast-lyrics .now-playing-container .lyrics-empty-container {
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
 html.np-contrast-track .now-playing-container .track-title {
   color: #ffffff;
   text-shadow: 0 1px 12px rgba(0, 0, 0, 0.55);

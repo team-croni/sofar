@@ -234,9 +234,9 @@ function buildUrl(path, params) {
   return `${LRCLIB_BASE}/${path}${qs ? `?${qs}` : ''}`;
 }
 
-async function lrclibFetch(path, params, signal) {
+async function lrclibFetch(path, params, signal, fresh = false) {
   const url = buildUrl(path, params);
-  if (RESPONSE_CACHE.has(url)) return RESPONSE_CACHE.get(url);
+  if (!fresh && RESPONSE_CACHE.has(url)) return RESPONSE_CACHE.get(url);
 
   const res = await fetch(url, { signal });
   if (res.status === 404) {
@@ -256,9 +256,9 @@ async function lrclibFetch(path, params, signal) {
 const FETCH_FAILED = Symbol('lrclib-fetch-failed');
 
 /** 실패해도 전체 검색이 깨지지 않도록 감싼 호출 (Abort는 그대로 전파, 실패 시 FETCH_FAILED 반환) */
-async function safeFetch(path, params, signal) {
+async function safeFetch(path, params, signal, fresh = false) {
   try {
-    return await lrclibFetch(path, params, signal);
+    return await lrclibFetch(path, params, signal, fresh);
   } catch (err) {
     if (err?.name === 'AbortError') throw err;
     console.warn('[lyricsSearch]', path, err);
@@ -271,23 +271,24 @@ async function safeFetch(path, params, signal) {
  * - 필드 검색(track_name + artist_name), 키워드 검색(q), 정확 조회(get)를 병렬로 수행
  * 모든 요청이 실패하면(네트워크 오류, 429 등) 에러를 던진다.
  * @param {{ title?: string, artist?: string }} query
- * @param {{ signal?: AbortSignal, broad?: boolean }} options
+ * @param {{ signal?: AbortSignal, broad?: boolean, fresh?: boolean }} options
  *   broad: 아티스트가 원곡과 다른 커버곡 대비 제목 단독 검색도 추가 (수동 검색용)
+ *   fresh: 메모리 응답 캐시를 건너뛰고 새로 조회 (다시 찾기용)
  */
-export async function searchLyricCandidates({ title = '', artist = '' }, { signal, broad = false } = {}) {
+export async function searchLyricCandidates({ title = '', artist = '' }, { signal, broad = false, fresh = false } = {}) {
   const t = title.trim();
   const a = artist.trim();
   if (!t && !a) return [];
 
   const requests = [];
   if (t) {
-    requests.push(safeFetch('search', { track_name: t, artist_name: a }, signal));
-    requests.push(safeFetch('search', { q: `${t} ${a}`.trim() }, signal));
-    if (a) requests.push(safeFetch('get', { track_name: t, artist_name: a }, signal));
+    requests.push(safeFetch('search', { track_name: t, artist_name: a }, signal, fresh));
+    requests.push(safeFetch('search', { q: `${t} ${a}`.trim() }, signal, fresh));
+    if (a) requests.push(safeFetch('get', { track_name: t, artist_name: a }, signal, fresh));
     // 커버/리메이크처럼 아티스트가 원곡과 다른 경우를 위해 제목만으로도 검색 (정렬에서 아티스트 일치가 우선)
-    if (a && broad) requests.push(safeFetch('search', { track_name: t }, signal));
+    if (a && broad) requests.push(safeFetch('search', { track_name: t }, signal, fresh));
   } else {
-    requests.push(safeFetch('search', { q: a }, signal));
+    requests.push(safeFetch('search', { q: a }, signal, fresh));
   }
 
   const results = await Promise.all(requests);
@@ -309,16 +310,16 @@ export async function searchLyricCandidates({ title = '', artist = '' }, { signa
  * @param {{ title: string, artist?: string, duration?: number }} track
  * @returns {Promise<{ lyrics: string, isFallback: boolean, score: number } | null>}
  */
-export async function findBestLyrics(track, { signal } = {}) {
+export async function findBestLyrics(track, { signal, fresh = false } = {}) {
   const target = { title: track.title, artist: track.artist, duration: track.duration };
   const query = buildSearchTarget(track.title, track.artist);
 
-  let ranked = rankCandidates(await searchLyricCandidates(query, { signal }), target)
+  let ranked = rankCandidates(await searchLyricCandidates(query, { signal, fresh }), target)
     .filter((r) => r.score >= MATCH_THRESHOLD);
 
   // 아티스트 없이 정제된 제목만으로 재검색
   if (ranked.length === 0 && query.title) {
-    const fallback = await safeFetch('search', { q: query.title }, signal);
+    const fallback = await safeFetch('search', { q: query.title }, signal, fresh);
     if (Array.isArray(fallback)) {
       ranked = rankCandidates(fallback, target).filter((r) => r.score >= FALLBACK_MATCH_THRESHOLD);
     }

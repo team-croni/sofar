@@ -638,12 +638,18 @@
   color: var(--primary-warm) !important;
 }
 
-.sync-bar-side-btn.is-fallback-warn {
-  color: #f59e0b;
+/* 정확도 낮은 자동 매칭 가사일 때 '다시 찾기' 버튼 강조 */
+.sync-bar-side-btn.is-low-confidence {
+  color: var(--primary-warm);
 }
 
-.sync-bar-side-btn.is-fallback-warn:hover {
-  color: #fbbf24 !important;
+.sync-bar-side-btn.is-low-confidence:hover {
+  color: var(--primary-warm-hover) !important;
+}
+
+.sync-bar-side-btn.is-busy,
+.sync-bar-side-btn:disabled {
+  cursor: default;
 }
 
 .sync-target-btn {
@@ -689,3 +695,18 @@
 .spin-animation {
   animation: spin 1s linear infinite;
 }
+
+/* ── 가사 하단 버튼 줄 가독성 ──
+   배경 이미지 위에 떠 있으므로 항상 아주 약한 그림자로 배경과 분리.
+   밝은 배경에서의 색 보정은 NowPlayingBackdrop.css(np-contrast-lyrics)에서 처리 */
+.sync-bar-side-btn svg,
+.lyrics-empty-btn svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
+}
+
+.sync-adjust-btn,
+.sync-value,
+.sync-bar-placeholder-text {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
