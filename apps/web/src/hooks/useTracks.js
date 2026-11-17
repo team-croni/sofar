@@ -36,7 +36,9 @@ export function usePlaylistTracksQuery(playlistId) {
           .from('tracks')
           .select('*')
           .eq('playlist_id', playlistId)
-          .order('sequence', { ascending: true });
+          .order('sequence', { ascending: true })
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true });
         if (error) throw error;
         return data || [];
       } else {
@@ -231,7 +233,9 @@ export function useAddTracksMutation() {
           .from('tracks')
           .select('*')
           .eq('playlist_id', playlistId)
-          .order('sequence', { ascending: true });
+          .order('sequence', { ascending: true })
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true });
 
         const existingTracks = existingData || [];
         const existingVideoSet = new Set(

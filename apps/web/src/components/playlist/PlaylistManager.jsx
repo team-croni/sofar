@@ -560,7 +560,7 @@ export default function PlaylistManager() {
         newTracks.splice(finalInsert, 0, movedItem);
 
         // TanStack Query 캐시 즉각 낙관적 갱신
-        queryClient.setQueryData(['tracks', selectedPlaylistId], newTracks);
+        queryClient.setQueriesData({ queryKey: ['tracks', selectedPlaylistId] }, newTracks);
         reorderTracksMutation.mutate({ playlistId: selectedPlaylistId, reorderedTracks: newTracks });
       }
       return;
@@ -585,7 +585,7 @@ export default function PlaylistManager() {
           const finalInsert = Math.max(0, Math.min(insertIndex, newTracks.length));
           newTracks.splice(finalInsert, 0, movedItem);
 
-          queryClient.setQueryData(['tracks', selectedPlaylistId], newTracks);
+          queryClient.setQueriesData({ queryKey: ['tracks', selectedPlaylistId] }, newTracks);
           reorderTracksMutation.mutate({ playlistId: selectedPlaylistId, reorderedTracks: newTracks });
         }
         return;
@@ -1165,7 +1165,9 @@ export default function PlaylistManager() {
         .from('tracks')
         .select('*')
         .eq('playlist_id', playlistId)
-        .order('sequence', { ascending: true });
+        .order('sequence', { ascending: true })
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
       if (data && data.length > 0) tracks = data;
     } else {
       const localTr = localStorage.getItem('sofar_tracks');
@@ -1214,6 +1216,19 @@ export default function PlaylistManager() {
     }
     return fetchedTracks || [];
   };
+
+  // 뷰 진입 직후 미리보기 → 실제 트랙 데이터로 교체되며 순서가 바뀌면 활성 곡 위치 재보정
+  const detailOrderKey = (activeTab === 'playlists' ? getCurrentDetailTracks() : [])
+    .map(t => t.id || t.youtube_video_id)
+    .join('|');
+  useLayoutEffect(() => {
+    if (!detailOrderKey) return;
+    if (Date.now() - lastViewSwitchTimeRef.current > 1500) return;
+    const activeEl = document.querySelector('.playlist-sidebar-container .track-row-item.active');
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'nearest' });
+    }
+  }, [detailOrderKey]);
 
   const handlePlayAllDetail = (e) => {
     if (e) e.stopPropagation();

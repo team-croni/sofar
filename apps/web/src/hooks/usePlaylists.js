@@ -88,8 +88,10 @@ export function usePlaylistPreviewsQuery() {
       if (user && !user.isGuest && supabase) {
         const { data, error } = await supabase
           .from('tracks')
-          .select('playlist_id, custom_title, custom_artist, youtube_video_id, sequence')
-          .order('sequence', { ascending: true });
+          .select('id, playlist_id, custom_title, custom_artist, youtube_video_id, sequence, created_at')
+          .order('sequence', { ascending: true })
+          .order('created_at', { ascending: true })
+          .order('id', { ascending: true });
         if (error) throw error;
         
         const previews = {};
