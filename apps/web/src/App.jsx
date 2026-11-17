@@ -194,7 +194,8 @@ function HomePage() {
 
   return (
     <main className="app-main">
-      <div className="left-panel-column">
+      {/* 사이드바: Now Playing 앞쪽 효과(눈·비·벚꽃)가 이 위로는 그려지지 않음 */}
+      <div className="left-panel-column" data-particle-occluder="">
         <PlaylistManager />
       </div>
       <div className="right-panel-column">

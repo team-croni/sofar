@@ -227,6 +227,11 @@ export default function MiniPlayer() {
       } ${isUnderModal ? 'under-modal' : ''}`}
       style={containerStyle}
       onClick={handleMiniPlayerClick}
+      {...(displayInVinyl && showMiniPlayer ? {
+        'data-particle-surface': 'rect',
+        'data-particle-radius': '22',
+        'data-particle-shake': videoVinylState === 'hiding-video' ? '1' : '0',
+      } : {})}
     >
       <div 
         className="mini-player-viewport"
