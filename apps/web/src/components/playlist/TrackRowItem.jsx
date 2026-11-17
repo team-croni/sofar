@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Headphones } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { TrackActionDropdown } from '../ui';
 import TrackThumbnail from './TrackThumbnail';
 import TrackTitleMarquee from './TrackTitleMarquee';
@@ -26,6 +27,8 @@ export default function TrackRowItem({
   dragOverPosition
 }) {
   const { duration: audioDuration, isLoadingTrack } = useAudio();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const isCurrent = isMatchTrack(track, currentTrack);
 
@@ -89,6 +92,7 @@ export default function TrackRowItem({
     } else {
       playTrack(track);
     }
+    if (location.pathname !== '/now') navigate('/now');
   };
 
   const extraOptions = [

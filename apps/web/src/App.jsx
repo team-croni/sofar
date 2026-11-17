@@ -8,6 +8,7 @@ import Player from './components/player/Player';
 import VinylPlayer from './components/player/VinylPlayer';
 import LyricsViewer from './components/lyrics/LyricsViewer';
 import PlaylistManager from './components/playlist/PlaylistManager';
+import SharedPlaylistLinkOpener from './components/playlist/SharedPlaylistLinkOpener';
 import MiniPlayer from './components/player/MiniPlayer';
 import LoginPage from './pages/LoginPage';
 import PasswordResetPage from './pages/PasswordResetPage';
@@ -332,6 +333,9 @@ export default function App() {
             <Route path="/search" element={<AppShell><HomePage /></AppShell>} />
             <Route path="/now" element={<AppShell><HomePage /></AppShell>} />
             <Route path="/now-playing" element={<Navigate to="/now" replace />} />
+
+            {/* 플레이리스트 공유 링크 (진입 후 홈으로 교체) */}
+            <Route path="/p/:playlistId" element={<AppShell><HomePage /><SharedPlaylistLinkOpener /></AppShell>} />
 
             {/* 인증 페이지 */}
             <Route path="/login"  element={<LoginPage />} />
