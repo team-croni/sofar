@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAudio } from '../../contexts/AudioContext';
-import { useLyrics, getCleanTitle, getCleanArtist, getLyricsSearchQuery } from '../../hooks/useLyrics';
+import { useLyrics } from '../../hooks/useLyrics';
+import LyricsSearchModal from './LyricsSearchModal';
+import LyricsEditModal from './LyricsEditModal';
 import { formatArtistName } from '../../utils/trackUtils';
 import './LyricsViewer.css';
-import { Card, Modal, Button } from '../ui';
-import { Edit3, Plus, RotateCcw, HelpCircle, Maximize2, Minimize2, Settings, Search, Clock, Pencil, RotateCw, LocateFixed, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Card } from '../ui';
+import { Edit3, Maximize2, Minimize2, Search, Clock, Pencil, RotateCw, LocateFixed, Eye, EyeOff } from 'lucide-react';
 
 export default function LyricsViewer() {
   const { 
@@ -17,7 +19,8 @@ export default function LyricsViewer() {
     setIsLyricsExpanded: setIsExpanded,
     isLyricsHidden,
     setIsLyricsHidden,
-    showToast
+    showToast,
+    duration
   } = useAudio();
 
   const trackTitle = currentTrack?.custom_title || currentTrack?.title || '';
@@ -26,12 +29,16 @@ export default function LyricsViewer() {
   const { lyrics, rawLrc, loading, error, isFallback, refetchLyrics } = useLyrics(
     trackTitle,
     trackArtist,
-    currentTrack?.custom_lyrics || null
+    currentTrack?.custom_lyrics || null,
+    currentTrack?.durationSec || 0
   );
 
   const [activeIndex, setActiveIndex] = useState(-1);
+  // 가사 작성/수정 모달 — 검색 모달과 같이 열린 시점의 곡에 고정
+  const [editTarget, setEditTarget] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editedLyrics, setEditedLyrics] = useState('');
+  const currentTimeRef = useRef(0);
+  currentTimeRef.current = currentTime;
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const [showSyncControls, setShowSyncControls] = useState(false);
 
@@ -87,97 +94,36 @@ export default function LyricsViewer() {
     };
   }, []);
 
-  // 가사 선택 검색 모달을 위한 상태값
+  // 가사 검색 모달 — 열린 시점의 곡에 고정 (검색 중 다음 곡으로 넘어가도 엉뚱한 곡에 저장되지 않도록)
+  // 닫힘 애니메이션 동안 내용이 비지 않도록 대상 정보는 닫은 뒤에도 유지하고, 열림 여부만 따로 관리
+  const [searchTarget, setSearchTarget] = useState(null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState(null);
 
   const handleOpenSearchModal = () => {
-    setIsSearchModalOpen(true);
-    const initialQuery = getLyricsSearchQuery(
-      currentTrack?.custom_title || currentTrack?.title || '',
-      currentTrack?.custom_artist || currentTrack?.artist || ''
-    );
-    setSearchQuery(initialQuery);
-    performLyricsSearch(initialQuery);
-  };
-
-  const performLyricsSearch = async (queryText) => {
-    if (!queryText || !queryText.trim()) return;
-    setIsSearching(true);
-    setSearchError(null);
-    try {
-      const trimmedQuery = queryText.trim();
-      const cleanQ = getCleanTitle(trimmedQuery);
-      
-      const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(trimmedQuery)}`;
-      
-      // 트랙의 메타데이터 기반 lookup URL
-      const trackName = currentTrack?.custom_title || currentTrack?.title || '';
-      const artistName = currentTrack?.custom_artist || currentTrack?.artist || '';
-      const cleanTrackName = getCleanTitle(trackName);
-      const cleanArtistName = getCleanArtist(artistName);
-
-      let lookupUrl = null;
-      if (cleanTrackName || trimmedQuery) {
-        lookupUrl = `https://lrclib.net/api/lookup?track=${encodeURIComponent(cleanTrackName || trimmedQuery)}${cleanArtistName ? `&artist=${encodeURIComponent(cleanArtistName)}` : ''}`;
-      }
-
-      const [searchRes, lookupRes] = await Promise.all([
-        fetch(searchUrl).then(r => r.ok ? r.json() : []).catch(() => []),
-        lookupUrl ? fetch(lookupUrl).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null)
-      ]);
-
-      let combinedResults = Array.isArray(searchRes) ? [...searchRes] : [];
-
-      // lookup 결과가 유효하고 가사가 있다면 결과 목록 최상단에 추가 (중복 방지)
-      if (lookupRes && (lookupRes.syncedLyrics || lookupRes.plainLyrics)) {
-        const alreadyExists = combinedResults.some(r => r.id && r.id === lookupRes.id);
-        if (!alreadyExists) {
-          combinedResults.unshift(lookupRes);
-        }
-      }
-
-      // 만약 결과가 없고, 정제된 키워드가 원본 검색어와 다를 경우 fallback 검색
-      if (combinedResults.length === 0 && cleanQ && cleanQ !== trimmedQuery) {
-        const fallbackUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanQ)}`;
-        const fallbackRes = await fetch(fallbackUrl).then(r => r.ok ? r.json() : []).catch(() => []);
-        if (Array.isArray(fallbackRes)) {
-          combinedResults = fallbackRes;
-        }
-      }
-
-      setSearchResults(combinedResults);
-    } catch (err) {
-      console.error(err);
-      setSearchError('네트워크 오류가 발생했습니다.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const getLyricPreviewLines = (result) => {
-    const raw = result.syncedLyrics || result.plainLyrics;
-    if (!raw || !raw.trim()) return [];
-    
-    const lines = raw
-      .split('\n')
-      .map((line) => line.replace(/\[\d{2}:\d{2}\.\d{2,3}\]/g, '').replace(/\[.*?:.*?\]/g, '').trim())
-      .filter((text) => text.length > 0);
-
-    return lines.slice(0, 3);
-  };
-
-  const handleSelectLyric = (selectedLrc) => {
     if (!currentTrack) return;
-    const lyricsToSave = selectedLrc.syncedLyrics || selectedLrc.plainLyrics || '';
-    updateTrackMetadata(currentTrack.id, {
-      custom_lyrics: lyricsToSave,
-      lyric_offset: 0
+    setSearchTarget({
+      id: currentTrack.id,
+      title: trackTitle,
+      artist: trackArtist,
+      duration: currentTrack.durationSec || duration || 0,
+      hasCustomLyrics: Boolean(currentTrack.custom_lyrics),
     });
-    setIsSearchModalOpen(false);
+    setIsSearchModalOpen(true);
+  };
+  const closeSearchModal = () => setIsSearchModalOpen(false);
+
+  const handleApplySearchedLyrics = (lyricsToSave) => {
+    if (!searchTarget) return;
+    updateTrackMetadata(searchTarget.id, { custom_lyrics: lyricsToSave, lyric_offset: 0 });
+    closeSearchModal();
+    if (showToast) showToast('가사를 적용했습니다.');
+  };
+
+  const handleResetSearchedLyrics = () => {
+    if (!searchTarget) return;
+    updateTrackMetadata(searchTarget.id, { custom_lyrics: null, lyric_offset: 0 });
+    closeSearchModal();
+    if (showToast) showToast('자동 매칭 가사로 되돌렸습니다.');
   };
 
   const offset = currentTrack?.lyric_offset || 0;
@@ -307,32 +253,31 @@ export default function LyricsViewer() {
     }
   };
 
-  const fileInputRef = useRef(null);
-
-  const handleLrcFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setEditedLyrics(event.target.result);
-    };
-    reader.readAsText(file);
-  };
-
   // 수동 가사 입력 활성화
   const handleEditClick = () => {
-    setEditedLyrics(rawLrc || '');
+    if (!currentTrack) return;
+    setEditTarget({
+      id: currentTrack.id,
+      lyrics: rawLrc || '',
+      hasCustomLyrics: Boolean(currentTrack.custom_lyrics),
+    });
     setIsEditModalOpen(true);
   };
 
   // 수동 가사 저장 (F-LYRI-05)
-  const handleSaveLyrics = () => {
-    if (!currentTrack) return;
-    updateTrackMetadata(currentTrack.id, {
-      custom_lyrics: editedLyrics,
-      lyric_offset: 0
-    });
+  const handleSaveLyrics = (text) => {
+    if (!editTarget) return;
+    const trimmed = text.trim();
+    updateTrackMetadata(editTarget.id, { custom_lyrics: trimmed ? text : null, lyric_offset: 0 });
     setIsEditModalOpen(false);
+    if (showToast) showToast(trimmed ? '가사를 저장했습니다.' : '가사를 비워 자동 매칭으로 되돌렸습니다.');
+  };
+
+  const handleResetEditedLyrics = () => {
+    if (!editTarget) return;
+    updateTrackMetadata(editTarget.id, { custom_lyrics: null, lyric_offset: 0 });
+    setIsEditModalOpen(false);
+    if (showToast) showToast('자동 매칭 가사로 되돌렸습니다.');
   };
 
   const renderCardContent = (isExpandedCard) => {
@@ -563,145 +508,26 @@ export default function LyricsViewer() {
       </Card>
 
       {/* 가사 검색 모달 (F-LYRI-06) */}
-      <Modal
+      <LyricsSearchModal
         isOpen={isSearchModalOpen}
-        title="가사 검색"
-        onClose={() => setIsSearchModalOpen(false)}
-        maxWidth="680px"
-      >
-        <div className="lyrics-search-modal-container">
-          <div className="lyrics-search-input-row">
-            <div className="lyrics-search-input-wrapper">
-              <Search size={15} className="lyrics-search-input-icon" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="곡명 또는 아티스트로 가사 검색..."
-                className="sofar-input-field lyrics-search-input"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') performLyricsSearch(searchQuery);
-                }}
-              />
-            </div>
-            <Button variant="primary" size="md" className="lyrics-search-btn" onClick={() => performLyricsSearch(searchQuery)}>
-              검색
-            </Button>
-          </div>
-
-          {currentTrack?.custom_lyrics && (
-            <Button 
-              variant="secondary" 
-              size="sm"
-              leadingIcon={<RotateCcw size={14} />}
-              onClick={() => {
-                updateTrackMetadata(currentTrack.id, { custom_lyrics: null, lyric_offset: 0 });
-                setIsSearchModalOpen(false);
-              }}
-              className="lyrics-search-reset-btn"
-            >
-              기본 가사로 초기화
-            </Button>
-          )}
-
-          <div className="lyrics-search-results-list scrollbar-none">
-            {isSearching ? (
-              <div className="lyrics-search-message">
-                <Loader2 size={22} className="spin-animation" />
-                <span>가사 검색 중...</span>
-              </div>
-            ) : searchError ? (
-              <div className="lyrics-search-message error">
-                <AlertCircle size={22} />
-                <span>{searchError}</span>
-              </div>
-            ) : searchResults.length === 0 ? (
-              <div className="lyrics-search-message">
-                <HelpCircle size={22} />
-                <span>검색 결과가 없습니다.</span>
-              </div>
-            ) : (
-              searchResults.map((result) => {
-                const previewLines = getLyricPreviewLines(result);
-                return (
-                  <div
-                    key={result.id}
-                    onClick={() => handleSelectLyric(result)}
-                    className="lyric-search-item"
-                  >
-                    <div className="lyric-search-item-header">
-                      <div className="lyric-search-item-title-group">
-                        <span className="lyric-search-item-title" title={result.trackName}>
-                          {result.trackName}
-                        </span>
-                        <span className="lyric-search-item-artist" title={`${result.artistName} ${result.albumName ? `| ${result.albumName}` : ''}`}>
-                          {result.artistName} {result.albumName ? `| ${result.albumName}` : ''}
-                        </span>
-                      </div>
-                      <span className={`lyric-search-badge ${result.syncedLyrics ? 'synced' : 'plain'}`}>
-                        {result.syncedLyrics ? '싱크 가사' : '일반 가사'}
-                      </span>
-                    </div>
-
-                    <div className="lyric-search-item-preview">
-                      {previewLines.length > 0 ? (
-                        previewLines.map((line, idx) => (
-                          <div key={idx} className="lyric-preview-line">
-                            {line}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="lyric-preview-empty">가사 미리보기가 없습니다.</div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </Modal>
+        onClose={closeSearchModal}
+        track={searchTarget}
+        currentLyrics={searchTarget?.id === currentTrack?.id ? rawLrc : ''}
+        hasCustomLyrics={Boolean(searchTarget?.hasCustomLyrics)}
+        onApply={handleApplySearchedLyrics}
+        onReset={handleResetSearchedLyrics}
+      />
 
       {/* 가사 직접 작성/수정 모달 (F-LYRI-05) */}
-      <Modal
+      <LyricsEditModal
         isOpen={isEditModalOpen}
-        title={rawLrc ? "가사 수정" : "가사 작성"}
         onClose={() => setIsEditModalOpen(false)}
-        maxWidth="500px"
-      >
-        <div className="lyrics-editor-modal-container">
-          <div className="editor-info-bar">
-            <span className="editor-info-text">
-              <HelpCircle size={13} />
-              <span>LRC 태그 포맷으로 편집하거나 파일을 로드하세요.</span>
-            </span>
-            <button 
-              type="button" 
-              onClick={() => fileInputRef.current?.click()} 
-              className="lyrics-action-btn lyrics-file-select-btn"
-            >
-              LRC 파일 선택
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              accept=".lrc" 
-              onChange={handleLrcFileUpload} 
-              className="lyrics-hidden-input" 
-            />
-          </div>
-          <textarea
-            value={editedLyrics}
-            onChange={(e) => setEditedLyrics(e.target.value)}
-            placeholder="[00:10.00]가사 첫 줄&#10;[00:15.50]가사 두 번째 줄..."
-            className="lyrics-textarea"
-          />
-          <div className="editor-actions-row">
-            <button onClick={() => setIsEditModalOpen(false)} className="btn-small-secondary">취소</button>
-            <button onClick={handleSaveLyrics} className="btn-small-primary">저장</button>
-          </div>
-        </div>
-      </Modal>
+        initialLyrics={editTarget?.lyrics || ''}
+        hasCustomLyrics={Boolean(editTarget?.hasCustomLyrics)}
+        getCurrentTime={() => currentTimeRef.current}
+        onSave={handleSaveLyrics}
+        onReset={handleResetEditedLyrics}
+      />
     </div>
   );
 }

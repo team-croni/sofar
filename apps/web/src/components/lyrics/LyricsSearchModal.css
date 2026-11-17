@@ -1,0 +1,294 @@
+/* ───────── 가사 검색 모달 (2단) ───────── */
+.lsm-modal.sofar-modal-card {
+  width: min(840px, calc(100vw - 32px));
+}
+
+.lsm-modal .sofar-modal-body {
+  padding: 0 1.5rem; /* 좌우는 모달 헤더(1.5rem)와 정렬, 상하는 각 영역이 가짐 */
+  overflow: hidden;
+  display: flex;
+}
+
+.lsm-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+}
+
+/* 검색 입력 — 공용 Input(md) 스타일을 그대로 사용 */
+.lsm-search-row {
+  padding: 1.25rem 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.lsm-submit.sofar-btn {
+  width: var(--control-height-md, 44px);
+  padding: 0;
+}
+
+/* 본문 2단 — 카드 중첩 없이 구분선으로만 나눔 */
+.lsm-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  height: min(440px, 56vh);
+  min-height: 0;
+  border-top: 1px solid var(--border-cozy);
+  border-bottom: 1px solid var(--border-cozy);
+  margin: 0 -1.5rem;
+}
+
+.lsm-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.lsm-pane-preview {
+  border-left: 1px solid var(--border-cozy);
+}
+
+.lsm-pane-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem 0.5rem;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.lsm-pane-head-hint {
+  color: var(--text-muted);
+}
+
+/* 결과 목록 — 플레이리스트 곡 목록(TrackRowItem)과 같은 행 스타일 */
+.lsm-result-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.lsm-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease;
+}
+
+.lsm-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lsm-row.is-selected {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lsm-row-texts {
+  flex: 1;
+  min-width: 0;
+}
+
+.lsm-row-title {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+.lsm-row-title span,
+.lsm-row-sub {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lsm-row.is-selected .lsm-row-title {
+  color: var(--text-active);
+}
+
+.lsm-row-applied-icon {
+  flex-shrink: 0;
+  color: var(--primary-warm);
+}
+
+.lsm-row-sub {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.lsm-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.lsm-row-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.lsm-row-label.is-recommended {
+  color: var(--text-secondary);
+}
+
+.lsm-row-label.is-applied {
+  color: var(--primary-warm);
+}
+
+.lsm-row-duration {
+  min-width: 2.2rem;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 미리보기 */
+.lsm-preview-head {
+  padding: 0.875rem 1.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+}
+
+.lsm-preview-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-active);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lsm-preview-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lsm-preview-duration {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.lsm-preview-duration span {
+  color: var(--text-muted);
+}
+
+.lsm-preview-lines {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.875rem 1.5rem 1.25rem;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent);
+}
+
+.lsm-preview-lines p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text-primary);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.lsm-preview-lines p.is-gap {
+  line-height: 0.9;
+}
+
+/* 상태 메시지 */
+.lsm-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.lsm-state.is-error {
+  color: var(--error);
+}
+
+.lsm-state-hint {
+  font-size: 11.5px;
+  opacity: 0.8;
+}
+
+.lsm-text-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  font: inherit;
+  font-size: 12px;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* 하단 */
+.lsm-footer {
+  padding: 1.25rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.lsm-footer-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.lsm-footer-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  .lsm-search-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .lsm-field-title {
+    grid-column: 1 / -1;
+  }
+  .lsm-pane-preview {
+    border-left: none;
+    border-top: 1px solid var(--border-cozy);
+  }
+  .lsm-body {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    height: min(560px, 62vh);
+  }
+  .lsm-footer-hint {
+    display: none;
+  }
+}
