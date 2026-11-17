@@ -121,6 +121,7 @@ export default function VolumePopover({
       {/* 수직형 볼륨 컨트롤 바 */}
       <div
         className={`volume-vertical-panel volume-vertical-popover ${showVolumeSlider ? "show" : ""}`}
+        data-particle-occluder=""
         onMouseEnter={handlePanelEnter}
         onMouseLeave={handlePanelLeave}
       >

@@ -43,6 +43,11 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
+.mini-player-container.in-vinyl.show {
+  /* 등장 애니메이션 끝 값과 같게 두어, 사이드바로 돌아갈 때 transform 이 끊기지 않고 transition 으로 줄어들게 함 */
+  transform: scale(1.05);
+}
+
 .mini-player-container.in-vinyl.show:hover {
   box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
 }
@@ -93,22 +98,6 @@
 /* 유튜브 iframe 자체의 마우스 호버 및 클릭 반응 제거 */
 #youtube-iframe-container {
   pointer-events: none !important;
-}
-
-/* 미니 플레이어 닫기(페이드아웃/축소) 애니메이션 */
-.mini-player-container.in-vinyl.hiding {
-  animation: scaleDownFadeOut 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-}
-
-@keyframes scaleDownFadeOut {
-  from {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.8);
-  }
 }
 
 /* 모바일 뷰포트(768px 이하)에서는 미니 플레이어 및 LP 비닐 영상 강제 숨김 */
