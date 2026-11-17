@@ -476,81 +476,6 @@
 }
 
 /* Lyrics Modal Editor */
-.lyrics-editor-modal-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.lyrics-editor-modal-container .editor-info-bar {
-  font-size: 11px;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.lyrics-editor-modal-container .lyrics-textarea {
-  width: 100%;
-  height: 250px;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 0.85rem;
-  color: var(--text-primary);
-  font-family: monospace;
-  font-size: 12.5px;
-  line-height: 1.6;
-  outline: none;
-  resize: vertical;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease;
-}
-
-.lyrics-editor-modal-container .lyrics-textarea:focus {
-  border-color: var(--primary-warm, #d4a373);
-}
-
-.lyrics-editor-modal-container .editor-actions-row {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.btn-small-secondary {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--text-secondary);
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-small-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-}
-
-.btn-small-primary {
-  background: var(--primary-warm);
-  border: none;
-  color: #1a1512;
-  padding: 0.4rem 0.9rem;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.btn-small-primary:hover {
-  background: var(--primary-warm-hover);
-}
-
 /* ── 가사 싱크 조절바 좌우 설정/확장 버튼 ── */
 .sync-bar-side-btn {
   background: transparent;
@@ -713,12 +638,18 @@
   color: var(--primary-warm) !important;
 }
 
-.sync-bar-side-btn.is-fallback-warn {
-  color: #f59e0b;
+/* 정확도 낮은 자동 매칭 가사일 때 '다시 찾기' 버튼 강조 */
+.sync-bar-side-btn.is-low-confidence {
+  color: var(--primary-warm);
 }
 
-.sync-bar-side-btn.is-fallback-warn:hover {
-  color: #fbbf24 !important;
+.sync-bar-side-btn.is-low-confidence:hover {
+  color: var(--primary-warm-hover) !important;
+}
+
+.sync-bar-side-btn.is-busy,
+.sync-bar-side-btn:disabled {
+  cursor: default;
 }
 
 .sync-target-btn {
@@ -756,95 +687,6 @@
   font-size: 13px;
 }
 
-/* 가사 검색 모달 관련 스타일 */
-.lyrics-search-modal-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1.125rem;
-  max-height: 520px;
-  min-width: 320px;
-  text-align: left;
-}
-
-.lyrics-search-input-row {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
-}
-
-.lyrics-search-input-wrapper {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.lyrics-search-input-icon {
-  position: absolute;
-  left: 0.875rem;
-  color: var(--text-muted);
-  pointer-events: none;
-  transition: color 0.2s ease;
-}
-
-.lyrics-search-input-wrapper:focus-within .lyrics-search-input-icon {
-  color: var(--primary-warm, #d4a373);
-}
-
-.lyrics-search-input {
-  width: 100%;
-  padding: 0.65rem 0.875rem 0.65rem 2.4rem;
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  outline: none;
-  box-sizing: border-box;
-  transition: all 0.2s ease;
-}
-
-.lyrics-search-input:focus {
-  border-color: var(--primary-warm, #d4a373);
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: 0 0 0 3px rgba(212, 163, 115, 0.15);
-}
-
-.lyrics-search-btn {
-  display: inline-flex;
-  align-items: center;
-  white-space: nowrap;
-}
-
-.lyrics-search-reset-btn {
-  align-self: flex-start;
-  align-items: center;
-}
-
-.lyrics-search-results-list {
-  flex: 1;
-  overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 0.85rem;
-  max-height: 380px;
-  padding-right: 4px;
-}
-
-.lyrics-search-message {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  text-align: center;
-  padding: 3rem 1rem;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.lyrics-search-message.error {
-  color: #ff6b6b;
-}
-
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -854,122 +696,17 @@
   animation: spin 1s linear infinite;
 }
 
-.lyric-search-item {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 1rem;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  transition: var(--transition-fast);
-  text-align: left;
+/* ── 가사 하단 버튼 줄 가독성 ──
+   배경 이미지 위에 떠 있으므로 항상 아주 약한 그림자로 배경과 분리.
+   밝은 배경에서의 색 보정은 NowPlayingBackdrop.css(np-contrast-lyrics)에서 처리 */
+.sync-bar-side-btn svg,
+.lyrics-empty-btn svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 }
 
-.lyric-search-item:hover {
-  border: 1px solid var(--text-muted);
+.sync-adjust-btn,
+.sync-value,
+.sync-bar-placeholder-text {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
-.lyric-search-item-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.lyric-search-item-title-group {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.lyric-search-item-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lyric-search-item-artist {
-  font-size: 12px;
-  color: var(--text-secondary);
-  opacity: 0.75;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.lyric-search-badge {
-  font-size: 10px;
-  font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.lyric-search-badge.synced {
-  color: var(--primary-warm);
-}
-
-.lyric-search-badge.plain {
-  color: var(--text-muted);
-}
-
-/* 가사 미리보기 박스 */
-.lyric-search-item-preview {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  padding: 0.6rem 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-height: 3.6rem;
-  justify-content: center;
-}
-
-.lyric-preview-line {
-  font-size: 11.5px;
-  color: var(--text-secondary);
-  line-height: 1.45;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: 0.85;
-}
-
-.lyric-preview-empty {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-style: italic;
-  text-align: center;
-}
-
-
-
-/* 가사 편집 모달 관련 추가 스타일 */
-.editor-info-text {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.lyrics-file-select-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 11px;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.lyrics-hidden-input {
-  display: none;
-}

@@ -1,196 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { parseLRC } from '../utils/lrcParser';
 import { supabase } from '../contexts/AuthContext';
 import { thumbnailCache } from '../utils/thumbnailCache';
-
-/**
- * 곡 제목 정제 헬퍼 함수 (괄호 안의 Remake, Cover, Ver, Feat 등 수식어 및 대괄호 태그 제거)
- */
-export function getCleanTitle(title) {
-  if (!title) return '';
-  let cleaned = title;
-
-  // 1. 대괄호/특수 괄호 태그 제거 (예: [MV], [4K], 【MV】, [Official], [Audio], [가사] 등)
-  cleaned = cleaned.replace(/[\[【〔][^\]】〕]*[\]】〕]/g, ' ');
-
-  // 2. 비디오/수식어 관련 일반 괄호 제거
-  cleaned = cleaned.replace(/\s*\([^)]*(?:MV|M\/V|Video|Audio|Official|Lyrics|가사|자막|Remake|Cover|Remaster|Version|Ver\.|Edit|Acoustic|Live|Feat|with|Prod|Session|Special|Clip|Performance|Visualizer|Teaser)[^)]*\)/gi, ' ');
-
-  // 3. 언더스코어, 파이프, 대시 뒤의 수식어 제거
-  cleaned = cleaned.replace(/\s*[\|_]\s*(?:MV|M\/V|Music\s+Video|Official|Audio|Video).*/gi, ' ');
-  cleaned = cleaned.replace(/\s*-\s*(?:Remake|Cover|Remaster|Version|Ver\.|Edit|Acoustic|Live|Feat\.|Feat|with|MV|M\/V|Music\s+Video|Official\s+Video|Official\s+M\/V|Official\s+MV|Official\s+Audio|Official|Audio|Lyrics|가사|자막).*/gi, ' ');
-
-  // 4. 단독 키워드 제거
-  cleaned = cleaned.replace(/\b(?:MV|M\/V|Music\s+Video|Official\s+Video|Official\s+M\/V|Official\s+MV|Official\s+Audio|Official\s+Visualizer)\b/gi, ' ');
-
-  // 5. 따옴표 및 특수기호 정리
-  cleaned = cleaned.replace(/['"“”‘’`]/g, '');
-
-  // 6. 다중 공백 정리
-  return cleaned.replace(/\s+/g, ' ').trim();
-}
-
-/**
- * 아티스트명 정제 헬퍼 함수
- */
-export function getCleanArtist(artist) {
-  if (!artist) return '';
-  let cleaned = artist;
-  // 괄호 속 부가 정보 및 특수문자 정리
-  cleaned = cleaned.replace(/\s*[\(\[][^)\]]*[\)\]]/g, ' ');
-  cleaned = cleaned.replace(/['"“”‘’`]/g, '');
-  return cleaned.replace(/\s+/g, ' ').trim();
-}
-
-/**
- * 문자열 비교용 정규화 (공백, 특수문자 제거, 소문자화, NFC 정규화)
- */
-export function normalizeForCompare(str) {
-  if (!str) return '';
-  return str
-    .toLowerCase()
-    .normalize('NFC')
-    .replace(/[^\p{L}\p{N}]/gu, '')
-    .trim();
-}
-
-/**
- * 두 문자열 간의 유사도 점수 (0.0 ~ 1.0)
- */
-export function calculateTextSimilarity(a, b) {
-  const normA = normalizeForCompare(a);
-  const normB = normalizeForCompare(b);
-
-  if (!normA || !normB) return 0;
-  if (normA === normB) return 1.0;
-
-  // 한쪽이 다른 쪽에 완전히 포함되어 있는 경우 (길이 비율 반영)
-  if (normA.includes(normB) || normB.includes(normA)) {
-    const minLen = Math.min(normA.length, normB.length);
-    const maxLen = Math.max(normA.length, normB.length);
-    return 0.7 + 0.3 * (minLen / maxLen);
-  }
-
-  // bigram (2글자 단위) 유사도 계산
-  if (normA.length >= 2 && normB.length >= 2) {
-    const getBigrams = (s) => {
-      const set = new Set();
-      for (let i = 0; i < s.length - 1; i++) {
-        set.add(s.slice(i, i + 2));
-      }
-      return set;
-    };
-    const bgA = getBigrams(normA);
-    const bgB = getBigrams(normB);
-    let intersection = 0;
-    for (const bg of bgA) {
-      if (bgB.has(bg)) intersection++;
-    }
-    const union = bgA.size + bgB.size - intersection;
-    return union > 0 ? intersection / union : 0;
-  }
-
-  return 0;
-}
-
-/**
- * 가사 후보의 적합도 점수 평가 (0.0 ~ 1.0+)
- * - 제목/아티스트 유사도가 기준 미달이거나 무관한 곡은 0점 반환하여 오매칭을 원천 차단
- */
-export function evaluateLyricCandidate(candidate, targetTitle, targetArtist) {
-  if (!candidate) return 0;
-  const candLyrics = candidate.syncedLyrics || candidate.plainLyrics || '';
-  if (!candLyrics.trim()) return 0;
-
-  const candTitle = candidate.trackName || candidate.title || '';
-  const candArtist = candidate.artistName || candidate.artist || '';
-
-  const cleanTargetTitle = getCleanTitle(targetTitle);
-  const cleanCandTitle = getCleanTitle(candTitle);
-
-  const cleanTargetArtist = getCleanArtist(targetArtist);
-  const cleanCandArtist = getCleanArtist(candArtist);
-
-  const titleScore = calculateTextSimilarity(cleanTargetTitle, cleanCandTitle);
-  const artistScore = calculateTextSimilarity(cleanTargetArtist, cleanCandArtist);
-
-  // 1. 제목 유사도가 너무 낮으면 (0.45 미만) 즉시 탈락
-  if (titleScore < 0.45) {
-    return 0;
-  }
-
-  // 2. 원곡 아티스트가 확실히 있는데 후보 아티스트와 전혀 다르고 제목도 완전 일치(0.95)가 아니면 탈락
-  const normTargetArtist = normalizeForCompare(cleanTargetArtist);
-  if (normTargetArtist && artistScore < 0.3 && titleScore < 0.95) {
-    return 0;
-  }
-
-  // 3. 언어 적합도 검증 (원곡 제목/아티스트에 한글이 포함된 곡인데 가사에 한글이 전혀 없는 경우)
-  const isTargetKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(cleanTargetTitle) || /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(cleanTargetArtist);
-  const candHasKorean = /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(candLyrics);
-  if (isTargetKorean && !candHasKorean) {
-    if (titleScore < 0.95 || (normTargetArtist && artistScore < 0.6)) {
-      return 0;
-    }
-  }
-
-  // 4. 점수 가중치 합산
-  let baseScore;
-  if (!normTargetArtist) {
-    baseScore = titleScore;
-  } else {
-    baseScore = (titleScore * 0.65) + (artistScore * 0.35);
-  }
-
-  // 5. 싱크 가사 보너스 (+0.1)
-  if (candidate.syncedLyrics) {
-    baseScore += 0.1;
-  }
-
-  return baseScore;
-}
-
-/**
- * 자동 가사 매칭 및 수동 검색 모달에서 사용할 정제된 검색어 생성 함수
- */
-export function getLyricsSearchQuery(title = '', artist = '') {
-  let cleanT = getCleanTitle(title);
-  let cleanA = getCleanArtist(artist);
-
-  if (!cleanT && !cleanA) return '';
-
-  // 만약 제목에 ' - '가 포함되어 있고 아티스트가 제목 앞뒤에 포함되어 있다면 분리
-  if (cleanT.includes(' - ')) {
-    const parts = cleanT.split(' - ').map(p => p.trim()).filter(Boolean);
-    if (parts.length === 2) {
-      const [part1, part2] = parts;
-      if (cleanA && (part1.toLowerCase() === cleanA.toLowerCase() || part1.toLowerCase().includes(cleanA.toLowerCase()))) {
-        cleanT = part2;
-      } else if (cleanA && (part2.toLowerCase() === cleanA.toLowerCase() || part2.toLowerCase().includes(cleanA.toLowerCase()))) {
-        cleanT = part1;
-      } else if (!cleanA) {
-        return `${part2} ${part1}`.trim();
-      }
-    }
-  }
-
-  // cleanT에 이미 cleanA가 포함되어 있는지 확인 (대소문자 무시)
-  if (cleanA && cleanT.toLowerCase().includes(cleanA.toLowerCase())) {
-    return cleanT;
-  }
-
-  if (!cleanA) return cleanT;
-  if (!cleanT) return cleanA;
-
-  return `${cleanT} ${cleanA}`.trim();
-}
+import { getCleanTitle, getCleanArtist, findBestLyrics, getLyricsDedupeKey } from '../utils/lyricsSearch';
 
 const CLIENT_LYRICS_CACHE = new Map();
 const LYRICS_SESSION_KEY_PREFIX = 'sofar_lyrics_cache_';
 
+function getClientCacheKey(title, artist) {
+  return `${getCleanTitle(title)}___${getCleanArtist(artist || '')}`.toLowerCase();
+}
+
 function getClientLyricCache(title, artist) {
   if (!title) return null;
-  const key = `${getCleanTitle(title)}___${getCleanArtist(artist || '')}`.toLowerCase();
+  const key = getClientCacheKey(title, artist);
   if (CLIENT_LYRICS_CACHE.has(key)) {
     return CLIENT_LYRICS_CACHE.get(key);
   }
@@ -207,20 +30,82 @@ function getClientLyricCache(title, artist) {
 
 function setClientLyricCache(title, artist, data) {
   if (!title) return;
-  const key = `${getCleanTitle(title)}___${getCleanArtist(artist || '')}`.toLowerCase();
+  const key = getClientCacheKey(title, artist);
   CLIENT_LYRICS_CACHE.set(key, data);
   try {
     sessionStorage.setItem(`${LYRICS_SESSION_KEY_PREFIX}${key}`, JSON.stringify(data));
   } catch (e) {}
 }
 
+// ─────────────────────────────────────────────
+// Supabase 공용 가사 캐시 (lyric_caches)
+// raw_lrc 앞에 [artwork:..], [is_fallback:true] 메타 줄을 붙여 저장한다.
+// ─────────────────────────────────────────────
+
+async function readServerCache(title, artist) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('lyric_caches')
+      .select('raw_lrc')
+      .eq('artist', artist)
+      .eq('title', title)
+      .maybeSingle();
+    if (error || !data?.raw_lrc) return null;
+
+    let lrc = data.raw_lrc;
+    let isFallback = false;
+    let artwork = null;
+    // 메타 줄 순서와 상관없이 앞에서부터 벗겨낸다
+    for (;;) {
+      const artworkMatch = lrc.match(/^\[artwork:(https?:\/\/[^\]]+)\]\n?/);
+      if (artworkMatch) {
+        artwork = artworkMatch[1];
+        lrc = lrc.slice(artworkMatch[0].length);
+        continue;
+      }
+      const fallbackMatch = lrc.match(/^\[is_fallback:true\]\n?/);
+      if (fallbackMatch) {
+        isFallback = true;
+        lrc = lrc.slice(fallbackMatch[0].length);
+        continue;
+      }
+      break;
+    }
+    return { lyrics: lrc, isFallback, artwork };
+  } catch (err) {
+    console.warn('Supabase Lyric Cache Query Warn:', err);
+    return null;
+  }
+}
+
+async function writeServerCache(title, artist, lyrics, isFallback, artwork) {
+  if (!supabase) return;
+  let raw = lyrics;
+  if (isFallback) raw = `[is_fallback:true]\n${raw}`;
+  if (artwork) raw = `[artwork:${artwork}]\n${raw}`;
+  try {
+    await supabase.from('lyric_caches').delete().eq('artist', artist).eq('title', title);
+    await supabase.from('lyric_caches').insert({ artist, title, raw_lrc: raw });
+  } catch (err) {
+    console.warn('Supabase Lyric Cache Update Error:', err);
+  }
+}
+
 /**
- * LRCLIB API를 이용해 가사를 가져오고 영구 캐싱 및 스마트 백그라운드 재검증(Stale-While-Revalidate)을 적용하는 커스텀 훅
- * @param {string} title 
- * @param {string} artist 
- * @param {string} customLyrics - 사용자가 직접 입력한 가사 (있을 경우 최우선)
+ * 곡 가사를 가져오는 훅
+ * 조회 순서: 세션 캐시 → Supabase 공용 캐시 → LRCLIB
+ * (공용 캐시가 '정확도 낮음' 상태면 먼저 보여주고 뒤에서 LRCLIB로 더 나은 결과를 찾는다)
+ *
+ * @param {string} title
+ * @param {string} artist
+ * @param {string} customLyrics - 사용자가 직접 지정한 가사 (있으면 최우선)
+ * @param {number} duration - 곡 길이(초). 후보 적합도 계산에 사용
+ * @returns {{ lyrics, rawLrc, loading, error, isFallback, isRematching, rematchLyrics }}
+ *   rematchLyrics(): 캐시를 건너뛰고 가사를 다시 찾는다.
+ *     결과: 'updated' | 'confirmed' | 'same' | 'notfound' | 'error' | 'skipped'
  */
-export function useLyrics(title, artist, customLyrics = null) {
+export function useLyrics(title, artist, customLyrics = null, duration = 0) {
   const initialCache = (!customLyrics && title) ? getClientLyricCache(title, artist) : null;
   const [lyrics, setLyrics] = useState(() => {
     if (customLyrics) return parseLRC(customLyrics);
@@ -231,247 +116,171 @@ export function useLyrics(title, artist, customLyrics = null) {
   const [loading, setLoading] = useState(() => Boolean(title && !customLyrics && !initialCache));
   const [error, setError] = useState(null);
   const [isFallback, setIsFallback] = useState(() => initialCache?.isFallback || false);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isRematching, setIsRematching] = useState(false);
 
-  const refetchLyrics = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
+  // 다시 찾기(비동기)에서 최신 값을 참조하기 위한 ref
+  const latestRef = useRef({});
+  latestRef.current = { title, artist, customLyrics, duration, rawLrc, isFallback };
+  const rematchAbortRef = useRef(null);
+
+  const applyLyrics = useCallback((text, fallback) => {
+    setRawLrc(text);
+    setLyrics(parseLRC(text));
+    setIsFallback(fallback);
+    setError(null);
   }, []);
 
   useEffect(() => {
-    let active = true; // 이전 비동기 요청 완료 처리 방지용 플래그
+    let active = true;
+    const abortController = new AbortController();
 
-    // 1. 수동 가사가 제공된 경우 파싱하여 즉시 적용
+    // 곡이 바뀌면 진행 중인 다시 찾기는 취소
+    rematchAbortRef.current?.abort();
+    setIsRematching(false);
+
     if (customLyrics) {
-      setLyrics(parseLRC(customLyrics));
-      setRawLrc(customLyrics);
+      applyLyrics(customLyrics, false);
       setLoading(false);
-      setError(null);
-      setIsFallback(false);
       return;
     }
 
-    // 곡 정보가 없는 경우 초기화
     if (!title) {
-      setLyrics([]);
-      setRawLrc('');
+      applyLyrics('', false);
       setLoading(false);
-      setError(null);
-      setIsFallback(false);
       return;
     }
 
     const artistName = artist?.trim() || '';
     const titleName = title.trim();
-    const isForceRefresh = refreshTrigger > 0;
 
-    const cached = !isForceRefresh ? getClientLyricCache(titleName, artistName) : null;
+    const cached = getClientLyricCache(titleName, artistName);
     if (cached) {
-      setLyrics(parseLRC(cached.rawLrc));
-      setRawLrc(cached.rawLrc);
-      setIsFallback(cached.isFallback || false);
+      applyLyrics(cached.rawLrc, cached.isFallback || false);
       setLoading(false);
-      setError(null);
       return;
     }
 
     setLoading(true);
-    if (!isForceRefresh) {
-      setLyrics([]);
-      setRawLrc('');
-    }
-    setError(null);
+    applyLyrics('', false);
 
     const fetchLyrics = async () => {
-      setLoading(true);
-      setError(null);
-
       try {
-        let bestLyrics = '';
-        let isFallbackMatched = false;
-        let cachedArtwork = null;
-
-        // [1단계: Supabase 공용 DB 캐시 조회 (강제 새로고침 시 스킵)]
-        if (supabase && !isForceRefresh) {
-          try {
-            const { data: serverCached, error: serverErr } = await supabase
-              .from('lyric_caches')
-              .select('raw_lrc')
-              .eq('artist', artistName)
-              .eq('title', titleName)
-              .maybeSingle();
-
-            if (!serverErr && serverCached && serverCached.raw_lrc) {
-              let lrc = serverCached.raw_lrc;
-              if (lrc.includes('[is_fallback:true]')) {
-                isFallbackMatched = true;
-                lrc = lrc.replace(/^\[is_fallback:true\]\n?/, '');
-              }
-              const artworkMatch = lrc.match(/^\[artwork:(https?:\/\/[^\]]+)\]/);
-              if (artworkMatch) {
-                cachedArtwork = artworkMatch[1];
-                thumbnailCache.set(artistName, titleName, cachedArtwork);
-                lrc = lrc.replace(/^\[artwork:[^\]]+\]\n?/, '');
-              }
-              bestLyrics = lrc;
-            }
-          } catch (dbErr) {
-            console.warn('Supabase Lyric Cache Query Warn:', dbErr);
-          }
-        }
-
+        const server = await readServerCache(titleName, artistName);
         if (!active) return;
 
-        // 캐시에 존재하지 않거나, 이전 캐시가 임시/Fallback 매칭이거나, 강제 새로고침 요청인 경우 원본 API(LRCLIB) 라이브 조회
-        const shouldQueryOrigin = !bestLyrics || isFallbackMatched || isForceRefresh;
+        let bestLyrics = server?.lyrics || '';
+        let bestIsFallback = server?.isFallback || false;
+        const artwork = server?.artwork || thumbnailCache.get(artistName, titleName);
+        if (server?.artwork) thumbnailCache.set(artistName, titleName, server.artwork);
 
-        if (shouldQueryOrigin) {
-          // 기존 캐시가 있었지만 임시/Fallback 상태였다면 사용자는 캐시된 가사를 먼저 볼 수 있도록 우선 적용 (Stale-While-Revalidate)
-          if (bestLyrics && !isForceRefresh) {
-            const parsedCached = parseLRC(bestLyrics);
-            setRawLrc(bestLyrics);
-            setLyrics(parsedCached);
-            setIsFallback(true);
-            setLoading(false); // 사용자에게는 빠른 화면 노출
+        // 공용 캐시가 없거나 정확도 낮은 결과면 LRCLIB 조회
+        if (!bestLyrics || bestIsFallback) {
+          if (bestLyrics) {
+            // 정확도 낮은 캐시라도 먼저 보여준다
+            applyLyrics(bestLyrics, true);
+            setLoading(false);
           }
 
-          const cleanTitle = getCleanTitle(title);
-          const encodedTitle = encodeURIComponent(titleName);
-          const encodedArtist = encodeURIComponent(artistName);
-          const encodedCleanTitle = encodeURIComponent(cleanTitle);
-
-          let lookupUrl = `https://lrclib.net/api/lookup?track=${encodedTitle}`;
-          if (encodedArtist) {
-            lookupUrl += `&artist=${encodedArtist}`;
-          }
-          const searchUrl = `https://lrclib.net/api/search?q=${encodedTitle}${encodedArtist ? '+' + encodedArtist : ''}`;
-
-          const [lookupRes, searchRes] = await Promise.all([
-            fetch(lookupUrl).then(r => r.ok ? r.json() : null).catch(() => null),
-            fetch(searchUrl).then(r => r.ok ? r.json() : null).catch(() => null)
-          ]);
-
+          const best = await findBestLyrics(
+            { title: titleName, artist: artistName, duration },
+            { signal: abortController.signal }
+          ).catch((fetchErr) => {
+            if (fetchErr?.name === 'AbortError') throw fetchErr;
+            console.warn('LRCLIB lookup failed:', fetchErr);
+            return null;
+          });
           if (!active) return;
 
-          // 1. 후보 수집 (Lookup 및 검색 결과)
-          const allCandidates = [];
-          if (lookupRes && (lookupRes.syncedLyrics || lookupRes.plainLyrics)) {
-            allCandidates.push(lookupRes);
-          }
-          if (Array.isArray(searchRes) && searchRes.length > 0) {
-            allCandidates.push(...searchRes);
-          }
-
-          // 2. 1차 후보군 평가
-          let scoredCandidates = allCandidates
-            .map(cand => ({
-              cand,
-              score: evaluateLyricCandidate(cand, titleName, artistName)
-            }))
-            .filter(item => item.score >= 0.60)
-            .sort((a, b) => b.score - a.score);
-
-          // 3. 만약 1차 후보군 중 적합한 곡(0.60 이상)이 없으면, 정제된 제목으로 fallback 검색 진행
-          if (scoredCandidates.length === 0 && cleanTitle) {
-            const fallbackSearchUrl = `https://lrclib.net/api/search?q=${encodedCleanTitle}`;
-            const fallbackSearchRes = await fetch(fallbackSearchUrl).then(r => r.ok ? r.json() : null).catch(() => null);
-
-            if (!active) return;
-
-            if (Array.isArray(fallbackSearchRes) && fallbackSearchRes.length > 0) {
-              const fallbackScored = fallbackSearchRes
-                .map(cand => ({
-                  cand,
-                  score: evaluateLyricCandidate(cand, titleName, artistName)
-                }))
-                // fallback 검색은 아티스트 없이 검색했으므로 더 엄격한 기준(0.65 이상) 적용
-                .filter(item => item.score >= 0.65)
-                .sort((a, b) => b.score - a.score);
-
-              if (fallbackScored.length > 0) {
-                scoredCandidates = fallbackScored;
-              }
-            }
-          }
-
-          let newBestLyrics = '';
-          let isExactMatch = false;
-          let newIsFallback = false;
-
-          // 4. 기준 점수를 통과한 최우선 후보 선정
-          if (scoredCandidates.length > 0) {
-            const best = scoredCandidates[0];
-            newBestLyrics = best.cand.syncedLyrics || best.cand.plainLyrics || '';
-            if (best.score >= 0.85 && best.cand.syncedLyrics) {
-              isExactMatch = true;
-              newIsFallback = false;
-            } else {
-              newIsFallback = true;
-            }
-          }
-
-          // 고품질 정밀 매칭을 새로 발견했거나, 기존 캐시가 없었던 경우/강제 새로고침 시 가사 업그레이드 및 DB 반영
-          if (newBestLyrics && (isExactMatch || !bestLyrics || isForceRefresh)) {
-            bestLyrics = newBestLyrics;
-            isFallbackMatched = newIsFallback;
-
-            if (supabase) {
-              let lrcToSave = bestLyrics;
-              if (isFallbackMatched) {
-                lrcToSave = `[is_fallback:true]\n${lrcToSave}`;
-              }
-              const cachedArt = cachedArtwork || thumbnailCache.get(artistName, titleName);
-              if (cachedArt) {
-                lrcToSave = `[artwork:${cachedArt}]\n${lrcToSave}`;
-              }
-
-              try {
-                await supabase.from('lyric_caches').delete().eq('artist', artistName).eq('title', titleName);
-                await supabase.from('lyric_caches').insert({
-                  artist: artistName,
-                  title: titleName,
-                  raw_lrc: lrcToSave
-                });
-              } catch (saveErr) {
-                console.warn('Supabase Lyric Cache Update Error:', saveErr);
-              }
-            }
+          // 기존 캐시가 없었거나, 더 정확한 결과를 찾았을 때만 교체
+          if (best && (!bestLyrics || !best.isFallback)) {
+            bestLyrics = best.lyrics;
+            bestIsFallback = best.isFallback;
+            writeServerCache(titleName, artistName, bestLyrics, bestIsFallback, artwork);
           }
         }
 
         if (!active) return;
+        if (!bestLyrics) throw new Error('가사를 찾을 수 없습니다.');
 
-        if (!bestLyrics) {
-          throw new Error('가사를 찾을 수 없습니다.');
-        }
-
-        const parsed = parseLRC(bestLyrics);
-        setRawLrc(bestLyrics);
-        setLyrics(parsed);
-        setIsFallback(isFallbackMatched);
-        setClientLyricCache(titleName, artistName, { rawLrc: bestLyrics, isFallback: isFallbackMatched });
+        applyLyrics(bestLyrics, bestIsFallback);
+        setClientLyricCache(titleName, artistName, { rawLrc: bestLyrics, isFallback: bestIsFallback });
       } catch (err) {
-        if (!active) return;
+        if (!active || err?.name === 'AbortError') return;
         console.error('Lyrics Fetch Error:', err);
+        applyLyrics('', false); // applyLyrics가 error를 초기화하므로 먼저 호출
         setError(err.message || '가사 로드 중 오류가 발생했습니다.');
-        setLyrics([]);
-        setRawLrc('');
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     };
 
-    const timer = setTimeout(() => {
-      fetchLyrics();
-    }, 120);
+    const timer = setTimeout(fetchLyrics, 120);
 
     return () => {
       active = false;
+      abortController.abort();
       clearTimeout(timer);
     };
-  }, [title, artist, customLyrics, refreshTrigger]);
+    // duration은 곡 단위 메타데이터라 의존성에서 제외 (값이 늦게 채워져도 재조회하지 않음)
+  }, [title, artist, customLyrics, applyLyrics]);
 
-  return { lyrics, rawLrc, loading, error, isFallback, refetchLyrics };
+  /**
+   * 가사 다시 찾기 — 캐시를 건너뛰고 LRCLIB에서 새로 찾는다.
+   * 지금 보이는 가사는 유지한 채 진행하고, 더 나은 결과가 있을 때만 교체한다.
+   */
+  const rematchLyrics = useCallback(async () => {
+    const { title: t, artist: a, customLyrics: custom, duration: dur } = latestRef.current;
+    if (!t || custom) return 'skipped';
+
+    rematchAbortRef.current?.abort();
+    const controller = new AbortController();
+    rematchAbortRef.current = controller;
+    setIsRematching(true);
+
+    const titleName = t.trim();
+    const artistName = a?.trim() || '';
+
+    try {
+      const best = await findBestLyrics(
+        { title: titleName, artist: artistName, duration: dur },
+        { signal: controller.signal, fresh: true }
+      );
+      if (controller.signal.aborted) return 'skipped';
+      if (!best) return 'notfound';
+
+      const { rawLrc: current, isFallback: currentIsFallback } = latestRef.current;
+      const isSame = Boolean(current) && getLyricsDedupeKey({ syncedLyrics: current }) === getLyricsDedupeKey({ syncedLyrics: best.lyrics });
+
+      // 이미 정확히 매칭된 가사는 유지 (LRCLIB에는 같은 곡이 문구만 조금 다른 레코드로 여럿 있어 바꿔봐야 의미가 없음)
+      // 교체는 가사가 없었거나 정확도 낮은 가사였을 때만
+      const shouldReplace = !isSame && (!current || currentIsFallback);
+
+      if (!shouldReplace) {
+        if (isSame && currentIsFallback && !best.isFallback) {
+          // 같은 가사가 이번에 정확한 매칭으로 확인됨 → 상태만 갱신
+          setIsFallback(false);
+          setClientLyricCache(titleName, artistName, { rawLrc: current, isFallback: false });
+          writeServerCache(titleName, artistName, current, false, thumbnailCache.get(artistName, titleName));
+          return 'confirmed';
+        }
+        return 'same';
+      }
+
+      applyLyrics(best.lyrics, best.isFallback);
+      setClientLyricCache(titleName, artistName, { rawLrc: best.lyrics, isFallback: best.isFallback });
+      writeServerCache(titleName, artistName, best.lyrics, best.isFallback, thumbnailCache.get(artistName, titleName));
+      return 'updated';
+    } catch (err) {
+      if (err?.name === 'AbortError') return 'skipped';
+      console.warn('Lyrics rematch failed:', err);
+      return 'error';
+    } finally {
+      if (rematchAbortRef.current === controller) {
+        rematchAbortRef.current = null;
+        setIsRematching(false);
+      }
+    }
+  }, [applyLyrics]);
+
+  return { lyrics, rawLrc, loading, error, isFallback, isRematching, rematchLyrics };
 }
-

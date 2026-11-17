@@ -47,6 +47,29 @@
   transition: opacity 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
+/* 스크롤을 내렸을 때 상단 항목이 헤더 아래에서 잘려 보이지 않도록 위쪽에도 페이드 적용.
+   스크롤 위치에 따라 0 → 28px로 커지므로 맨 위에서는 첫 항목이 흐려지지 않는다. */
+@supports (animation-timeline: scroll()) {
+  @property --list-top-fade {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0px;
+  }
+
+  @keyframes track-list-top-fade {
+    from { --list-top-fade: 0px; }
+    to { --list-top-fade: 28px; }
+  }
+
+  .track-item-list {
+    mask-image: linear-gradient(to bottom, transparent 0, black var(--list-top-fade), black calc(100% - 80px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, black var(--list-top-fade), black calc(100% - 80px), transparent 100%);
+    animation: track-list-top-fade linear both;
+    animation-timeline: scroll(self);
+    animation-range: 0 40px;
+  }
+}
+
 /* 뷰 전환 시: 스크롤 완료 전까지 트랜지션 없이 즉시(0ms) 투명화하여 스크롤 튀는 현상 완전 차단 */
 .track-item-list.track-list-pre-scroll {
   opacity: 0 !important;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import DEFAULT_COVER from '../../assets/sofar-default-cover.svg';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Play, Pause, SkipForward, SkipBack, 
@@ -21,11 +22,14 @@ import { formatArtistName } from '../../utils/trackUtils';
 import { Modal, Button, Input, Dropdown } from '../ui';
 import './Player.css';
 
+// 곡 목록(formatDuration)과 같은 m:ss 형식으로 표시 (1시간 이상은 h:mm:ss)
 function formatTime(seconds) {
-  if (isNaN(seconds)) return '00:00';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
+  const total = Math.floor(seconds);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = String(total % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 }
 
 export default function Player() {
@@ -154,7 +158,7 @@ export default function Player() {
       }
     }
     // 최후의 플레이스홀더 (유튜브 영상 썸네일은 앨범 자켓으로 사용하지 않음)
-    return 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=80&h=80&q=80';
+    return DEFAULT_COVER;
   };
 
   // 키보드 단축키를 위한 최신 상태 및 함수 저장용 Ref (이벤트 리스너의 잦은 재생성 방지)

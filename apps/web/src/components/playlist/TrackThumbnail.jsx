@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { isUsableArtwork, thumbnailCache } from '../../utils/thumbnailCache';
-import { Music } from 'lucide-react';
+import { isUsableArtwork, isYoutubePlaceholderImage, thumbnailCache } from '../../utils/thumbnailCache';
+import sofarLogo from '@sofar/assets/sofar-logo.svg';
 import './TrackThumbnail.css';
 
 /**
@@ -60,11 +60,15 @@ export default function TrackThumbnail({ title, artist, youtubeId, artwork }) {
           src={finalSrc} 
           alt="" 
           onError={() => setHasError(true)}
+          onLoad={(e) => {
+            // 유튜브는 없는/삭제된 영상에도 회색 "…" 이미지를 정상 응답처럼 보내므로 onError가 실행되지 않는다
+            if (isYoutubePlaceholderImage(e.currentTarget)) setHasError(true);
+          }}
           className="thumbnail-disk-img"
         />
       ) : (
         <div className="thumbnail-disk-img thumbnail-disk-fallback" title={`${title} - ${artist}`}>
-          <Music size={14} className="empty-cell-icon" />
+          <img src={sofarLogo} alt="" className="thumbnail-fallback-logo" />
         </div>
       )}
     </div>
