@@ -642,28 +642,12 @@ image {
   z-index: 110;
   cursor: pointer;
 
-  /* 오른쪽 아래 캡슐 버튼(UI 숨기기)과 같은 형태로 맞춰 기능이 드러나도록 라벨 표시 */
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.85rem;
-  border-radius: 999px;
-  background: var(--bg-popover);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-family: inherit;
-  transition: color 0.15s ease, border-color 0.15s ease;
-
   /* 등장 시 아래에서 위로 올라오는 애니메이션 */
   animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.main-youtube-btn:hover {
-  color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.25);
+.main-youtube-btn:hover:not(:disabled) {
+  color: #ff0000 !important;
 }
 
 /* ── 노래 일치 여부 매칭 피드백 ── */
@@ -698,6 +682,16 @@ image {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  /* 캡슐 높이를 고정해 '노래가 일치하나요?' 유무와 관계없이 UI 숨기기 버튼 위치가 같도록 함 */
+  --np-capsule-height: 2.125rem;
+}
+
+.main-bottom-right-actions > .main-match-feedback,
+.main-bottom-right-actions > .main-hide-ui-btn {
+  box-sizing: border-box;
+  height: var(--np-capsule-height);
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .main-bottom-right-actions .main-match-feedback {
