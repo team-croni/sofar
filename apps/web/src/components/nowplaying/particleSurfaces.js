@@ -19,6 +19,10 @@ export const SURFACE_INTERACTION_ENABLED = true;
 const SURFACE_SELECTOR = '[data-particle-surface]';
 // 콘텐츠보다 위에 떠 있는 불투명한 UI(하단 컨트롤러 · 볼륨 팝오버 · 드롭다운 메뉴 등): 앞쪽 캔버스가 이 영역 위로는 그리지 않음
 const OCCLUDER_SELECTOR = '[data-particle-occluder]';
+// <html>에 이 클래스가 있는 동안(가사 확장 등) 효과를 쉬게 함: 캔버스는 CSS로 페이드아웃되고,
+// 새로 쌓이지 않으며, 페이드가 끝나면 쌓인 것을 모두 비워 다시 나타날 때 처음부터 쌓이게 함
+export const PARTICLES_SUSPENDED_CLASS = 'np-particles-suspended';
+const SUSPEND_CLEAR_DELAY_MS = 350; // NowPlayingBackdrop.css의 캔버스 페이드(0.3s)가 끝난 뒤
 // LP판 회전 속도 (VinylPlayer.css spinRecord 11s 기준, 프레임당 라디안)
 const DISC_SPIN_PER_FRAME = (Math.PI * 2) / (11 * 60);
 const SHAKE_PX = 8; // 한 프레임에 이만큼 넘게 갑자기 움직이면 쌓인 것을 조금 털어냄
@@ -195,6 +199,26 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
   let occluderEls = [];
   let occluderRects = []; // 불투명한 가림 영역 (아예 그리지 않음)
   let fadingOccluders = []; // 열리고 닫히며 반투명한 가림 영역 { r, a } (투명도만큼만 지움)
+  let suspended = false;
+  let suspendedAt = 0;
+  let suspendCleared = false;
+
+  // 쉬는 중인지 갱신하고, 페이드아웃이 끝났으면 쌓인 것과 흩어지는 입자를 모두 비움
+  function updateSuspended() {
+    suspended = document.documentElement.classList.contains(PARTICLES_SUSPENDED_CLASS);
+    if (!suspended) {
+      suspendedAt = 0;
+      suspendCleared = false;
+      return;
+    }
+    const now = performance.now();
+    if (!suspendedAt) suspendedAt = now;
+    if (!suspendCleared && now - suspendedAt >= SUSPEND_CLEAR_DELAY_MS) {
+      surfaces.forEach(clearSurface);
+      debris.length = 0;
+      suspendCleared = true;
+    }
+  }
 
   function rescan() {
     const found = new Set(document.querySelectorAll(SURFACE_SELECTOR));
@@ -378,7 +402,7 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
    * @returns {boolean} 착지했으면 true (호출 측은 파티클을 다시 위에서 생성)
    */
   function tryLand(p, prevY, size, skip = null) {
-    if (p.y <= prevY) return false;
+    if (suspended || p.y <= prevY) return false;
     let best = null;
     let bestY = Infinity;
     let bestLx = 0;
@@ -868,6 +892,7 @@ export function createSurfaceSystem(effect, canvas, sprites, opts = {}) {
     const { speed, wind } = opts;
     frame++;
     if (frame % 30 === 1) rescan();
+    updateSuspended();
     measure(dt);
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

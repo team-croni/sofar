@@ -163,7 +163,6 @@ function HomePage() {
     isMatchFeedbackLoading
   } = useAudio();
   const location = useLocation();
-  const { isUiHidden } = useHideUi();
   const contentRef = React.useRef(null);
   const isSearchPage = location.pathname === '/search';
   const isNowPlayingPage = location.pathname === '/now' || location.pathname === '/now-playing';
@@ -214,7 +213,7 @@ function HomePage() {
         </div>
 
         {/* UI 숨기기 중: 왼쪽 위(숨겨진 헤더 자리)에 sofar 로고 */}
-        {isNowPlayingPage && isUiHidden && (
+        {isNowPlayingPage && (
           <div className="np-brand-mark" aria-hidden="true">
             <Logo iconSize={20} titleSize="1.3rem" onClick={(e) => e.preventDefault()} />
           </div>

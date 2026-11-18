@@ -68,11 +68,20 @@
   -webkit-backdrop-filter: none !important;
 }
 
-/* Lyrics Wrapper (holds layout footprint in the document flow) */
+/* Lyrics Wrapper (holds layout footprint in the document flow)
+   축소 모드 가사 영역 높이는 '줄 수' 기준 (가사 한 줄 ≈ 33px)
+   - 큰 창에서도 5줄(165px)까지만, 낮은 창에서는 4줄(132px)까지 줄어듦
+   - 싱크 바(호버 시 노출)가 가사와 겹치지 않도록 가사 아래에 자리를 비워 둠 (--lyrics-toolbar-space)
+     싱크 바 높이는 4.25rem이지만 아이콘은 바 가운데에 있어서, 바 윗부분은 가사의 흐린 맨 아랫줄과 겹쳐도 됨.
+     3rem이면 가사 영역이 아이콘 바로 위에서 끝남 (5rem이었을 때는 사이가 너무 벌어짐)
+   - 카드 상하 패딩 2.5rem(Card 기본 1.25rem × 2)을 더함 */
 .lyrics-wrapper {
+  --lyrics-view-h: clamp(132px, 20vh, 165px);
+  --lyrics-fade: 40px; /* 위아래 흐려지는 구간: 맨 위 · 맨 아래 줄이 살짝 보이는 정도 */
+  --lyrics-toolbar-space: 3rem;
   width: 100%;
   max-width: 500px;
-  height: calc(18vh + 5rem);
+  height: calc(var(--lyrics-view-h) + var(--lyrics-toolbar-space) + 2.5rem);
   flex-shrink: 0;
   display: block;
 }
@@ -129,7 +138,7 @@
   backdrop-filter: blur(16px) !important;
   -webkit-backdrop-filter: blur(16px);
   border: none !important;
-  border-radius: 0px;
+  border-radius: 0px !important;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
 }
 
@@ -166,19 +175,25 @@
   font-size: 14px;
 }
 
+/* 축소 모드 가사 영역: 카드 높이에서 싱크 바 자리만큼 뺌 (확장 모드는 기본값 5rem 그대로) */
+.lyrics-card.collapsed .lyrics-viewport {
+  height: calc(100% - var(--lyrics-toolbar-space));
+}
+
+/* 흐려지는 구간을 비율(위아래 25%) 대신 고정 길이로: 높이가 달라도 위아래 한 줄씩만 흐리게 */
 .lyrics-card.collapsed .mask-image-vertical {
   mask-image: linear-gradient(
     to bottom,
-    transparent 0%,
-    black 25%,
-    black 75%,
+    transparent 0,
+    black var(--lyrics-fade),
+    black calc(100% - var(--lyrics-fade)),
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
-    transparent 0%,
-    black 25%,
-    black 75%,
+    transparent 0,
+    black var(--lyrics-fade),
+    black calc(100% - var(--lyrics-fade)),
     transparent 100%
   );
 }
@@ -549,22 +564,6 @@
 .sync-bar-side-btn.is-busy,
 .sync-bar-side-btn:disabled {
   cursor: default;
-}
-
-.sync-target-btn {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  margin: 0;
-  overflow: hidden;
-  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              visibility 0.25s;
-}
-
-.sync-target-btn.show {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
 }
 
 /* Raw LRC Line */

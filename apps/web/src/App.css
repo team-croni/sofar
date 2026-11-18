@@ -642,8 +642,9 @@ image {
   z-index: 110;
   cursor: pointer;
 
-  /* 등장 시 아래에서 위로 올라오는 애니메이션 */
-  animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* 등장 시 아래에서 위로 올라오는 애니메이션
+     backwards: forwards로 두면 끝난 뒤에도 opacity를 붙잡아 UI 숨기기 페이드아웃이 동작하지 않음 */
+  animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .main-youtube-btn:hover:not(:disabled) {
@@ -669,8 +670,9 @@ image {
   transition: var(--transition-fast, all 0.1s ease);
   line-height: 0;
 
-  /* 등장 시 아래에서 위로 올라오는 애니메이션 */
-  animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* 등장 시 아래에서 위로 올라오는 애니메이션
+     backwards: forwards로 두면 끝난 뒤에도 opacity를 붙잡아 UI 숨기기 페이드아웃이 동작하지 않음 */
+  animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 /* 오른쪽 아래 플로팅 영역: 노래 일치 캡슐 + UI 숨기기 토글을 가로로 나란히 */
