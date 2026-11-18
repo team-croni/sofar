@@ -89,6 +89,13 @@ export class ChartService implements OnModuleInit {
 
   private youtubeCache = new Map<string, any[]>();
 
+  // 벅스 장르 차트 캐시: 마지막 성공 결과를 보관해 일시적 스크래핑 실패 시 fallback으로 사용
+  private genreChartCache = new Map<
+    string,
+    { at: number; tracks: ChartTrack[] }
+  >();
+  private readonly GENRE_CHART_CACHE_TTL_MS = 30 * 60 * 1000; // 30분
+
   // 국내 음원 검색(Bugs 크롤링) 결과 캐시: 자동완성처럼 짧은 시간에 같은 검색어가 반복되는 요청을 즉시 응답
   private domesticSearchCache = new Map<
     string,
@@ -2519,14 +2526,42 @@ export class ChartService implements OnModuleInit {
     return defaultMeta;
   }
 
-  // Bugs 실시간 장르별 차트 수집 스크래퍼 (nb: 발라드, ndp: 댄스/팝, nrh: 힙합/R&B, nrs: 록/메탈, nid: 인디)
+  // Bugs 실시간 장르별 차트 수집 스크래퍼 (nb: 발라드, ndp: 댄스/팝, nrh: 랩/힙합, nrs: 알앤비/소울, nkrock: 락/메탈, nindie: 인디, nfa: 포크/어쿠스틱, nost: OST)
   async scrapeBugsGenreChart(
     genreCode: string,
     limit: number = 50,
   ): Promise<ChartTrack[]> {
+    const cacheKey = `${genreCode}:${limit}`;
+    const cached = this.genreChartCache.get(cacheKey);
+    if (cached && Date.now() - cached.at < this.GENRE_CHART_CACHE_TTL_MS) {
+      return cached.tracks;
+    }
+
+    const fresh = await this.fetchBugsGenreChart(genreCode, limit);
+    if (fresh.length > 0) {
+      this.genreChartCache.set(cacheKey, { at: Date.now(), tracks: fresh });
+      return fresh;
+    }
+
+    // 벅스 요청이 실패하거나 빈 결과가 오면 마지막으로 성공한 차트를 그대로 사용한다.
+    // (여기서 []를 돌려주면 추천 플레이리스트 전체가 0곡으로 내려간다)
+    if (cached) {
+      this.logger.warn(
+        `[Genre Chart] Bugs scrape for [${genreCode}] returned no tracks, serving last good result.`,
+      );
+      return cached.tracks;
+    }
+    return [];
+  }
+
+  private async fetchBugsGenreChart(
+    genreCode: string,
+    limit: number,
+  ): Promise<ChartTrack[]> {
     try {
       const url = `https://music.bugs.co.kr/chart/track/day/${genreCode}`;
       const response = await fetch(url, {
+        signal: AbortSignal.timeout(10000),
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -2682,7 +2717,7 @@ export class ChartService implements OnModuleInit {
         category: 'genre',
         categoryLabel: '장르별',
         title: '댄스',
-        subtitle: '벅스 댄스/K-POP 장르 차트 50곡',
+        subtitle: '벅스 댄스/팝 장르 차트 50곡',
         cover: '',
         tag: '댄스',
         author: 'sofar',
@@ -2767,7 +2802,8 @@ export class ChartService implements OnModuleInit {
     const dbGenrePlaylists = await this.getApprovedPlaylistsByCategory('genre');
     categoryPlaylists.push(...dbGenrePlaylists);
 
-    return categoryPlaylists;
+    // 스크래핑 실패로 곡이 없는 플레이리스트는 내려보내지 않는다.
+    return categoryPlaylists.filter((p) => p.tracks.length > 0);
   }
 
   /**
