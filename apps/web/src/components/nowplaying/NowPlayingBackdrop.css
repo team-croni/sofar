@@ -171,7 +171,6 @@ html.np-contrast-track .now-playing-container .track-artist {
 
 /* ── UI 숨기기: 사이드바 · 하단 컨트롤러와 레이아웃 크기는 그대로 두고 (자리는 유지한 채 visibility로 숨김)
       Now Playing 영역의 헤더 · 조작 UI만 숨김 ── */
-html.ui-hidden .right-panel-header,
 html.ui-hidden .lyrics-sync-bar,
 html.ui-hidden .lyrics-empty-actions,
 html.ui-hidden .main-match-feedback,
@@ -181,6 +180,26 @@ html.ui-hidden .main-youtube-btn {
   pointer-events: none !important;
   transition: opacity 0.3s ease, visibility 0.3s;
 }
+
+/* 헤더는 헤더 자체의 opacity를 건드리지 않는다.
+   부모 opacity가 1 미만이 되면 ::before의 backdrop-filter가 뒤 배경을 못 봐서 페이드 중에 블러가 사라짐.
+   대신 내용(자식)과 블러 레이어(::before)를 각각 페이드한다. */
+html.ui-hidden .right-panel-header {
+  visibility: hidden !important;
+  transition: visibility 0.3s;
+}
+
+html.ui-hidden .right-panel-header > *,
+html.ui-hidden .right-panel-header::before {
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+html.ui-hidden .right-panel-header * {
+  pointer-events: none !important;
+}
+
+/* 다시 보일 때의 페이드인은 useHideUi.js(fadeInHideables)에서 처리 */
 
 /* ── UI 숨기기 토글 버튼 (오른쪽 아래, 노래 일치 캡슐 오른쪽) ── */
 .main-hide-ui-btn {
@@ -197,6 +216,9 @@ html.ui-hidden .main-youtube-btn {
   cursor: pointer;
   opacity: 1;
   transition: opacity 0.4s ease, color 0.15s ease, border-color 0.15s ease;
+  /* 노래 일치 캡슐 · 유튜브 버튼과 같은 등장 모션.
+     fill-mode는 backwards: forwards로 두면 끝난 뒤에도 opacity를 붙잡아 is-idle 페이드아웃이 안 됨 */
+  animation: matchFeedbackSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .main-hide-ui-btn:hover {
@@ -211,17 +233,23 @@ html.ui-hidden .main-youtube-btn {
 }
 
 /* UI 숨기기 중 Now Playing 영역 왼쪽 위(숨겨진 헤더 자리)에 sofar 로고 표시
-   헤더(높이 64px, 좌우 여백 2.5rem)와 같은 위치에 맞춤 */
+   항상 렌더링해 두고 html.ui-hidden에 따라 페이드 인/아웃. 헤더(높이 64px, 좌우 여백 2.5rem)와 같은 위치에 맞춤 */
 .np-brand-mark {
   position: absolute;
   top: 32px;
   left: 2.5rem;
   transform: translateY(-50%);
   z-index: 110;
-  opacity: 0.85;
+  opacity: 0;
+  visibility: hidden;
   pointer-events: none;
   white-space: nowrap;
-  animation: npEffectFadeIn 0.4s ease-out both;
+  transition: opacity 0.3s ease, visibility 0.3s;
+}
+
+html.ui-hidden .np-brand-mark {
+  opacity: 0.85;
+  visibility: visible;
 }
 
 .np-brand-mark .sofar-brand-logo {
@@ -239,4 +267,16 @@ html.ui-hidden .main-youtube-btn {
   z-index: 9500;
   pointer-events: none;
   display: block;
+}
+
+/* 가사 확장 중(html.np-particles-suspended)에는 효과를 페이드아웃하고 쉬게 함
+   쌓인 눈은 페이드가 끝난 뒤 particleSurfaces.js에서 비우고, 축소하면 다시 서서히 나타나 처음부터 쌓임 */
+.np-particle-canvas,
+.np-particle-front-canvas {
+  transition: opacity 0.3s ease;
+}
+
+html.np-particles-suspended .np-particle-canvas,
+html.np-particles-suspended .np-particle-front-canvas {
+  opacity: 0;
 }

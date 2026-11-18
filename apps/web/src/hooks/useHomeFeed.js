@@ -193,6 +193,23 @@ async function fetchYoutubeCuratedPlaylists() {
   return fetchJsonWithRetry(`${backendUrl}/api/chart/theme-candidates`, {}, 15000, 1);
 }
 
+/**
+ * 서버가 일시적으로 곡이 빈 플레이리스트를 내려줘도(벅스 스크래핑 실패 등)
+ * 이전에 받아둔 곡 목록을 유지하고, 끝내 곡이 없는 플레이리스트는 노출하지 않는다.
+ */
+function mergeCategoryPlaylists(fresh, cached) {
+  const cachedById = new Map(
+    (cached || [])
+      .filter((p) => p?.tracks?.length > 0)
+      .map((p) => [String(p.id), p]),
+  );
+  const merged = (fresh || [])
+    .map((p) => (p?.tracks?.length > 0 ? p : cachedById.get(String(p?.id))))
+    .filter(Boolean);
+  if (merged.length > 0) return merged;
+  return Array.from(cachedById.values());
+}
+
 const HOME_TOP_CACHE_KEY = 'sofar_home_top_feed_cache_v2';
 const HOME_POPULAR_CACHE_KEY = 'sofar_home_popular_feed_cache_v2';
 
@@ -251,8 +268,12 @@ export function useHomeFeed() {
         fetchYoutubeCuratedPlaylists(),
       ]);
 
-      const mergedCategories = [...(catPlaylists || []), ...(ytPlaylists || [])];
-      
+      const cachedFeed = getPersistentCache(HOME_TOP_CACHE_KEY);
+      const mergedCategories = mergeCategoryPlaylists(
+        [...(catPlaylists || []), ...(ytPlaylists || [])],
+        cachedFeed?.categoryPlaylists,
+      );
+
       // 서버에서 정상적으로 데이터를 가져온 경우
       if (hotChartData && hotChartData.length > 0) {
         const result = {
@@ -265,7 +286,7 @@ export function useHomeFeed() {
       }
 
       // 서버 요청이 실패했으나 기존 캐시가 있는 경우 기존 캐시 보존
-      const cached = getPersistentCache(HOME_TOP_CACHE_KEY);
+      const cached = cachedFeed;
       if (cached && cached.topTracks?.length > 0) {
         return {
           ...cached,

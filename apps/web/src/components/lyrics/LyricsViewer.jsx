@@ -7,8 +7,20 @@ import LyricsEditModal from './LyricsEditModal';
 import AudioVisualizer from './AudioVisualizer';
 import { formatArtistName } from '../../utils/trackUtils';
 import './LyricsViewer.css';
+import { PARTICLES_SUSPENDED_CLASS } from '../nowplaying/particleSurfaces';
 import { Card } from '../ui';
-import { Edit3, Maximize2, Minimize2, Search, Clock, Pencil, RotateCw, LocateFixed, Eye, EyeOff } from 'lucide-react';
+import { Edit3, Maximize2, Minimize2, Search, Clock, Pencil, RotateCw, Eye, EyeOff } from 'lucide-react';
+
+/**
+ * 가사 줄을 가사 뷰포트 안에서만 가운데로 스크롤한다.
+ * scrollIntoView는 스크롤 가능한 모든 상위 요소(overflow: hidden 레이아웃 포함)까지 움직여서
+ * Now Playing 등장 모션 중에 전체 레이아웃이 밀려 틀어지므로 쓰지 않는다.
+ * offsetTop은 transform 영향을 받지 않아 등장 모션(translateY) 중에도 정확하다.
+ */
+function scrollLineToCenter(viewport, line, behavior) {
+  const top = line.offsetTop - (viewport.clientHeight - line.offsetHeight) / 2;
+  viewport.scrollTo({ top: Math.max(0, top), behavior });
+}
 
 export default function LyricsViewer() {
   const { 
@@ -60,23 +72,10 @@ export default function LyricsViewer() {
     if (showToast && REMATCH_MESSAGES[result]) showToast(REMATCH_MESSAGES[result]);
   };
 
-  const scrollToCurrentLyric = () => {
-    setIsAutoScrollEnabled(true);
-    if (activeIndex !== -1 && containerRef.current) {
-      const activeElement = containerRef.current.children[activeIndex];
-      if (activeElement) {
-        activeElement.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }
-    }
-  };
-
   const toggleExpand = () => {
     shouldSnapNextScrollRef.current = true;
     setIsExpanded(prev => !prev);
-    setIsAutoScrollEnabled(true);
+    resumeAutoScroll();
   };
 
   const handleHideLyrics = () => {
@@ -95,6 +94,20 @@ export default function LyricsViewer() {
   const scrollTimeoutRef = useRef(null);
   const isInitialScrollRef = useRef(true);
   const shouldSnapNextScrollRef = useRef(false);
+
+  // 수동 스크롤로 꺼진 자동 스크롤을 다시 켠다 (대기 중인 복귀 타이머도 정리)
+  const resumeAutoScroll = () => {
+    clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = null;
+    setIsAutoScrollEnabled(true);
+  };
+
+  // 가사 확장 중에는 Now Playing 파티클 효과(눈 · 비 등)를 쉬게 함 — particleSurfaces.js 참고
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle(PARTICLES_SUSPENDED_CLASS, isExpanded);
+    return () => root.classList.remove(PARTICLES_SUSPENDED_CLASS);
+  }, [isExpanded]);
 
   // 컴포넌트 언마운트 시 타이머 클리어
   useEffect(() => {
@@ -144,7 +157,7 @@ export default function LyricsViewer() {
 
   // 곡이 변경되면 자동 스크롤 기본값으로 초기화 및 스크롤 위치 즉시 맨 위로 리셋 (F-LYRI-02)
   useEffect(() => {
-    setIsAutoScrollEnabled(true);
+    resumeAutoScroll();
     isInitialScrollRef.current = true;
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
@@ -181,10 +194,7 @@ export default function LyricsViewer() {
       if (activeElement) {
         // 첫 가사이거나 첫 로드 시점 또는 확장/축소 전환 시점에는 부드럽게 스크롤하지 않고 즉시 이동
         const shouldScrollInstantly = activeIndex === 0 || isInitialScrollRef.current || shouldSnapNextScrollRef.current;
-        activeElement.scrollIntoView({
-          behavior: shouldScrollInstantly ? 'auto' : 'smooth',
-          block: 'center'
-        });
+        scrollLineToCenter(containerRef.current, activeElement, shouldScrollInstantly ? 'auto' : 'smooth');
         if (isInitialScrollRef.current) {
           isInitialScrollRef.current = false;
         }
@@ -195,39 +205,30 @@ export default function LyricsViewer() {
     }
   }, [activeIndex, isAutoScrollEnabled, isExpanded]);
 
-  // 수동 스크롤 감지 시 자동 스크롤 모드 해제
+  // 사용자가 다른 가사를 보다가 이 시간 동안 스크롤하지 않으면 현재 가사로 자동 복귀 (일반 · 확장 모드 공통)
+  const AUTO_SCROLL_RESUME_MS = 4000;
+
+  const scheduleAutoScrollResume = () => {
+    clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      scrollTimeoutRef.current = null;
+      setIsAutoScrollEnabled(true);
+    }, AUTO_SCROLL_RESUME_MS);
+  };
+
+  // 휠 · 터치로 직접 스크롤하면 자동 스크롤을 끄고 복귀 타이머를 (다시) 시작
   const handleUserScroll = () => {
     if (isAutoScrollEnabled) {
       setIsAutoScrollEnabled(false);
     }
+    scheduleAutoScrollResume();
   };
 
-  // 스크롤 이벤트 감지: 수동 스크롤이 완전히 멈춘 후 1.5초 뒤에 현재 활성 가사 라인이 중앙에 있으면 자동 스크롤 재개 (F-LYRI-02)
+  // 자동 스크롤이 꺼진 동안의 스크롤(관성 스크롤 등)도 사용자 스크롤로 보고 타이머를 연장.
+  // 자동 스크롤 중의 scroll 이벤트는 코드가 움직인 것이므로 무시한다.
   const handleScroll = () => {
     if (isAutoScrollEnabled) return;
-
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-
-    scrollTimeoutRef.current = setTimeout(() => {
-      if (activeIndex !== -1 && containerRef.current) {
-        const viewport = containerRef.current;
-        const activeElement = viewport.children[activeIndex];
-        if (activeElement) {
-          const elementCenter = activeElement.offsetTop + activeElement.offsetHeight / 2;
-          const viewportCenter = viewport.scrollTop + viewport.clientHeight / 2;
-
-          // 활성 가사 라인의 중심과 뷰포트의 중심간 거리 차이를 계산
-          const distance = Math.abs(elementCenter - viewportCenter);
-
-          // 사용자가 스크롤을 멈췄을 때 활성 가사 라인이 화면 중앙 부근(35px 이내)에 머문다면 다시 자동 정렬 모드 활성화
-          if (distance <= 35) {
-            setIsAutoScrollEnabled(true);
-          }
-        }
-      }
-    }, 1500); // 1.5초 유예 시간
+    scheduleAutoScrollResume();
   };
 
   // 가사 클릭 시 재생 시간 이동 (F-LYRI-04)
@@ -235,6 +236,8 @@ export default function LyricsViewer() {
     // 이동 시에도 시스템 영점 조절 bias를 감산해주어야 정밀하게 씽크가 맞습니다.
     const targetSeekTime = Math.max(0, time - offset - SYSTEM_BIAS);
     seekTo(targetSeekTime);
+    // 클릭한 줄로 이동했으니 기다리지 않고 바로 동기화 재개
+    resumeAutoScroll();
   };
 
   // 오프셋 조절 (F-LYRI-03)
@@ -359,16 +362,6 @@ export default function LyricsViewer() {
                     title="싱크 조절 도구 토글"
                   >
                     <Clock size={15} />
-                  </button>
-                )}
-                {lyrics.length > 0 && activeIndex !== -1 && (
-                  <button 
-                    type="button"
-                    onClick={scrollToCurrentLyric} 
-                    className={`sync-bar-side-btn sync-target-btn ${!isAutoScrollEnabled ? 'show' : ''}`}
-                    title="현재 재생 위치 가사로 이동 (자동 스크롤)"
-                  >
-                    <LocateFixed size={15} />
                   </button>
                 )}
               </div>
@@ -510,7 +503,12 @@ export default function LyricsViewer() {
       </Card>
 
       {/* 2. 전체화면 가사 카드 */}
-      <Card className={`lyrics-card expanded ${isExpanded ? 'visible' : 'hidden'} ${isLyricsHidden ? 'is-lyrics-hidden' : ''}`}>
+      {/* data-particle-occluder: 콘텐츠 위에 그리는 파티클 앞쪽 캔버스(쌓인 눈 · 앞쪽 눈송이)가 확장 가사창 위로 그리지 않도록 가림
+          (숨김 상태는 visibility: hidden이라 가리지 않고, 열리고 닫히는 중에는 투명도만큼만 가림) */}
+      <Card
+        className={`lyrics-card expanded ${isExpanded ? 'visible' : 'hidden'} ${isLyricsHidden ? 'is-lyrics-hidden' : ''}`}
+        data-particle-occluder=""
+      >
         {renderCardContent(true)}
       </Card>
 
