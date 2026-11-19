@@ -172,6 +172,22 @@ export default function MiniPlayer() {
   const displayInVinyl = showVideoInVinyl && !isLyricsExpanded && isNowPlayingPage
     && videoVinylState !== 'hiding-video';
 
+  // 처음 나타날 때(새로고침 · 첫 재생) 한 번만 떠오르는 등장 모션을 줌.
+  // 이후 LP 영역 ↔ 사이드바 이동 때는 다시 재생되지 않도록 끝나면 표시를 지움
+  const [hasEntered, setHasEntered] = useState(false);
+  const isEntering = showMiniPlayer && !hasEntered && !displayInVinyl;
+  useEffect(() => {
+    if (!showMiniPlayer || hasEntered) return undefined;
+    // LP 영역에서 처음 나오면 그쪽 자체 애니메이션을 쓰므로 등장 모션은 생략
+    if (displayInVinyl) {
+      setHasEntered(true);
+      return undefined;
+    }
+    // animationend가 오지 않는 경우(동작 줄이기 등)를 대비한 안전장치
+    const t = setTimeout(() => setHasEntered(true), 1500);
+    return () => clearTimeout(t);
+  }, [showMiniPlayer, hasEntered, displayInVinyl]);
+
   const handleMiniPlayerClick = () => {
     const isNowPlayingPage = location.pathname === '/now' || location.pathname === '/now-playing';
 
@@ -225,8 +241,11 @@ export default function MiniPlayer() {
   return createPortal(
     <div 
       ref={containerRef}
-      className={`mini-player-container ${showMiniPlayer ? 'show' : ''} ${displayInVinyl ? 'in-vinyl' : 'in-sidebar'} ${isUnderModal ? 'under-modal' : ''}`}
+      className={`mini-player-container ${showMiniPlayer ? 'show' : ''} ${displayInVinyl ? 'in-vinyl' : 'in-sidebar'} ${isUnderModal ? 'under-modal' : ''} ${isEntering ? 'is-entering' : ''}`}
       style={containerStyle}
+      onAnimationEnd={(e) => {
+        if (e.target === e.currentTarget && e.animationName === 'miniPlayerEnter') setHasEntered(true);
+      }}
       onClick={handleMiniPlayerClick}
       {...(displayInVinyl && showMiniPlayer ? {
         'data-particle-surface': 'rect',
