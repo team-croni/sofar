@@ -6,6 +6,15 @@ import { STORAGE_KEYS, getStorageItem, setStorageItem } from "../utils/audioStor
 import { getSettings } from "../utils/settings";
 import { useToast } from "../hooks/useToast";
 import { useAuth, supabase } from "./AuthContext";
+import {
+  beginPlaySession,
+  endPlaySession,
+  getClientId,
+  markNextPlayTrigger,
+  notePlaySeek,
+  setTelemetryAccessToken,
+  tickPlaySession,
+} from "../utils/listeningTelemetry";
 
 const AudioContext = createContext(null);
 
@@ -29,6 +38,12 @@ export function AudioProvider({ children }) {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  // 감상 기록을 로그인 사용자 기준으로 남기기 위해 액세스 토큰을 전달
+  const accessToken = auth?.session?.access_token;
+  useEffect(() => {
+    setTelemetryAccessToken(accessToken);
+  }, [accessToken]);
 
   // 트랙의 잘못된 비디오 ID를 실제 올바른 유튜브 ID로 Supabase / LocalStorage에 자가 치유(Self-healing) 업데이트
   const updatePersistedTrackVideoId = useCallback(async (trackId, newVideoId) => {
@@ -261,6 +276,7 @@ export function AudioProvider({ children }) {
       setPlaybackContext(contextList);
     }
     setCurrentTrack(track);
+    beginPlaySession(track);
     setCurrentTime(0);
     setDuration(0);
     setIsLoadingTrack(true);
@@ -302,6 +318,7 @@ export function AudioProvider({ children }) {
           setIsLoadingTrack(false);
           setIsPlaying(false);
           setTimeout(() => {
+            markNextPlayTrigger('auto');
             if (playNextRef.current) playNextRef.current();
           }, 1000);
           return;
@@ -311,6 +328,7 @@ export function AudioProvider({ children }) {
         setIsLoadingTrack(false);
         setIsPlaying(false);
         setTimeout(() => {
+          markNextPlayTrigger('auto');
           if (playNextRef.current) playNextRef.current();
         }, 1000);
         return;
@@ -423,7 +441,9 @@ export function AudioProvider({ children }) {
   }, [playTrack]);
 
   const handleTrackEnded = useCallback(() => {
+    endPlaySession('ended');
     if (repeatModeRef.current === "one") {
+      beginPlaySession(currentTrackRef.current, 'auto');
       const p = playerRef.current;
       if (p && typeof p.seekTo === "function" && typeof p.playVideo === "function") {
         p.seekTo(0, true);
@@ -431,6 +451,7 @@ export function AudioProvider({ children }) {
         setIsPlaying(true);
       }
     } else {
+      markNextPlayTrigger('auto');
       playNext();
     }
   }, [playNext]);
@@ -518,6 +539,8 @@ export function AudioProvider({ children }) {
 
     showToast(isEmbedBlocked ? "소유자가 외부 사이트 재생을 제한한 영상입니다. 다음 곡으로 이동합니다." : "재생할 수 없는 영상입니다. 다음 곡으로 이동합니다.");
     setTimeout(() => {
+      endPlaySession('error');
+      markNextPlayTrigger('auto');
       playNext();
     }, 2000);
   }, [playNext, showToast, updatePersistedTrackVideoId]);
@@ -602,6 +625,13 @@ export function AudioProvider({ children }) {
         if (Date.now() - lastSeekTimeRef.current < 500) return;
         try {
           const playerState = typeof player.getPlayerState === "function" ? player.getPlayerState() : -1;
+          tickPlaySession({
+            playing: playerState === 1,
+            track: currentTrackRef.current,
+            duration: typeof player.getDuration === "function" ? player.getDuration() : 0,
+            playingSource: playingSourceRef.current,
+            myPlaylistTracks: playlistRef.current,
+          });
           if (playerState === 1) {
             setIsPlaying(true);
             setIsLoadingTrack(false);
@@ -619,19 +649,6 @@ export function AudioProvider({ children }) {
             if (!hasLoggedPlayRef.current && activeTr && typeof t === "number" && t >= 30) {
               hasLoggedPlayRef.current = true;
               try {
-                const getOrCreateClientId = () => {
-                  try {
-                    let id = localStorage.getItem('sofar_client_id');
-                    if (!id) {
-                      id = 'cli_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
-                      localStorage.setItem('sofar_client_id', id);
-                    }
-                    return id;
-                  } catch (e) {
-                    return 'cli_anon_' + Date.now();
-                  }
-                };
-
                 const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
                 fetch(`${backendUrl}/api/chart/play-log`, {
                   method: 'POST',
@@ -642,7 +659,7 @@ export function AudioProvider({ children }) {
                     searchQuery: activeTr.searchQuery,
                     youtube_video_id: activeTr.youtube_video_id,
                     playedSec: Math.floor(t),
-                    clientId: getOrCreateClientId(),
+                    clientId: getClientId(),
                   }),
                 }).catch(() => {});
               } catch (e) {}
@@ -683,6 +700,7 @@ export function AudioProvider({ children }) {
   const seekTo = useCallback((seconds) => {
     if (player && typeof player.seekTo === "function") {
       lastSeekTimeRef.current = Date.now();
+      notePlaySeek();
       player.seekTo(seconds, true);
       setCurrentTime(seconds);
     }
@@ -1035,6 +1053,16 @@ export function AudioProvider({ children }) {
     }
   }, [player, showToast, isMatchFeedbackLoading]);
 
+  // 플레이어의 다음/이전 버튼으로 넘긴 재생은 따로 표시한다 (자동 넘김과 구분)
+  const playNextByButton = useCallback(() => {
+    markNextPlayTrigger('skip_button');
+    playNext();
+  }, [playNext]);
+  const playPreviousByButton = useCallback(() => {
+    markNextPlayTrigger('skip_button');
+    playPrevious();
+  }, [playPrevious]);
+
   const value = {
     player,
     isPlayerReady,
@@ -1077,8 +1105,8 @@ export function AudioProvider({ children }) {
     initPlayer,
     playTrack,
     togglePlay,
-    playNext,
-    playPrevious,
+    playNext: playNextByButton,
+    playPrevious: playPreviousByButton,
     seekTo,
     changeVolume,
     toggleMute,

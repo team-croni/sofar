@@ -4,6 +4,7 @@ import { isMatchTrack, formatArtistName } from '../../utils/trackUtils';
 import TrackThumbnail from '../playlist/TrackThumbnail';
 import TrackActionDropdown from '../ui/TrackActionDropdown';
 import { handleTrackDragStart } from '../../utils/dragUtils';
+import { markNextPlayTrigger } from '../../utils/listeningTelemetry';
 
 export default function SearchTopResult({ track }) {
   const { currentTrack, isPlaying, playTrack, togglePlay, addToQueue } = useAudio();
@@ -17,6 +18,7 @@ export default function SearchTopResult({ track }) {
     if (isCurrent) {
       togglePlay();
     } else {
+      markNextPlayTrigger('search');
       playTrack(track);
     }
   };
@@ -97,7 +99,10 @@ export default function SearchTopResult({ track }) {
       >
         <TrackActionDropdown
           track={track}
-          onPlay={() => playTrack(track)}
+          onPlay={() => {
+            markNextPlayTrigger('search');
+            playTrack(track);
+          }}
           onAddQueue={handleAddQueue}
           align="right"
           trigger={(isOpen) => (
