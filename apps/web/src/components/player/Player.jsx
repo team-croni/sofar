@@ -49,6 +49,7 @@ export default function Player() {
     isShuffle,
     setIsShuffle,
     sleepTimer,
+    sleepTimerMinutes,
     setSleepTimer,
     togglePlay,
     playPrevious,
@@ -559,18 +560,26 @@ export default function Player() {
           align="right"
           trigger={(isOpen) => (
             <button 
-              className={`playback-btn sleep-btn ${isOpen || sleepTimer ? 'active' : ''}`}
+              className={`playback-btn sleep-btn ${isOpen || sleepTimer ? 'active' : ''} ${sleepTimer ? 'has-timer' : ''}`}
               title={sleepTimer ? `수면 예약: ${formatSleepTime(sleepTimer)} 남음` : '수면 예약 설정'}
               disabled={!currentTrack}
             >
-              <ClockPlus size={16} />
-              {sleepTimer && <span className="sleep-badge">{formatSleepTime(sleepTimer)}</span>}
+              {/* 예약 중에는 달 아이콘 + 남은 시간을 알약 모양으로 표시 */}
+              {sleepTimer ? (
+                <>
+                  <Moon size={14} />
+                  <span className="sleep-btn-time">{formatSleepTime(sleepTimer)}</span>
+                </>
+              ) : (
+                <ClockPlus size={16} />
+              )}
             </button>
           )}
         >
           {(close) => (
             <SleepTimerMenu 
               sleepTimer={sleepTimer}
+              sleepTimerMinutes={sleepTimerMinutes}
               handleSleepTimerOption={handleSleepTimerOption}
               close={close}
             />
@@ -590,7 +599,7 @@ export default function Player() {
   );
 }
 
-function SleepTimerMenu({ sleepTimer, handleSleepTimerOption, close }) {
+function SleepTimerMenu({ sleepTimer, sleepTimerMinutes, handleSleepTimerOption, close }) {
   const [isCustomInput, setIsCustomInput] = useState(false);
   const [customMins, setCustomMins] = useState('45');
 
@@ -611,6 +620,10 @@ function SleepTimerMenu({ sleepTimer, handleSleepTimerOption, close }) {
     { label: '45분', mins: 45, value: 2700 },
     { label: '60분', mins: 60, value: 3600 },
   ];
+
+  // 프리셋에 없는 시간을 직접 입력해 예약한 경우
+  const isCustomSelected = sleepTimerMinutes !== null
+    && !presetValues.some((p) => p.mins === sleepTimerMinutes);
 
   const formatSleepTime = (seconds) => {
     if (!seconds) return '';
@@ -637,7 +650,7 @@ function SleepTimerMenu({ sleepTimer, handleSleepTimerOption, close }) {
       {!isCustomInput ? (
         <div className="sleep-options-list">
           {presetValues.map((item) => {
-            const isSelected = item.mins === null ? sleepTimer === null : sleepTimer === item.value;
+            const isSelected = item.mins === null ? sleepTimerMinutes === null : sleepTimerMinutes === item.mins;
             return (
               <button
                 key={item.label}
@@ -655,10 +668,10 @@ function SleepTimerMenu({ sleepTimer, handleSleepTimerOption, close }) {
           <div className="sleep-option-divider" />
           <button
             onClick={() => setIsCustomInput(true)}
-            className={`sleep-option custom ${sleepTimer && !presetValues.some(p => p.value === sleepTimer) ? 'selected' : ''}`}
+            className={`sleep-option custom ${isCustomSelected ? 'selected' : ''}`}
           >
             <span>직접 입력...</span>
-            {sleepTimer && !presetValues.some(p => p.value === sleepTimer) && (
+            {isCustomSelected && (
               <Check size={14} className="sleep-check-icon" />
             )}
           </button>

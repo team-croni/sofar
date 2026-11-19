@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import ParticleEffect from './ParticleEffect';
 import { BACKGROUND_MAX_BLUR_PX, backgroundFilter } from '../../utils/nowPlayingTheme';
 import { useAdaptiveTextContrast } from '../../hooks/useAdaptiveTextContrast';
+import { useSettings } from '../../hooks/useSettings';
+import { isReducedMotion } from '../../utils/settings';
 import './NowPlayingBackdrop.css';
 
 /**
@@ -12,8 +14,11 @@ import './NowPlayingBackdrop.css';
  *   (새로고침 시 빈 화면에 효과만 먼저 보이는 문제 방지)
  */
 export default function NowPlayingBackdrop({ theme, active }) {
+  const { settings } = useSettings();
   const background = active ? theme.background : '';
-  const hasEffect = active && theme.effect !== 'none';
+  // 설정에서 테마 효과를 끄거나 '동작 줄이기'를 켜면 눈·비·벚꽃 등 움직이는 효과를 그리지 않음
+  const effectsAllowed = settings.themeEffects && !isReducedMotion(settings);
+  const hasEffect = active && effectsAllowed && theme.effect !== 'none';
   const [loadedUrl, setLoadedUrl] = useState('');
 
   // 배경 이미지 미리 받기

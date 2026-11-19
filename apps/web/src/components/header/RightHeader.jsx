@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, LogOut, LogIn, Disc, Home, Search, Headset, Headphones, FileText, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, LogOut, LogIn, Disc, Home, Search, Headset, Headphones, UserRound, Settings } from 'lucide-react';
+import { getUserDisplayName, getUserAvatarUrl } from '../../utils/userProfile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavHistory } from '../../hooks/useNavHistory';
 import Avatar from '../ui/Avatar';
@@ -65,23 +66,17 @@ export default function RightHeader() {
     };
   }, []);
 
-  const userName = user?.user_metadata?.full_name
-    || user?.user_metadata?.name
-    || user?.email?.split('@')[0]
-    || 'Guest';
-
-  // 소셜 계정의 기본 프로필 이미지 대신 서비스 전용 매쉬 그라디언트 기본 아바타를 우선 사용하며,
-  // 사용자가 프로필 설정에서 직접 업로드한 커스텀 프로필 이미지(custom_avatar_url)가 있을 때만 이미지 노출
-  const userAvatar = user?.user_metadata?.custom_avatar_url
-    || user?.user_metadata?.uploaded_avatar_url
-    || user?.custom_avatar_url
-    || null;
+  const userName = getUserDisplayName(user);
+  // 소셜 계정 기본 이미지 대신 서비스 전용 그라디언트 아바타를 쓰고, 직접 올린 이미지가 있을 때만 노출
+  const userAvatar = getUserAvatarUrl(user);
   const isGuest = !user || user.isGuest;
 
   // 현재 경로 라벨 정보
   const getCurrentPageLabel = () => {
     if (isSearchPage) return { title: '검색', icon: <Search size={16} /> };
     if (isNowPlayingPage) return { title: 'Now Playing', icon: <Headphones size={16} /> };
+    if (location.pathname === '/me') return { title: '내 정보', icon: <UserRound size={16} /> };
+    if (location.pathname === '/settings') return { title: '설정', icon: <Settings size={16} /> };
     return { title: 'Home', icon: <Home size={16} /> };
   };
 
@@ -174,28 +169,27 @@ export default function RightHeader() {
 
               <div className="profile-dropdown-divider" />
 
-              {/* 서비스 정책 & 약관 링크 */}
               <div className="profile-dropdown-actions">
-                <a
-                  href="/terms"
-                  target="_blank"
-                  rel="noreferrer"
+                <button
                   className="profile-dropdown-item"
-                  onClick={() => close()}
+                  onClick={() => {
+                    close();
+                    navigate('/me');
+                  }}
                 >
-                  <FileText size={15} />
-                  <span>이용약관</span>
-                </a>
-                <a
-                  href="/privacy"
-                  target="_blank"
-                  rel="noreferrer"
+                  <UserRound size={15} />
+                  <span>내 정보</span>
+                </button>
+                <button
                   className="profile-dropdown-item"
-                  onClick={() => close()}
+                  onClick={() => {
+                    close();
+                    navigate('/settings');
+                  }}
                 >
-                  <ShieldCheck size={15} />
-                  <span>개인정보처리방침</span>
-                </a>
+                  <Settings size={15} />
+                  <span>설정</span>
+                </button>
               </div>
 
               {!isGuest && (

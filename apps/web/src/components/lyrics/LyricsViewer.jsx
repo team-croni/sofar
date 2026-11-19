@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { getSettings } from '../../utils/settings';
 import { useAudio } from '../../contexts/AudioContext';
 import { useLyrics } from '../../hooks/useLyrics';
 import { useHideUi } from '../../hooks/useHideUi';
@@ -233,6 +234,7 @@ export default function LyricsViewer() {
 
   // 가사 클릭 시 재생 시간 이동 (F-LYRI-04)
   const handleLyricClick = (time) => {
+    if (!getSettings().lyricsClickSeek) return;
     // 이동 시에도 시스템 영점 조절 bias를 감산해주어야 정밀하게 씽크가 맞습니다.
     const targetSeekTime = Math.max(0, time - offset - SYSTEM_BIAS);
     seekTo(targetSeekTime);

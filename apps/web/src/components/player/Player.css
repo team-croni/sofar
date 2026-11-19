@@ -327,17 +327,35 @@
   position: relative;
 }
 
-.sleep-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  background: var(--primary-warm);
-  color: #1a1512;
-  font-size: 8px;
-  padding: 0.05rem 0.25rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  pointer-events: none;
+/* 예약 중: 아이콘 버튼 → 달 아이콘 + 남은 시간 알약 */
+.playback-btn.sleep-btn.has-timer {
+  /* 공통 아이콘 버튼의 정사각형 비율(aspect-ratio 1/1)을 풀어 내용만큼 넓힘 */
+  aspect-ratio: auto;
+  width: auto;
+  min-width: 0;
+  padding: 0 0.65rem 0 0.55rem;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  color: var(--primary-warm) !important;
+  background: color-mix(in srgb, var(--primary-warm) 14%, transparent);
+  transform: none;
+}
+
+.playback-btn.sleep-btn.has-timer svg {
+  flex-shrink: 0;
+}
+
+.playback-btn.sleep-btn.has-timer:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary-warm) 22%, transparent);
+  transform: none;
+}
+
+.sleep-btn-time {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 .sleep-menu-popover-content {

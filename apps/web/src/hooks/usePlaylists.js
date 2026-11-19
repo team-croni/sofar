@@ -1,3 +1,4 @@
+import { getPlaylistAuthorName, getCachedAccountPreferences } from './useSettings';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../contexts/AuthContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,10 +29,7 @@ export function usePlaylistsQuery() {
 
         // 로그인 유저의 플레이리스트가 비어있다면 '내 플레이리스트' 자동 생성
         if (!data || data.length === 0) {
-          const authorName = user?.user_metadata?.full_name 
-            || user?.user_metadata?.name 
-            || user?.email?.split('@')[0] 
-            || '나의 플레이리스트';
+          const authorName = getPlaylistAuthorName(user, '나의 플레이리스트');
           const { data: newPl, error: createErr } = await supabase
             .from('playlists')
             .insert({
@@ -126,13 +124,15 @@ export function useCreatePlaylistMutation() {
       const title = typeof payload === 'string' ? payload : (payload?.title || '');
       const coverUrl = typeof payload === 'object' && payload?.cover_url ? payload.cover_url : undefined;
 
-      const authorName = user?.user_metadata?.full_name 
-        || user?.user_metadata?.name 
-        || user?.email?.split('@')[0] 
-        || '나의 공유곡';
+      const authorName = getPlaylistAuthorName(user, '나의 공유곡');
 
       if (user && !user.isGuest && supabase) {
-        const insertObj = { user_id: user.id, title, author: authorName };
+        const insertObj = {
+          user_id: user.id,
+          title,
+          author: authorName,
+          is_public: Boolean(getCachedAccountPreferences().playlistDefaultPublic),
+        };
         if (coverUrl) insertObj.cover_url = coverUrl;
 
         let { data, error } = await supabase
@@ -142,7 +142,7 @@ export function useCreatePlaylistMutation() {
           .single();
 
         if (error) {
-          const fallbackObj = { user_id: user.id, title };
+          const fallbackObj = { user_id: user.id, title, is_public: insertObj.is_public };
           if (coverUrl) fallbackObj.cover_url = coverUrl;
 
           const fallback = await supabase
@@ -196,10 +196,7 @@ export function useUpdatePlaylistMutation() {
 
   return useMutation({
     mutationFn: async ({ playlistId, title, cover_url, is_public, now_playing_theme }) => {
-      const authorName = user?.user_metadata?.full_name
-        || user?.user_metadata?.name
-        || user?.email?.split('@')[0]
-        || '나의 공유곡';
+      const authorName = getPlaylistAuthorName(user, '나의 공유곡');
 
       const updatePayload = {};
       if (title !== undefined) updatePayload.title = title;

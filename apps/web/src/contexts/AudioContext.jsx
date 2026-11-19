@@ -3,6 +3,7 @@ import { searchYoutube } from "../utils/youtube";
 import { isMatchTrack } from "../utils/trackUtils";
 import { isUsableArtwork } from "../utils/thumbnailCache";
 import { STORAGE_KEYS, getStorageItem, setStorageItem } from "../utils/audioStorage";
+import { getSettings } from "../utils/settings";
 import { useToast } from "../hooks/useToast";
 import { useAuth, supabase } from "./AuthContext";
 
@@ -67,30 +68,47 @@ export function AudioProvider({ children }) {
   const [isLoadingTrack, setIsLoadingTrack] = useState(false);
 
   // 2. 로컬스토리지 복원 상태
-  const [currentTime, setCurrentTime] = useState(() => getStorageItem(STORAGE_KEYS.CURRENT_TIME, 0));
-  const [duration, setDuration] = useState(() => getStorageItem(STORAGE_KEYS.DURATION, 0));
+  // 설정 '앱을 다시 열면 이어 듣기'가 꺼져 있으면 마지막 곡·위치·대기열을 복원하지 않음
+  const startupSettings = getSettings();
+  const shouldResume = startupSettings.resumeOnLaunch;
+  const restore = (key, fallback) => (shouldResume ? getStorageItem(key, fallback) : fallback);
+
+  const [currentTime, setCurrentTime] = useState(() => restore(STORAGE_KEYS.CURRENT_TIME, 0));
+  const [duration, setDuration] = useState(() => restore(STORAGE_KEYS.DURATION, 0));
   const [volume, setVolume] = useState(() => getStorageItem(STORAGE_KEYS.VOLUME, 80));
   const [isMuted, setIsMuted] = useState(false);
 
-  const [playlist, setPlaylist] = useState(() => getStorageItem(STORAGE_KEYS.PLAYLIST, []));
-  const [queue, setQueue] = useState(() => getStorageItem(STORAGE_KEYS.QUEUE, []));
-  const [currentTrack, setCurrentTrack] = useState(() => getStorageItem(STORAGE_KEYS.CURRENT_TRACK, null));
-  const [repeatMode, setRepeatMode] = useState(() => getStorageItem(STORAGE_KEYS.REPEAT_MODE, 'all'));
+  const [playlist, setPlaylist] = useState(() => restore(STORAGE_KEYS.PLAYLIST, []));
+  const [queue, setQueue] = useState(() => restore(STORAGE_KEYS.QUEUE, []));
+  const [currentTrack, setCurrentTrack] = useState(() => restore(STORAGE_KEYS.CURRENT_TRACK, null));
+  const [repeatMode, setRepeatMode] = useState(() => (
+    startupSettings.startupRepeatMode === 'keep'
+      ? getStorageItem(STORAGE_KEYS.REPEAT_MODE, 'all')
+      : startupSettings.startupRepeatMode
+  ));
 
   const [shuffleMap, setShuffleMap] = useState(() => getStorageItem('sofar_shuffle_map', {}));
-  const [sleepTimer, setSleepTimer] = useState(null);
+  // 수면 예약: sleepTimer = 남은 시간(초), setSleepTimer(분) 으로 시작 / null 로 해제
+  const [sleepTimer, setSleepTimerRemaining] = useState(null);
+  // 사용자가 고른 예약 시간(분) — 메뉴의 선택 표시용 (남은 시간은 계속 줄어들므로 따로 보관)
+  const [sleepTimerMinutes, setSleepTimerMinutes] = useState(null);
+  const sleepEndAtRef = useRef(null);
   const [showVideoInVinyl, setShowVideoInVinyl] = useState(false);
   const [videoVinylState, setVideoVinylState] = useState("idle");
   const [isLyricsExpanded, setIsLyricsExpanded] = useState(false);
-  const [isLyricsHidden, setIsLyricsHidden] = useState(() => getStorageItem(STORAGE_KEYS.IS_LYRICS_HIDDEN, false));
+  const [isLyricsHidden, setIsLyricsHidden] = useState(() => {
+    if (startupSettings.startupLyrics === 'show') return false;
+    if (startupSettings.startupLyrics === 'hide') return true;
+    return getStorageItem(STORAGE_KEYS.IS_LYRICS_HIDDEN, false);
+  });
 
   useEffect(() => {
     setStorageItem(STORAGE_KEYS.IS_LYRICS_HIDDEN, isLyricsHidden);
   }, [isLyricsHidden]);
 
-  const [playbackContext, setPlaybackContext] = useState(() => getStorageItem(STORAGE_KEYS.PLAYBACK_CONTEXT, []));
+  const [playbackContext, setPlaybackContext] = useState(() => restore(STORAGE_KEYS.PLAYBACK_CONTEXT, []));
   const [activeSharedPlaylist, setActiveSharedPlaylist] = useState(null);
-  const [playingSource, setPlayingSource] = useState(() => getStorageItem(STORAGE_KEYS.PLAYING_SOURCE, null));
+  const [playingSource, setPlayingSource] = useState(() => restore(STORAGE_KEYS.PLAYING_SOURCE, null));
 
   useEffect(() => {
     setStorageItem('sofar_shuffle_map', shuffleMap);
@@ -548,6 +566,7 @@ export function AudioProvider({ children }) {
           isInitializingRef.current = false;
 
           try {
+            if (!getSettings().resumeOnLaunch) return;
             const savedTrack = getStorageItem(STORAGE_KEYS.CURRENT_TRACK, null);
             const savedTime = getStorageItem(STORAGE_KEYS.CURRENT_TIME, 0);
             if (savedTrack && savedTrack.youtube_video_id && event.target.cueVideoById) {
@@ -686,6 +705,63 @@ export function AudioProvider({ children }) {
       return next;
     });
   }, [player, volume]);
+
+  // 수면 예약 타이머 (F-PLAY-05): 남은 30초 동안 볼륨을 서서히 줄인 뒤 일시정지
+  const volumeRef = useRef(volume);
+  const isMutedRef = useRef(isMuted);
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { isMutedRef.current = isMuted; }, [isMuted]);
+
+  const restorePlayerVolume = useCallback(() => {
+    const p = playerRef.current;
+    if (p && typeof p.setVolume === "function") {
+      p.setVolume(isMutedRef.current ? 0 : volumeRef.current);
+    }
+  }, []);
+
+  const setSleepTimer = useCallback((mins) => {
+    if (!mins || mins <= 0) {
+      if (sleepEndAtRef.current) restorePlayerVolume();
+      sleepEndAtRef.current = null;
+      setSleepTimerRemaining(null);
+      setSleepTimerMinutes(null);
+      return;
+    }
+    sleepEndAtRef.current = Date.now() + mins * 60 * 1000;
+    setSleepTimerRemaining(Math.round(mins * 60));
+    setSleepTimerMinutes(mins);
+  }, [restorePlayerVolume]);
+
+  const isSleepTimerActive = sleepTimer !== null;
+  useEffect(() => {
+    if (!isSleepTimerActive) return undefined;
+    const FADE_SECONDS = 30;
+    const id = setInterval(() => {
+      const endAt = sleepEndAtRef.current;
+      if (!endAt) return;
+      const remain = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+      const p = playerRef.current;
+
+      if (remain <= 0) {
+        if (p && typeof p.pauseVideo === "function") p.pauseVideo();
+        setIsPlaying(false);
+        sleepEndAtRef.current = null;
+        setSleepTimerRemaining(null);
+        setSleepTimerMinutes(null);
+        // 다음 재생은 원래 볼륨으로
+        setTimeout(restorePlayerVolume, 300);
+        showToast('수면 예약 시간이 되어 재생을 멈췄습니다');
+        return;
+      }
+
+      setSleepTimerRemaining(remain);
+      if (getSettings().sleepFadeOut && remain <= FADE_SECONDS && !isMutedRef.current
+        && p && typeof p.setVolume === "function") {
+        p.setVolume(Math.round(volumeRef.current * (remain / FADE_SECONDS)));
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [isSleepTimerActive, restorePlayerVolume, showToast]);
 
   const triggerReturnToVinyl = useCallback(() => {
     if (videoVinylState !== 'video') return;
@@ -990,6 +1066,7 @@ export function AudioProvider({ children }) {
     isShuffleFor,
     toggleShuffleFor,
     sleepTimer,
+    sleepTimerMinutes,
     setSleepTimer,
     toastMessage,
     isToastVisible,

@@ -1,3 +1,4 @@
+import { getPlaylistAuthorName } from './useSettings';
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../contexts/AuthContext';
@@ -82,10 +83,7 @@ export function useAddTrackMutation() {
           if (userPlaylists && userPlaylists.length > 0) {
             validPlaylistId = userPlaylists[0].id;
           } else {
-            const authorName = user?.user_metadata?.full_name 
-              || user?.user_metadata?.name 
-              || user?.email?.split('@')[0] 
-              || '나의 플레이리스트';
+            const authorName = getPlaylistAuthorName(user, '나의 플레이리스트');
             const { data: newPl, error: plErr } = await supabase
               .from('playlists')
               .insert({

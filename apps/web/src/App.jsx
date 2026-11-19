@@ -18,8 +18,11 @@ import NowPlayingBackdrop from './components/nowplaying/NowPlayingBackdrop';
 import HideUiToggle from './components/nowplaying/HideUiToggle';
 import { useActiveNowPlayingTheme } from './hooks/useActiveNowPlayingTheme';
 import { useHideUi } from './hooks/useHideUi';
+import { useAccountPreferences } from './hooks/useSettings';
 
 import SearchPanel from './components/search/SearchPanel';
+import MyInfoPage from './pages/MyInfoPage';
+import SettingsPage from './pages/SettingsPage';
 import RightHeader from './components/header/RightHeader';
 
 import { thumbnailCache } from './utils/thumbnailCache';
@@ -47,8 +50,13 @@ function AppShell({ children }) {
     setVideoVinylState 
   } = useAudio();
 
+  // 계정 설정(공개 기본값·닉네임 표시)을 앱 시작 시 미리 불러와 플레이리스트 생성 등에 반영
+  useAccountPreferences();
+
   const location = useLocation();
   const isNowPlayingRoute = location.pathname === '/now';
+  // 설정 · 내 정보 페이지는 재생 중인 곡과 상관없이 단색 배경
+  const isSolidBgRoute = location.pathname === '/settings' || location.pathname === '/me';
   const { theme: nowPlayingTheme } = useActiveNowPlayingTheme();
   const { isUiHidden, setUiHidden } = useHideUi();
 
@@ -110,7 +118,8 @@ function AppShell({ children }) {
   return (
     <div className="app-container">
       {/* 실시간 앨범 커버 블러 배경 */}
-      {currentTrack && bgUrl && !hasThemeBackground && (
+      {isSolidBgRoute && <div className="app-solid-bg" />}
+      {currentTrack && bgUrl && !hasThemeBackground && !isSolidBgRoute && (
         <div 
           key={currentTrack.id}
           className="app-blurred-bg fade-in-bg"
@@ -177,6 +186,12 @@ function HomePage() {
   }, [location.pathname]);
 
   const renderRightPanelContent = () => {
+    if (location.pathname === '/me') {
+      return <MyInfoPage />;
+    }
+    if (location.pathname === '/settings') {
+      return <SettingsPage />;
+    }
     if (isSearchPage) {
       return <SearchPanel />;
     }
@@ -333,6 +348,8 @@ export default function App() {
             <Route path="/search" element={<AppShell><HomePage /></AppShell>} />
             <Route path="/now" element={<AppShell><HomePage /></AppShell>} />
             <Route path="/now-playing" element={<Navigate to="/now" replace />} />
+            <Route path="/me" element={<AppShell><HomePage /></AppShell>} />
+            <Route path="/settings" element={<AppShell><HomePage /></AppShell>} />
 
             {/* 플레이리스트 공유 링크 (진입 후 홈으로 교체) */}
             <Route path="/p/:playlistId" element={<AppShell><HomePage /><SharedPlaylistLinkOpener /></AppShell>} />
