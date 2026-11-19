@@ -172,6 +172,14 @@ export default function PlaylistManager() {
   const [isEnteringDetail, setIsEnteringDetail] = useState(false);
   const [isExitingDetail, setIsExitingDetail] = useState(false);
   const [isEnteringFromDetail, setIsEnteringFromDetail] = useState(false);
+  // 하단 '대기열' 버튼은 처음 화면이 뜰 때 한 번만 등장 모션 (대기열 탭에서 돌아올 때는 생략)
+  const [queueBarEntered, setQueueBarEntered] = useState(false);
+  useEffect(() => {
+    if (queueBarEntered) return undefined;
+    // animationend가 오지 않는 경우(동작 줄이기 등)를 대비한 안전장치
+    const t = setTimeout(() => setQueueBarEntered(true), 1500);
+    return () => clearTimeout(t);
+  }, [queueBarEntered]);
 
   // ── 사이드바 뷰 히스토리 스택 (Navigation History Stack) ──
   const sidebarHistoryRef = useRef([]);
@@ -2448,7 +2456,10 @@ export default function PlaylistManager() {
         {/* ── 사이드바 하단 고정 대기열 컨트롤 바 (대기열 탭이 아닐 때만 노출) ── */}
       {activeTab !== 'queue' && (
         <div 
-          className={`playlist-bottom-control-bar ${isQueueDragOver ? 'drag-over' : ''}`}
+          className={`playlist-bottom-control-bar ${isQueueDragOver ? 'drag-over' : ''} ${queueBarEntered ? '' : 'is-entering'}`}
+          onAnimationEnd={(e) => {
+            if (e.target === e.currentTarget) setQueueBarEntered(true);
+          }}
           onDragOver={handleQueueDragOver}
           onDragLeave={handleQueueDragLeave}
           onDrop={handleQueueDrop}

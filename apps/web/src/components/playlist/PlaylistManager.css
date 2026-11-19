@@ -237,6 +237,33 @@
   padding-bottom: 0.25rem;
 }
 
+/* 처음 화면이 뜰 때 한 번만: 위쪽 플레이리스트 카드 → 대기열 버튼 → 미니 플레이어 순으로 떠오름 */
+.playlist-bottom-control-bar.is-entering {
+  animation: queueBarEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.1s backwards;
+}
+
+@keyframes queueBarEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+html.reduce-motion .playlist-bottom-control-bar.is-entering {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .playlist-bottom-control-bar.is-entering {
+    animation: none;
+  }
+}
+
 .btn-create-playlist-bar.sofar-btn {
   width: 100%;
   padding: 0.75rem 1rem;
