@@ -11,6 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import TrackRowItem from './TrackRowItem';
 import QueueRowItem from './QueueRowItem';
 import TrackThumbnail from './TrackThumbnail';
+import PlaylistCard from './PlaylistCard';
 import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube, fetchVideoDurations } from '../../utils/youtube';
 import { durationCache } from '../../utils/durationCache';
 import { extractTracksFromDragData, handleTrackDragStart } from '../../utils/dragUtils';
@@ -1238,8 +1239,8 @@ export default function PlaylistManager() {
     }
   };
 
-  const handleAddPlaylistToQueue = async (playlistId, e) => {
-    if (e) e.stopPropagation();
+  // 플레이리스트의 전체 수록곡 (로그인: DB, 게스트: 로컬 저장소, 실패 시 미리보기 목록)
+  const loadPlaylistTracks = async (playlistId) => {
     let tracks = [];
     if (user && !user.isGuest && supabase) {
       const { data } = await supabase
@@ -1262,6 +1263,23 @@ export default function PlaylistManager() {
       tracks = playlistPreviews[playlistId] || [];
     }
 
+    return tracks || [];
+  };
+
+  // 사이드바 카드의 재생 버튼: 플레이리스트 처음부터 재생
+  const handlePlayPlaylistFolder = async (pl) => {
+    const tracks = await loadPlaylistTracks(pl.id);
+    if (tracks.length === 0) {
+      showToast('플레이리스트에 곡이 없습니다.');
+      return;
+    }
+    playTrack(tracks[0], tracks);
+    if (setPlayingSource) setPlayingSource({ type: 'my', playlistId: pl.id });
+  };
+
+  const handleAddPlaylistToQueue = async (playlistId, e) => {
+    if (e) e.stopPropagation();
+    const tracks = await loadPlaylistTracks(playlistId);
     if (!tracks || tracks.length === 0) {
       showToast('대기열에 추가할 곡이 없습니다.');
       return;
@@ -2168,51 +2186,35 @@ export default function PlaylistManager() {
 
                         const isEnteringThisFolder = enteringFolderId === pl.id;
 
+                        const isProcessingThis = pendingFolderId === pl.id && isAddingBatchTracks;
+
                         return (
-                          <div 
-                            key={pl.id} 
-                            className={`folder-card stagger-fade-item ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'drag-over' : ''} ${pendingFolderId === pl.id && isAddingBatchTracks ? 'is-processing' : ''}`}
+                          <PlaylistCard
+                            key={pl.id}
+                            playlist={{ ...pl, tracks: playlistPreviews[pl.id] || [] }}
+                            count={count}
+                            cover={render2x2Cover(pl)}
+                            subText={pl.is_public ? '공유 중' : '비공개'}
+                            menuOptions={folderDropdownOptions}
+                            draggable={false}
+                            className={`stagger-fade-item ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'is-drop-target' : ''} ${isProcessingThis ? 'is-processing' : ''}`}
                             style={getStaggerStyle(plIdx)}
-                            onClick={() => !isAddingBatchTracks && handleSelectPlaylistFolder(pl.id)}
-                            onDragOver={(e) => !isAddingBatchTracks && handleFolderDragOver(e, pl.id)}
-                            onDragLeave={(e) => !isAddingBatchTracks && handleFolderDragLeave(e, pl.id)}
-                            onDrop={(e) => !isAddingBatchTracks && handleFolderDrop(e, pl)}
-                          >
-                            <div className="folder-card-cover-wrapper">
-                              {render2x2Cover(pl)}
-                              {pendingFolderId === pl.id && isAddingBatchTracks && (
-                                <div className="folder-card-processing-overlay">
-                                  <Loader2 size={22} className="spin-icon" />
-                                  <span className="folder-processing-text">
-                                    {batchAddingInfo?.count ? `${batchAddingInfo.count}곡 추가 중...` : '추가 중...'}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            <div className="folder-card-info">
-                              <div className="folder-card-header-row">
-                                <span className="folder-card-title" title={pl.title}>{pl.title}</span>
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  <Dropdown 
-                                    options={folderDropdownOptions} 
-                                    align="right"
-                                    trigger={(isOpen) => (
-                                      <button 
-                                        className={`folder-kebab-trigger-btn ${isOpen ? 'active' : ''}`}
-                                        title="더보기"
-                                      >
-                                        <MoreVertical size={14} strokeWidth={1.5} fill="currentColor" />
-                                      </button>
-                                    )}
-                                  />
-                                </div>
+                            onOpen={() => !isAddingBatchTracks && handleSelectPlaylistFolder(pl.id)}
+                            onPlay={() => !isAddingBatchTracks && handlePlayPlaylistFolder(pl)}
+                            coverOverlay={isProcessingThis ? (
+                              <div className="folder-card-processing-overlay">
+                                <Loader2 size={22} className="spin-icon" />
+                                <span className="folder-processing-text">
+                                  {batchAddingInfo?.count ? `${batchAddingInfo.count}곡 추가 중...` : '추가 중...'}
+                                </span>
                               </div>
-                              <span className="folder-card-count">
-                                {playlistPreviews[pl.id] ? `${playlistPreviews[pl.id].length}곡` : '0곡'}
-                                {pl.is_public ? ' · 공유됨' : ''}
-                              </span>
-                            </div>
-                          </div>
+                            ) : null}
+                            rootProps={{
+                              onDragOver: (e) => !isAddingBatchTracks && handleFolderDragOver(e, pl.id),
+                              onDragLeave: (e) => !isAddingBatchTracks && handleFolderDragLeave(e, pl.id),
+                              onDrop: (e) => !isAddingBatchTracks && handleFolderDrop(e, pl),
+                            }}
+                          />
                         );
                       })}
                     </div>

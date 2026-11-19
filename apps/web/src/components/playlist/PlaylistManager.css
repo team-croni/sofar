@@ -268,7 +268,14 @@
   align-content: start;
   align-items: start;
   grid-auto-rows: max-content;
+  /* 카드(PlaylistCard)에 안쪽 여백이 없으므로 그리드 간격으로 띄운다 */
+  gap: 1.5rem 1rem;
   padding-top: 0.1rem;
+}
+
+/* 사이드바: 예전 카드의 안쪽 여백(0.875rem)만큼 띄워 머리글 아이콘과 왼쪽 선을 맞춘다 */
+.playlist-grid-container .playlist-folder-grid {
+  padding: 0.1rem 0.875rem 0.875rem;
 }
 
 .folder-card {

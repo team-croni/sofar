@@ -1,0 +1,305 @@
+/* ── 공용 플레이리스트 카드 (PlaylistCard.jsx) ──
+   홈 취향 저격 추천, sofar 플레이리스트, 사이드바 내 플레이리스트, 내 정보 페이지에서 같이 쓴다.
+   노래 카드(.album-card, .foryou-card--track)와 구분되도록 커버 뒤에 카드가 겹친 모양을 쓴다. */
+
+.playlist-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  cursor: pointer;
+  user-select: none;
+  transform-origin: center center;
+  transition: transform 0.08s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.playlist-card__cover-wrap {
+  position: relative;
+  /* 겹친 카드가 들어갈 자리 */
+  margin-top: 10px;
+}
+
+/* 뒤에 겹친 카드 두 장: 커버 위로 보이는 띠만큼만 그려서 커버 뒤로 비치지 않게 한다 */
+.playlist-card__cover-wrap::before,
+.playlist-card__cover-wrap::after {
+  content: '';
+  position: absolute;
+  border-radius: 10px 10px 0 0;
+  pointer-events: none;
+}
+
+.playlist-card__cover-wrap::before {
+  top: -10px;
+  left: 20px;
+  right: 20px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.playlist-card__cover-wrap::after {
+  top: -5px;
+  left: 10px;
+  right: 10px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.playlist-card__cover {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  /* 불투명 배경: 빈 칸이 있어도 뒤의 겹친 카드가 비치지 않게 */
+  background: #1c1c1f;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s ease;
+}
+
+@supports (corner-shape: squircle) {
+  .playlist-card__cover {
+    corner-shape: squircle;
+    border-radius: 32px;
+  }
+}
+
+.playlist-card__cover:focus-visible {
+  outline: 2px solid var(--primary-warm, #d4a373);
+  outline-offset: 2px;
+}
+
+.playlist-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.playlist-card__count {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 호버: 노래 카드(.album-card)와 같은 어두운 막 + 가운데 재생 버튼 */
+.playlist-card__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.playlist-card:hover .playlist-card__overlay,
+.playlist-card__cover:focus-visible .playlist-card__overlay,
+.playlist-card__cover:focus-within .playlist-card__overlay {
+  opacity: 1;
+}
+
+.playlist-card__play {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  color: var(--text-active, #fff);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: scale(0.85);
+  transition: transform 0.2s ease;
+}
+
+.playlist-card:hover .playlist-card__play,
+.playlist-card__play:focus-visible {
+  transform: scale(1);
+}
+
+/* 사이드바 드롭 중·처리 중에는 재생 막을 띄우지 않는다 */
+.playlist-card.is-drop-target .playlist-card__overlay,
+.playlist-card.is-processing .playlist-card__overlay {
+  opacity: 0;
+}
+
+.playlist-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0 0.1rem 0 0.25rem;
+  min-width: 0;
+}
+
+.playlist-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  min-height: 24px;
+}
+
+.playlist-card__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+
+.playlist-card__actions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.playlist-card__kebab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  margin-right: -4px;
+}
+
+.playlist-card__kebab:hover {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.playlist-card__kebab.active {
+  color: var(--primary-warm, #d4a373);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.playlist-card__sub {
+  display: flex;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.playlist-card__reason {
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* 지금 열려 있는 플레이리스트 */
+.playlist-card--active .playlist-card__cover {
+  border-color: var(--primary-warm, #d4a373);
+}
+
+.playlist-card--active .playlist-card__title {
+  color: var(--primary-warm, #d4a373);
+}
+
+/* 사이드바: 곡을 끌어다 놓는 중 */
+.playlist-card.is-drop-target .playlist-card__cover {
+  border-color: var(--primary-warm, #d4a373);
+  transform: scale(1.03);
+}
+
+.playlist-card.is-drop-target * {
+  pointer-events: none;
+}
+
+/* 사이드바: 곡 추가 처리 중 */
+.playlist-card.is-processing {
+  pointer-events: none !important;
+}
+
+/* 사이드바: 플레이리스트로 들어갈 때 확대 효과 */
+.playlist-card.entering-zoom {
+  z-index: 10;
+  transform: scale(1.06) !important;
+}
+
+.playlist-card.entering-zoom .playlist-card__cover {
+  transform: scale(1.06);
+  filter: brightness(1.12);
+}
+
+/* ── 만든 사람 (아바타 + 이름) ── */
+.playlist-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.playlist-author__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-author__prefix {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.playlist-author__avatar .avatar-fallback.mesh-avatar {
+  box-shadow: none;
+}
+
+/* sofar 로고는 동그라미 없이 로고만, 아바타(16px)와 크기가 맞도록 사방 2px 여백 */
+.playlist-author__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 2px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.playlist-author__logo img {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
