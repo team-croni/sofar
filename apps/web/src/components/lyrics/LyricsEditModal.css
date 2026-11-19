@@ -20,7 +20,7 @@
 }
 
 .lem-hint code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
   color: var(--text-secondary);
 }
@@ -41,7 +41,7 @@
   border: 1px solid var(--border-cozy, rgba(255, 255, 255, 0.1));
   border-radius: var(--control-radius-md, 11px);
   color: var(--text-primary);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.75;
   resize: none;

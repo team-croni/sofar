@@ -11,6 +11,7 @@
   position: relative;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable both-edges; /* Windows처럼 스크롤바가 항상 보일 때 가운데 정렬이 밀리지 않게 */
   display: flex;
   flex-direction: column;
   -webkit-overflow-scrolling: touch;
