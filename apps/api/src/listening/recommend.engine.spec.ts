@@ -7,7 +7,6 @@ import {
   trackKeyOf,
   withJosa,
 } from './recommend.engine';
-import { weekStartKst } from './signals.service';
 
 const NOW = Date.parse('2026-11-20T12:00:00Z');
 const daysAgo = (d: number) => new Date(NOW - d * 86400000).toISOString();
@@ -267,7 +266,7 @@ describe('recommend.engine signals', () => {
     expect(ids).not.toContain('indie');
   });
 
-  it('ranks liked and hyped shared playlists higher', () => {
+  it('ranks liked shared playlists higher', () => {
     const extra: CandidatePlaylist[] = [
       ...playlists,
       {
@@ -288,7 +287,7 @@ describe('recommend.engine signals', () => {
     const stats = {
       loved: {
         likes: 20,
-        hypes_14d: 4,
+        likes_14d: 6,
         viewers_30d: 80,
         listeners_30d: 30,
         share_visitors_30d: 5,
@@ -303,14 +302,5 @@ describe('recommend.engine signals', () => {
     expect(socialScoreOf(stats.loved)).toBeGreaterThan(
       socialScoreOf(undefined),
     );
-  });
-});
-
-describe('signals helpers', () => {
-  it('computes the KST Monday of the week', () => {
-    // 2026-11-22 (일) 23:30 KST = 2026-11-22T14:30Z → 그 주 월요일 2026-11-16
-    expect(weekStartKst(Date.parse('2026-11-22T14:30:00Z'))).toBe('2026-11-16');
-    // 2026-11-23 (월) 00:10 KST = 2026-11-22T15:10Z → 2026-11-23
-    expect(weekStartKst(Date.parse('2026-11-22T15:10:00Z'))).toBe('2026-11-23');
   });
 });

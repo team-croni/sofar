@@ -49,21 +49,6 @@ export class SignalsController {
     return { success: true, ...result };
   }
 
-  @Post('playlists/:id/hype')
-  async hype(
-    @Param('id') id: string,
-    @Ip() ip: string,
-    @Headers('x-forwarded-for') forwarded?: string,
-    @Headers('authorization') authorization?: string,
-  ) {
-    const user = await this.listening.resolveUser(authorization);
-    this.signals.guardRate(
-      clientIp(forwarded, ip),
-      user ? `u:${user.id}` : null,
-    );
-    return { success: true, ...(await this.signals.hype(id, user)) };
-  }
-
   @Post('playlists/:id/share')
   async share(
     @Param('id') id: string,

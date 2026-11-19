@@ -4,7 +4,7 @@
 
 | 문서 파일명 | 최종 수정일 | 수정 요약 | 버전 |
 | :--- | :--- | :--- | :--- |
-| [recommendation-spec.md](./recommendation-spec.md) | 2026-11-20 | 플레이리스트 좋아요·응원·조회·공유 유입, 추천 '관심 없음'과 어뷰징 방지, 추천 반영 방식 추가 | v1.1.0 |
+| [recommendation-spec.md](./recommendation-spec.md) | 2026-11-20 | 플레이리스트 좋아요·조회·공유 유입, 추천 '관심 없음'과 어뷰징 방지, 추천 반영 방식 추가 | v1.1.0 |
 | [supabase_playlist_signals.sql](./supabase_playlist_signals.sql) | 2026-11-20 | 플레이리스트 반응·조회·공유 유입·관심 없음 테이블, 사람 수 기준 집계 함수, 2년 자동 파기 | v1.0.0 |
 | [supabase_listening_events.sql](./supabase_listening_events.sql) | 2026-11-20 | 감상 기록·추천 이벤트 테이블, 2년 자동 파기 예약 작업, 연령·성별 선택 컬럼 | v1.0.0 |
 | [legal-privacy-policy-guide.md](./legal-privacy-policy-guide.md) | 2026-11-20 | 플레이리스트 반응·조회·공유 유입·관심 없음 기록과 보관 기간 반영 | v2.3.0 |

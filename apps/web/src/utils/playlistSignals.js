@@ -1,5 +1,5 @@
 /**
- * 플레이리스트 좋아요·응원·조회·공유 유입, 추천 '관심 없음' API.
+ * 플레이리스트 좋아요·조회·공유 유입, 추천 '관심 없음' API.
  * 어뷰징 검사와 중복 차단은 서버(apps/api/src/listening/signals.service.ts)가 한다.
  */
 import { authHeaders, getClientId } from './listeningTelemetry';
@@ -42,10 +42,6 @@ export function fetchPlaylistSignals(playlistId) {
 
 export function setPlaylistLike(playlistId, liked) {
   return request(`playlists/${playlistId}/like`, { method: 'POST', body: { liked } });
-}
-
-export function hypePlaylist(playlistId) {
-  return request(`playlists/${playlistId}/hype`, { method: 'POST' });
 }
 
 /** 조회 기록 (서버가 사람당 하루 1회로 거른다). 실패해도 화면에는 영향 없음 */

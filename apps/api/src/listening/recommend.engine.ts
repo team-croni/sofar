@@ -73,7 +73,8 @@ export interface NotInterested {
 
 export interface PlaylistStats {
   likes: number;
-  hypes_14d: number;
+  /** 최근 14일 좋아요: 새 플레이리스트를 먼저 띄우는 데 쓴다 */
+  likes_14d: number;
   viewers_30d: number;
   listeners_30d: number;
   share_visitors_30d: number;
@@ -81,14 +82,14 @@ export interface PlaylistStats {
 
 /**
  * 플레이리스트의 사회적 반응 점수.
- * 행동마다 무게를 다르게 주고(응원 > 좋아요 > 실제 감상·공유 유입 > 조회), log로 눌러서
+ * 행동마다 무게를 다르게 주고(좋아요 > 실제 감상·공유 유입 > 조회, 최근 좋아요 가산), log로 눌러서
  * 숫자가 큰 소수 플레이리스트가 독식하지 않게 한다. 집계 자체가 '사람 수'라 반복 클릭은 의미가 없다.
  */
 export function socialScoreOf(stats?: PlaylistStats): number {
   if (!stats) return 0;
   return Math.log1p(
-    5 * stats.hypes_14d +
-      3 * stats.likes +
+    3 * stats.likes +
+      2 * stats.likes_14d +
       2 * stats.listeners_30d +
       2 * stats.share_visitors_30d +
       0.5 * stats.viewers_30d,
@@ -620,23 +621,23 @@ export function recommend(input: EngineInput): EngineOutput {
     pickedPlaylists.push(s);
     pickedPlIds.add(s.pl.id);
   }
-  // 응원을 받은 플레이리스트가 먼저, 그다음 최근에 공유된 순
+  // 최근 좋아요를 받은 플레이리스트가 먼저, 그다음 최근에 공유된 순
   const fresh = ownedOut
     .filter((pl) => pl.kind === 'shared' && !pickedPlIds.has(pl.id))
     .sort(
       (a, b) =>
-        (statsOf(b)?.hypes_14d || 0) - (statsOf(a)?.hypes_14d || 0) ||
+        (statsOf(b)?.likes_14d || 0) - (statsOf(a)?.likes_14d || 0) ||
         (Date.parse(b.createdAt || '') || 0) -
           (Date.parse(a.createdAt || '') || 0),
     );
   for (const pl of fresh) {
     if (pickedPlaylists.length >= playlistLimit) break;
-    const hyped = (statsOf(pl)?.hypes_14d || 0) > 0;
+    const recentlyLiked = (statsOf(pl)?.likes_14d || 0) > 0;
     pickedPlaylists.push({
       pl,
       score: 0,
-      reason: hyped
-        ? '리스너들이 응원하는 플레이리스트'
+      reason: recentlyLiked
+        ? '요즘 좋아요를 받는 플레이리스트'
         : '새로 공유된 플레이리스트',
     });
     pickedPlIds.add(pl.id);

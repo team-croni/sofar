@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Heart, Flame } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAudio } from '../../contexts/AudioContext';
 import {
   fetchPlaylistSignals,
-  hypePlaylist,
   recordPlaylistView,
   setPlaylistLike,
 } from '../../utils/playlistSignals';
@@ -14,7 +13,7 @@ import './PlaylistSignalsBar.css';
 const formatCount = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}천` : String(n || 0));
 
 /**
- * 다른 사람이 공유한 플레이리스트의 좋아요·응원 버튼 (사이드바 상세 머리글)
+ * 다른 사람이 공유한 플레이리스트의 좋아요 버튼 (사이드바 상세 머리글)
  * 열릴 때 조회도 한 번 기록한다 (서버가 사람당 하루 1회로 거름).
  */
 export default function PlaylistSignalsBar({ playlist }) {
@@ -61,23 +60,6 @@ export default function PlaylistSignalsBar({ playlist }) {
 
   const toggleLike = () => run(() => setPlaylistLike(playlist.id, !data.liked));
 
-  const hype = () => {
-    if (isMember && data.hypedThisWeek) {
-      showToast('이번 주에 이미 응원한 플레이리스트입니다.');
-      return;
-    }
-    run(
-      () => hypePlaylist(playlist.id),
-      (next) => `응원했습니다. 이번 주 남은 응원 ${next.hypesLeft}회`,
-    );
-  };
-
-  const hypeTitle = !isMember
-    ? '로그인 후 응원할 수 있습니다'
-    : data.hypedThisWeek
-      ? '이번 주에 응원했습니다'
-      : `새 플레이리스트가 더 많이 노출되도록 응원합니다 (이번 주 남은 응원 ${data.hypesLeft}회)`;
-
   return (
     <div className="playlist-signals" onClick={(e) => e.stopPropagation()}>
       <button
@@ -90,17 +72,6 @@ export default function PlaylistSignalsBar({ playlist }) {
       >
         <Heart size={14} strokeWidth={1.75} fill={data.liked ? 'currentColor' : 'none'} />
         <span>{formatCount(data.likeCount)}</span>
-      </button>
-      <button
-        type="button"
-        className={`playlist-signal-btn ${data.hypedThisWeek ? 'is-on' : ''}`}
-        onClick={hype}
-        disabled={busy}
-        aria-pressed={data.hypedThisWeek}
-        title={hypeTitle}
-      >
-        <Flame size={14} strokeWidth={1.75} fill={data.hypedThisWeek ? 'currentColor' : 'none'} />
-        <span>{formatCount(data.hypeCount)}</span>
       </button>
     </div>
   );
