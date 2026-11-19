@@ -206,6 +206,8 @@
 
 .playlist-card__sub {
   display: flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   font-size: 0.75rem;
   color: var(--text-secondary, rgba(255, 255, 255, 0.55));
@@ -302,4 +304,25 @@
   width: 12px;
   height: 12px;
   display: block;
+}
+
+.playlist-card__sub-main {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 좋아요 수: 만든 사람 뒤에 붙고, 이름이 길면 이름 쪽이 먼저 줄어든다 */
+.playlist-card__likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+}
+
+.playlist-card__likes svg {
+  color: var(--primary-warm, #d4a373);
+  opacity: 0.85;
 }

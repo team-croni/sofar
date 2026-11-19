@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Music, MoreVertical, ListMusic } from 'lucide-react';
+import { Play, Music, MoreVertical, ListMusic, Heart } from 'lucide-react';
 import TrackThumbnail from './TrackThumbnail';
 import Dropdown from '../ui/Dropdown';
 import PlaylistAuthor from '../home/PlaylistAuthor';
@@ -58,6 +58,7 @@ function handleCoverKeyDown(e) {
  * - 커버 왼쪽 아래 곡 수, 아래에 만든 사람(아바타 + 이름)과 추천 이유
  * - 겹친 카드 모양으로 이미 플레이리스트임이 드러나므로 "플레이리스트" 같은 종류 표시는 넣지 않는다
  * - showAuthor={false}면 만든 사람 줄을 숨긴다 (예: 모두 sofar가 만든 'sofar 플레이리스트' 섹션)
+ * - likeCount가 1 이상이면 같은 줄 끝에 '♥ N'을 붙인다 (0이면 표시하지 않음)
  */
 export default function PlaylistCard({
   playlist,
@@ -67,6 +68,7 @@ export default function PlaylistCard({
   official = false,
   showAuthor = true,
   subText,
+  likeCount = 0,
   reason,
   isActive = false,
   onOpen,
@@ -148,9 +150,19 @@ export default function PlaylistCard({
             </div>
           )}
         </div>
-        {(subText || showAuthor) && (
+        {(subText || showAuthor || likeCount > 0) && (
           <span className="playlist-card__sub">
-            {subText ?? <PlaylistAuthor playlist={playlist} official={official} />}
+            {(subText || showAuthor) && (
+              <span className="playlist-card__sub-main">
+                {subText ?? <PlaylistAuthor playlist={playlist} official={official} />}
+              </span>
+            )}
+            {likeCount > 0 && (
+              <span className="playlist-card__likes" title={`좋아요 ${likeCount}개`}>
+                <Heart size={11} strokeWidth={2} fill="currentColor" />
+                {likeCount >= 1000 ? `${(likeCount / 1000).toFixed(likeCount >= 10000 ? 0 : 1)}천` : likeCount}
+              </span>
+            )}
           </span>
         )}
         {reason && <span className="playlist-card__reason">{reason}</span>}

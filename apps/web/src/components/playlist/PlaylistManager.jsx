@@ -14,6 +14,7 @@ import TrackThumbnail from './TrackThumbnail';
 import PlaylistCard from './PlaylistCard';
 import PlaylistSignalsBar from './PlaylistSignalsBar';
 import { supportsPlaylistSignals } from '../../utils/playlistSignals';
+import { usePlaylistLikeCounts } from '../../hooks/usePlaylistLikeCounts';
 import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube, fetchVideoDurations } from '../../utils/youtube';
 import { durationCache } from '../../utils/durationCache';
 import { extractTracksFromDragData, handleTrackDragStart } from '../../utils/dragUtils';
@@ -1293,6 +1294,11 @@ export default function PlaylistManager() {
     showToast(`'${targetPl?.title || '플레이리스트'}' ${tracks.length}곡을 대기열에 추가했습니다.`);
   };
 
+  // 사이드바 카드에 표시할 내 공개 플레이리스트의 좋아요 수
+  const likeCounts = usePlaylistLikeCounts(
+    (playlists || []).filter((p) => p.is_public).map((p) => p.id),
+  );
+
   const isMyPlaylist = activeSharedPlaylist && !activeSharedPlaylist.isChartContext && (
     playlists.some(p => String(p.id) === String(activeSharedPlaylist.id)) ||
     (user && activeSharedPlaylist.user_id && activeSharedPlaylist.user_id === user.id)
@@ -2197,6 +2203,7 @@ export default function PlaylistManager() {
                             count={count}
                             cover={render2x2Cover(pl)}
                             subText={pl.is_public ? '공유 중' : '비공개'}
+                            likeCount={pl.is_public ? (likeCounts[pl.id] || 0) : 0}
                             menuOptions={folderDropdownOptions}
                             draggable={false}
                             className={`stagger-fade-item ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'is-drop-target' : ''} ${isProcessingThis ? 'is-processing' : ''}`}
@@ -2247,6 +2254,10 @@ export default function PlaylistManager() {
                       <h3 className="playlist-detail-title">
                         {activeSharedPlaylist ? activeSharedPlaylist.title : selectedHeaderTitle}
                       </h3>
+                      {/* 내 플레이리스트의 '이름 수정' 자리에, 다른 사람 플레이리스트는 좋아요를 둔다 */}
+                      {isReadOnlyShared && supportsPlaylistSignals(activeSharedPlaylist) && (
+                        <PlaylistSignalsBar playlist={activeSharedPlaylist} />
+                      )}
                       {!isReadOnlyShared && (
                         <button 
                           onClick={(e) => {
@@ -2263,9 +2274,6 @@ export default function PlaylistManager() {
                     </div>
 
                     <div className="playlist-detail-header-actions">
-                      {isReadOnlyShared && supportsPlaylistSignals(activeSharedPlaylist) && (
-                        <PlaylistSignalsBar playlist={activeSharedPlaylist} />
-                      )}
                       <Dropdown 
                         options={playlistDetailDropdownOptions}
                         align="right"

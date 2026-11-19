@@ -7,6 +7,7 @@ import {
   Ip,
   Param,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ListeningService } from './listening.service';
 import { SignalsService } from './signals.service';
@@ -22,6 +23,17 @@ export class SignalsController {
     private readonly listening: ListeningService,
     private readonly signals: SignalsService,
   ) {}
+
+  // 'playlists/likes'가 ':id' 경로보다 먼저 와야 한다
+  @Get('playlists/likes')
+  async likeCounts(
+    @Query('ids') ids: string | undefined,
+    @Ip() ip: string,
+    @Headers('x-forwarded-for') forwarded?: string,
+  ) {
+    this.signals.guardRate(clientIp(forwarded, ip), null);
+    return { success: true, counts: await this.signals.getLikeCounts(ids) };
+  }
 
   @Get('playlists/:id/signals')
   async getSignals(

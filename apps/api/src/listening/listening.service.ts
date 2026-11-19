@@ -700,8 +700,23 @@ export class ListeningService {
       playlistLimit: 12,
     });
 
+    // 카드에 좋아요 수를 보여 주기 위해 공유 플레이리스트에 붙인다 (사람 수 기준 집계)
+    const items = output.items.map((item) =>
+      item.type === 'playlist' &&
+      item.playlistKind === 'shared' &&
+      item.playlist
+        ? {
+            ...item,
+            playlist: {
+              ...item.playlist,
+              likeCount: playlistStats[item.itemId]?.likes ?? 0,
+            },
+          }
+        : item,
+    );
     const value = {
       ...output,
+      items,
       requestId: `rec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
     };
     if (this.recCache.size > 2000) this.recCache.clear();

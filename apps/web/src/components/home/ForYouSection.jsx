@@ -310,6 +310,7 @@ export default function ForYouSection() {
         playlist={playlist}
         official={item.playlistKind === 'curated'}
         reason={item.reason}
+        likeCount={playlist.likeCount || 0}
         isActive={isActive}
         onOpen={() => openPlaylist(item, position)}
         onPlay={() => playPlaylist(item, position)}

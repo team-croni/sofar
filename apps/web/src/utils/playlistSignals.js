@@ -36,6 +36,14 @@ async function request(path, { method = 'GET', body, keepalive = false } = {}) {
   return json;
 }
 
+/** 여러 공개 플레이리스트의 좋아요 수 { [id]: count } (카드 표시용) */
+export async function fetchPlaylistLikeCounts(ids) {
+  const valid = Array.from(new Set((ids || []).filter((id) => UUID_RE.test(String(id)))));
+  if (valid.length === 0) return {};
+  const json = await request(`playlists/likes?ids=${valid.join(',')}`);
+  return json?.counts || {};
+}
+
 export function fetchPlaylistSignals(playlistId) {
   return request(`playlists/${playlistId}/signals`);
 }

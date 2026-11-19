@@ -97,6 +97,28 @@ export class SignalsService {
 
   // ── 조회 ──────────────────────────────────────────────
 
+  /** 여러 공개 플레이리스트의 좋아요 수 (카드 표시용). 비공개·없는 ID는 빠진다. */
+  async getLikeCounts(idsParam: string | undefined) {
+    const ids = Array.from(
+      new Set(
+        String(idsParam || '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter((id) => UUID_RE.test(id)),
+      ),
+    ).slice(0, 100);
+    if (ids.length === 0) return {};
+    const res = await supabaseRest<
+      Array<{ playlist_id: string; likes: number }>
+    >('rpc/get_playlist_signal_stats', {
+      method: 'POST',
+      body: JSON.stringify({ playlist_ids: ids }),
+    });
+    const counts: Record<string, number> = {};
+    for (const row of res.data || []) counts[row.playlist_id] = row.likes ?? 0;
+    return counts;
+  }
+
   async getSignals(playlistId: string, user: VerifiedUser | null) {
     const pl = await this.loadPublicPlaylist(playlistId);
     const [stats, liked] = await Promise.all([

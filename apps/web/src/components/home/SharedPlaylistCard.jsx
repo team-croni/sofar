@@ -15,6 +15,7 @@ export default function SharedPlaylistCard({
   onAddPlaylistToQueue,
   canCopyLink = false,
   showAuthor = true,
+  likeCount = 0,
 }) {
   const { showToast } = useAudio();
   const isOfficial = playlist.playlistSource === 'category';
@@ -53,6 +54,7 @@ export default function SharedPlaylistCard({
       playlist={playlist}
       official={isOfficial}
       showAuthor={showAuthor}
+      likeCount={likeCount}
       isActive={isActive}
       onOpen={() => onSelectPlaylist(playlist)}
       onPlay={() => onPlayPlaylist(playlist)}

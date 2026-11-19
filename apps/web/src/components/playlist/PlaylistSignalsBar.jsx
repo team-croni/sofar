@@ -8,6 +8,7 @@ import {
   recordPlaylistView,
   setPlaylistLike,
 } from '../../utils/playlistSignals';
+import { PLAYLIST_LIKE_COUNTS_KEY } from '../../hooks/usePlaylistLikeCounts';
 import './PlaylistSignalsBar.css';
 
 const formatCount = (n) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}천` : String(n || 0));
@@ -50,6 +51,9 @@ export default function PlaylistSignalsBar({ playlist }) {
     try {
       const next = await action();
       queryClient.setQueryData(queryKey, next);
+      // 카드에 보이는 좋아요 수도 새로 받는다
+      queryClient.invalidateQueries({ queryKey: [PLAYLIST_LIKE_COUNTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['home-recommendations'], refetchType: 'none' });
       if (successMessage) showToast(successMessage(next));
     } catch (error) {
       showToast(error.message || '요청을 처리하지 못했습니다.');
