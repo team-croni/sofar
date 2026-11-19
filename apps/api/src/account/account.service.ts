@@ -1,4 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  InternalServerErrorException,
+} from '@nestjs/common';
 
 @Injectable()
 export class AccountService {
@@ -26,15 +30,24 @@ export class AccountService {
     const del = async (label: string, path: string, optional = false) => {
       const res = await fetch(`${url}${path}`, { method: 'DELETE', headers });
       // 테이블이 없는 환경(404)은 건너뜀
-      if (!res.ok && !(optional && (res.status === 404 || res.status === 400))) {
+      if (
+        !res.ok &&
+        !(optional && (res.status === 404 || res.status === 400))
+      ) {
         const text = await res.text().catch(() => '');
         throw new Error(`${label} delete failed (${res.status}): ${text}`);
       }
     };
 
     try {
-      // 1. 좋아요
+      // 1. 좋아요, 감상 기록, 추천 노출·클릭 기록
       await del('favorites', `/rest/v1/favorites?user_id=eq.${id}`, true);
+      await del('play_events', `/rest/v1/play_events?user_id=eq.${id}`, true);
+      await del(
+        'recommendation_events',
+        `/rest/v1/recommendation_events?user_id=eq.${id}`,
+        true,
+      );
 
       // 2. 플레이리스트 하위 트랙 → 플레이리스트
       const plRes = await fetch(
@@ -45,14 +58,19 @@ export class AccountService {
         const pls = (await plRes.json()) as Array<{ id: string }>;
         if (pls.length > 0) {
           const ids = pls.map((p) => `"${p.id}"`).join(',');
-          await del('tracks', `/rest/v1/tracks?playlist_id=in.(${encodeURIComponent(ids)})`);
+          await del(
+            'tracks',
+            `/rest/v1/tracks?playlist_id=in.(${encodeURIComponent(ids)})`,
+          );
         }
       }
       await del('playlists', `/rest/v1/playlists?user_id=eq.${id}`);
 
       // 3. 프로필 이미지 (실패해도 계정 삭제는 계속)
       await this.removeAvatars(userId).catch((e) =>
-        this.logger.warn(`[Account] avatar cleanup skipped: ${e?.message || e}`),
+        this.logger.warn(
+          `[Account] avatar cleanup skipped: ${e?.message || e}`,
+        ),
       );
 
       // 4. 프로필 → Auth 계정
@@ -62,7 +80,9 @@ export class AccountService {
       this.logger.log(`[Account] user ${userId} deleted`);
     } catch (error: any) {
       this.logger.error(`[Account] delete error: ${error?.message || error}`);
-      throw new InternalServerErrorException('탈퇴 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      throw new InternalServerErrorException(
+        '탈퇴 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.',
+      );
     }
   }
 
@@ -79,7 +99,9 @@ export class AccountService {
     await fetch(`${url}/storage/v1/object/avatars`, {
       method: 'DELETE',
       headers,
-      body: JSON.stringify({ prefixes: files.map((f) => `${userId}/${f.name}`) }),
+      body: JSON.stringify({
+        prefixes: files.map((f) => `${userId}/${f.name}`),
+      }),
     });
   }
 }

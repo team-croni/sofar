@@ -1,4 +1,11 @@
-import { Controller, Delete, HttpCode, HttpStatus, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { SupabaseUserGuard } from './account.guard';
 import { AccountService } from './account.service';
 
@@ -10,7 +17,9 @@ export class AccountController {
   @Delete()
   @UseGuards(SupabaseUserGuard)
   @HttpCode(HttpStatus.OK)
-  async deleteMe(@Req() req: { user: { id: string } }): Promise<{ success: boolean }> {
+  async deleteMe(
+    @Req() req: { user: { id: string } },
+  ): Promise<{ success: boolean }> {
     await this.accountService.deleteAccount(req.user.id);
     return { success: true };
   }
