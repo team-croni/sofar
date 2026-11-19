@@ -4,9 +4,10 @@
 
 | 문서 파일명 | 최종 수정일 | 수정 요약 | 버전 |
 | :--- | :--- | :--- | :--- |
-| [recommendation-spec.md](./recommendation-spec.md) | 2026-11-20 | 감상 기록 수집(재생 시작 방식 포함), 추천 알고리즘 hybrid-v1, 홈 취향 저격 추천 화면 명세 신규 작성 | v1.0.0 |
+| [recommendation-spec.md](./recommendation-spec.md) | 2026-11-20 | 플레이리스트 좋아요·응원·조회·공유 유입, 추천 '관심 없음'과 어뷰징 방지, 추천 반영 방식 추가 | v1.1.0 |
+| [supabase_playlist_signals.sql](./supabase_playlist_signals.sql) | 2026-11-20 | 플레이리스트 반응·조회·공유 유입·관심 없음 테이블, 사람 수 기준 집계 함수, 2년 자동 파기 | v1.0.0 |
 | [supabase_listening_events.sql](./supabase_listening_events.sql) | 2026-11-20 | 감상 기록·추천 이벤트 테이블, 2년 자동 파기 예약 작업, 연령·성별 선택 컬럼 | v1.0.0 |
-| [legal-privacy-policy-guide.md](./legal-privacy-policy-guide.md) | 2026-11-20 | 감상·추천·검색 기록 수집, 2년 보관, 개인화 추천, 위탁 사업자 및 국외 이전 반영 | v2.2.0 |
+| [legal-privacy-policy-guide.md](./legal-privacy-policy-guide.md) | 2026-11-20 | 플레이리스트 반응·조회·공유 유입·관심 없음 기록과 보관 기간 반영 | v2.3.0 |
 | [admin-dashboard-spec.md](./admin-dashboard-spec.md) | 2026-08-15 | 음원 불일치 리포트 상태 관리(미해결/해결완료), 영구 보존 및 서브 필터 정책 추가 | v1.4.0 |
 | [manual-youtube-matching-sidebar.md](./manual-youtube-matching-sidebar.md) | 2026-08-13 | 관리자 수동 매칭 오른쪽 사이드바 (노래/유튜브 검색 패널, Drag&Drop 기능) 규격 작성 | v1.1.0 |
 | [youtube-curated-spec.md](./youtube-curated-spec.md) | 2026-08-11 | Last.fm 기반 한국 테마 후보 생성 및 수익화 전환용 관리자 확정본 운영 | v3.0.0 |
