@@ -608,6 +608,15 @@ image {
   pointer-events: none;
 }
 
+/* 설정 등 단색 배경 페이지 (body의 은은한 그라데이션도 덮음) */
+.app-solid-bg {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-cozy);
+  z-index: -1;
+  pointer-events: none;
+}
+
 /* 상단 가독성 마스킹 및 외곽 비네트(Vignette) 효과 레이어 */
 .app-blurred-bg::after {
   content: '';
@@ -854,4 +863,19 @@ image {
     left: 1rem !important;
     bottom: 8.5rem !important;
   }
+}
+/* ── 설정 페이지 연동 ─────────────────────────── */
+/* 화면 > 앨범 커버 블러 배경 끔 */
+html.no-album-blur .app-blurred-bg {
+  display: none;
+}
+
+/* 화면 > 동작 줄이기: LP 회전·반짝임 등 반복 애니메이션 정지 */
+html.reduce-motion .animate-spin-slow,
+html.reduce-motion [class*="sheen"],
+html.reduce-motion .animate-marquee {
+  animation: none !important;
+}
+html.reduce-motion .fade-in-bg {
+  animation-duration: 0.01ms !important;
 }

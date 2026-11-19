@@ -936,11 +936,25 @@ export default function PlaylistManager() {
       setActiveTab('queue');
     };
 
+    // 외부(내 정보 등)에서 내 플레이리스트 목록 화면 열기
+    const handleOpenPlaylistList = () => {
+      if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
+      previousSidebarStateRef.current = null;
+      setSelectedPlaylistId(null);
+      setActiveTab('playlists');
+      setIsEnteringFromDetail(true);
+      setTimeout(() => {
+        setIsEnteringFromDetail(false);
+      }, 200);
+    };
+
     window.addEventListener('trigger-open-shared-playlist', handleOpenSharedPlaylist);
     window.addEventListener('trigger-open-queue', handleOpenQueue);
+    window.addEventListener('trigger-open-playlist-list', handleOpenPlaylistList);
     return () => {
       window.removeEventListener('trigger-open-shared-playlist', handleOpenSharedPlaylist);
       window.removeEventListener('trigger-open-queue', handleOpenQueue);
+      window.removeEventListener('trigger-open-playlist-list', handleOpenPlaylistList);
     };
   }, [setActiveSharedPlaylist, playlists, user]);
 

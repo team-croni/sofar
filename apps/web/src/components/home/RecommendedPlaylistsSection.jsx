@@ -99,6 +99,7 @@ export default function RecommendedPlaylistsSection() {
               onSelectPlaylist={handleSelectPlaylist}
               onPlayPlaylist={handlePlayPlaylist}
               onAddPlaylistToQueue={handleAddPlaylistToQueue}
+              canCopyLink={playlist.playlistSource === 'shared'}
             />
           );
         })}

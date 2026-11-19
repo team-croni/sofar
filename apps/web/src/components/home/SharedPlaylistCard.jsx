@@ -1,14 +1,18 @@
-import { Play, ListPlus, Music, MoreVertical } from 'lucide-react';
+import { Play, ListPlus, Music, MoreVertical, Link2 } from 'lucide-react';
 import TrackThumbnail from '../playlist/TrackThumbnail';
 import Dropdown from '../ui/Dropdown';
+import { useAudio } from '../../contexts/AudioContext';
+import { isShareablePlaylistId, copyPlaylistShareUrl } from '../../utils/shareLink';
 
 export default function SharedPlaylistCard({
   playlist,
   isActive,
   onSelectPlaylist,
   onPlayPlaylist,
-  onAddPlaylistToQueue
+  onAddPlaylistToQueue,
+  canCopyLink = false,
 }) {
+  const { showToast } = useAudio();
   const previewTracks = playlist.tracks || [];
   const slots = [0, 1, 2, 3];
   const customCover = playlist.cover || playlist.cover_url;
@@ -29,7 +33,17 @@ export default function SharedPlaylistCard({
         if (e) e.stopPropagation();
         onPlayPlaylist(playlist);
       }
-    }
+    },
+    // 공유 플레이리스트만 링크 복사 제공 (사이드바 메뉴와 같은 문구)
+    ...(canCopyLink && isShareablePlaylistId(playlist.id) ? [{
+      label: '링크 복사',
+      icon: <Link2 size={16} />,
+      onClick: async (e) => {
+        if (e) e.stopPropagation();
+        const ok = await copyPlaylistShareUrl(playlist.id);
+        showToast(ok ? '공유 링크가 복사되었습니다.' : '링크를 복사하지 못했습니다.');
+      }
+    }] : []),
   ];
 
   return (

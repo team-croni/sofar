@@ -1,0 +1,759 @@
+/* ─────────────────────────────────────────
+   내 정보(/me) · 설정(/settings) 공통 스타일
+───────────────────────────────────────── */
+.acct-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding: 5.5rem 2.5rem 2.5rem;
+  color: var(--text-primary);
+}
+
+.acct-page.has-player {
+  padding-bottom: 8rem;
+}
+
+/* 내 정보: 설정 페이지와 같은 아래 여유 (마지막 목록이 재생 바에 붙지 않도록) */
+.myinfo-page {
+  padding-bottom: 7.5rem;
+}
+
+.myinfo-page.has-player {
+  padding-bottom: 13rem;
+}
+
+.acct-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.acct-page-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text-active);
+}
+
+.acct-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-cozy);
+  border-radius: 18px;
+  box-sizing: border-box;
+}
+
+.acct-empty {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px dashed var(--border-cozy-hover);
+  border-radius: 14px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.acct-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-cozy-hover);
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
+.acct-badge.is-google {
+  color: var(--text-primary);
+}
+
+.acct-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.acct-icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-active);
+}
+
+.acct-icon-btn:focus-visible,
+.acct-toggle:focus-visible,
+.acct-segment:focus-visible,
+.settings-nav-item:focus-visible,
+.acct-stat.is-clickable:focus-visible,
+.acct-link:focus-visible,
+.profile-avatar-edit:focus-visible {
+  outline: 2px solid var(--border-active);
+  outline-offset: 2px;
+}
+
+.acct-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--text-active);
+  animation: acct-spin 0.8s linear infinite;
+}
+
+@keyframes acct-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── 프로필 카드 ── */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  padding: 1.75rem 2rem;
+}
+
+.profile-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profile-avatar-edit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-cozy);
+  background: #2a2829;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.profile-avatar-edit:hover:not(:disabled),
+.profile-avatar-edit.active {
+  background: #3a3739;
+  color: var(--text-active);
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-name-row,
+.profile-name-form {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  /* 보기/수정 모드의 높이를 같게 맞춰 아래 텍스트가 밀리지 않게 함 */
+  height: 38px;
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-active);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-name-input {
+  min-width: 0;
+  width: 18rem;
+  max-width: 100%;
+  height: 38px;
+  padding: 0 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-active);
+  background: var(--bg-input);
+  color: var(--text-active);
+  font: inherit;
+  font-size: 1.125rem;
+  outline: none;
+}
+
+.profile-name-input.has-error {
+  border-color: var(--error);
+}
+
+.profile-name-error {
+  margin: 0;
+  color: var(--error);
+  font-size: 0.8125rem;
+}
+
+.profile-sub {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.profile-email {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-since {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+/* ── 게스트 카드 ── */
+.guest-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.75rem 2rem;
+}
+
+.guest-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.guest-copy .profile-name {
+  font-size: 1.25rem;
+  white-space: normal;
+}
+
+.guest-desc,
+.guest-local {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.guest-local {
+  color: var(--text-primary);
+}
+
+/* ── 보관함 요약 ── */
+.acct-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.acct-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-cozy);
+  border-radius: 16px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  transition: var(--transition-fast);
+}
+
+.acct-stat.is-clickable {
+  cursor: pointer;
+}
+
+.acct-stat.is-clickable:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-cozy-hover);
+}
+
+.acct-stat-icon {
+  color: var(--text-muted);
+  display: inline-flex;
+}
+
+.acct-stat-value {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-active);
+  font-variant-numeric: tabular-nums;
+}
+
+.acct-stat-label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* ── 공유 플레이리스트 · 좋아요 ── */
+/* ── 설정 레이아웃 ── */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+/* 설정 타이틀은 목차와 함께 처음 자리에 고정
+   헤더 블러(z-index 100) 위에 올려 흐려지지 않게 함 */
+.settings-page .acct-page-header {
+  position: sticky;
+  top: var(--settings-title-top, 5.5rem);
+  z-index: 101;
+  width: fit-content;
+  pointer-events: none;
+}
+
+.settings-nav {
+  position: sticky;
+  /* 처음 놓인 높이 그대로 고정 (값은 SettingsPage에서 측정) */
+  top: var(--settings-nav-top, 10rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.settings-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.settings-nav-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.settings-nav-item.is-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-active);
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  min-width: 0;
+  padding-bottom: 5rem;
+}
+
+.setting-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  /* 상단 헤더 블러(약 192px) 아래로 제목이 오도록 여유를 둠 */
+  scroll-margin-top: var(--settings-nav-top, 10rem);
+}
+
+.setting-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.setting-section-icon {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+.setting-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0.25rem 1.5rem;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-cozy);
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.setting-row-title {
+  font-size: 0.9375rem;
+  color: var(--text-primary);
+}
+
+.setting-row-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.setting-row.is-danger .setting-row-title {
+  color: var(--error);
+}
+
+.setting-row-control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* ── 토글 스위치 ── */
+.acct-toggle {
+  position: relative;
+  width: 42px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border-cozy-hover);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.acct-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.acct-toggle.is-on {
+  background: var(--primary-warm);
+  border-color: var(--primary-warm);
+}
+
+.acct-toggle.is-on .acct-toggle-thumb {
+  transform: translateX(18px);
+  background: #1a1716;
+}
+
+.acct-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── 세그먼트 선택 ── */
+.acct-segmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-cozy);
+}
+
+.acct-segment {
+  height: 30px;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.acct-segment:hover {
+  color: var(--text-primary);
+}
+
+.acct-segment.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-active);
+}
+
+/* ── 링크 / 단축키 ── */
+.acct-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  text-decoration: none;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  transition: var(--transition-fast);
+}
+
+.acct-link:hover {
+  color: var(--text-active);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.shortcut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem 1.25rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--border-cozy);
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.shortcut-key {
+  min-width: 2.25rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-cozy-hover);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.75rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── 모달 ── */
+.acct-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.acct-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.withdraw-lead {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.withdraw-list {
+  margin: 0;
+  padding: 0.9rem 1rem 0.9rem 2rem;
+  border-radius: 12px;
+  background: rgba(229, 115, 115, 0.06);
+  border: 1px solid rgba(229, 115, 115, 0.18);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.8;
+}
+
+.withdraw-list strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ── 좁은 화면 (태블릿) ── */
+@media (max-width: 1100px) {
+  .acct-page {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .settings-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .acct-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .setting-row {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── 페이지 진입 애니메이션 ───────────────────────
+   처음 들어왔을 때 위에서부터 차례로 떠오르며 나타남.
+   fill-mode를 backwards로 두어, 끝난 뒤에는 hover 효과 등 원래 스타일이 그대로 적용되게 함 */
+@keyframes acctEnterUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes acctEnterSide {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes acctAvatarPop {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.acct-page {
+  --enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --enter-dur: 0.7s;
+}
+
+/* 페이지 제목 (헤더 자체가 아닌 안쪽 요소를 움직여, 설정 페이지의 고정 위치 측정에 영향이 없게 함) */
+.acct-page > .acct-page-header > * {
+  animation: acctEnterUp var(--enter-dur) var(--enter-ease) backwards;
+}
+.acct-page > .acct-page-header > :nth-child(2) {
+  animation-delay: 60ms;
+}
+
+/* 설정: 목차는 옆에서 살짝 미끄러지며 하나씩 */
+.settings-nav-item {
+  animation: acctEnterSide 0.5s var(--enter-ease) backwards;
+  animation-delay: calc(120ms + var(--i, 0) * 45ms);
+}
+.settings-nav-item:nth-child(1) { --i: 0; }
+.settings-nav-item:nth-child(2) { --i: 1; }
+.settings-nav-item:nth-child(3) { --i: 2; }
+.settings-nav-item:nth-child(4) { --i: 3; }
+.settings-nav-item:nth-child(5) { --i: 4; }
+.settings-nav-item:nth-child(6) { --i: 5; }
+.settings-nav-item:nth-child(7) { --i: 6; }
+
+/* 설정: 섹션은 제목 → 카드 순으로 차례로 떠오름 (화면 밖 섹션은 지연을 짧게 묶음) */
+.setting-section > .setting-section-title,
+.setting-section > .setting-card {
+  animation: acctEnterUp var(--enter-dur) var(--enter-ease) backwards;
+  animation-delay: calc(160ms + min(var(--i, 0), 4) * 90ms);
+}
+.setting-section > .setting-card {
+  animation-delay: calc(220ms + min(var(--i, 0), 4) * 90ms);
+}
+.setting-section:nth-child(1) { --i: 0; }
+.setting-section:nth-child(2) { --i: 1; }
+.setting-section:nth-child(3) { --i: 2; }
+.setting-section:nth-child(4) { --i: 3; }
+.setting-section:nth-child(n + 5) { --i: 4; }
+
+/* 내 정보: 프로필 카드 → 통계 카드 → 목록 섹션 순 */
+.myinfo-page > .profile-card,
+.myinfo-page > .guest-card,
+.myinfo-page > .home-section {
+  animation: acctEnterUp var(--enter-dur) var(--enter-ease) backwards;
+}
+.myinfo-page > .profile-card,
+.myinfo-page > .guest-card { animation-delay: 90ms; }
+.myinfo-page > #my-shared { animation-delay: 480ms; }
+.myinfo-page > #my-favorites { animation-delay: 560ms; }
+
+.profile-card .profile-avatar-wrap {
+  animation: acctAvatarPop 0.8s var(--enter-ease) 200ms backwards;
+}
+
+.profile-meta > * {
+  animation: acctEnterUp 0.6s var(--enter-ease) backwards;
+}
+.profile-meta > :nth-child(1) { animation-delay: 260ms; }
+.profile-meta > :nth-child(2) { animation-delay: 310ms; }
+.profile-meta > :nth-child(3) { animation-delay: 360ms; }
+.profile-meta > :nth-child(4) { animation-delay: 410ms; }
+
+.myinfo-page .acct-stat {
+  animation: acctEnterUp 0.6s var(--enter-ease) backwards;
+}
+.myinfo-page .acct-stat:nth-child(1) { animation-delay: 240ms; }
+.myinfo-page .acct-stat:nth-child(2) { animation-delay: 290ms; }
+.myinfo-page .acct-stat:nth-child(3) { animation-delay: 340ms; }
+.myinfo-page .acct-stat:nth-child(4) { animation-delay: 390ms; }
+
+/* 최근 좋아요한 곡: 줄마다 짧게 이어서 */
+#my-favorites .popular-list > * {
+  animation: acctEnterUp 0.55s var(--enter-ease) backwards;
+  animation-delay: calc(620ms + min(var(--row, 0), 8) * 40ms);
+}
+#my-favorites .popular-list > :nth-child(2) { --row: 1; }
+#my-favorites .popular-list > :nth-child(3) { --row: 2; }
+#my-favorites .popular-list > :nth-child(4) { --row: 3; }
+#my-favorites .popular-list > :nth-child(5) { --row: 4; }
+#my-favorites .popular-list > :nth-child(6) { --row: 5; }
+#my-favorites .popular-list > :nth-child(7) { --row: 6; }
+#my-favorites .popular-list > :nth-child(n + 8) { --row: 7; }
+
+/* 설정의 '동작 줄이기' 또는 시스템 동작 줄이기가 켜져 있으면 진입 애니메이션 생략 */
+html.reduce-motion .acct-page * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acct-page * {
+    animation: none !important;
+  }
+}

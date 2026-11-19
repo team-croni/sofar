@@ -88,7 +88,8 @@ async function fetchPublicPlaylists() {
         const val = localStorage.getItem(key);
         if (val) {
           const parsed = JSON.parse(val);
-          sessionUserName = parsed?.user?.user_metadata?.full_name 
+          sessionUserName = parsed?.user?.user_metadata?.display_name
+            || parsed?.user?.user_metadata?.full_name 
             || parsed?.user?.user_metadata?.name 
             || parsed?.user?.email?.split('@')[0];
           if (sessionUserName) break;

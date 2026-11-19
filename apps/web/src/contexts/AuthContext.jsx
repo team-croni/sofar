@@ -366,35 +366,92 @@ export function AuthProvider({ children }) {
     setPendingGuestData(null);
   };
 
-  // 계정 탈퇴
-  const withdrawAccount = async () => {
-    if (!supabase || !user) return;
-    
-    const confirmWithdraw = window.confirm(
-      '정말로 회원 탈퇴를 진행하시겠습니까?\n탈퇴 시 클라우드에 보관된 모든 플레이리스트 및 설정 데이터는 즉각 파기되며 복구할 수 없습니다.'
-    );
+  // 닉네임 / 프로필 이미지 수정 (profiles + auth user_metadata 동시 갱신)
+  // avatarUrl: 문자열이면 변경, null이면 기본 아바타로 되돌림, undefined면 유지
+  const updateProfile = async ({ nickname, avatarUrl } = {}) => {
+    if (!supabase || !user || user.isGuest) return { error: new Error('로그인이 필요합니다.') };
 
-    if (!confirmWithdraw) return;
+    const metaPatch = {};
+    const profilePatch = { id: user.id, email: user.email, updated_at: new Date().toISOString() };
+    if (nickname !== undefined) {
+      metaPatch.display_name = nickname.trim();
+      profilePatch.username = nickname.trim();
+    }
+    if (avatarUrl !== undefined) {
+      metaPatch.custom_avatar_url = avatarUrl || null;
+      profilePatch.avatar_url = avatarUrl || '';
+    }
 
+    const { error: profileError } = await supabase.from('profiles').upsert(profilePatch);
+    if (profileError) return { error: profileError };
+
+    const { data, error } = await supabase.auth.updateUser({ data: metaPatch });
+    if (error) return { error };
+    if (data?.user) setUser(data.user);
+
+    // 내 플레이리스트에 표시되는 작성자 이름도 맞춰 줌 (익명 표시 중이면 유지)
+    if (nickname !== undefined) {
+      await supabase
+        .from('playlists')
+        .update({ author: nickname.trim() })
+        .eq('user_id', user.id)
+        .or('author.is.null,author.neq."익명의 리스너"');
+      queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+    }
+    return { error: null };
+  };
+
+  // 프로필 이미지 업로드 → 공개 URL 반환 (avatars/{userId}/avatar-{ts}.ext)
+  const uploadAvatar = async (file) => {
+    if (!supabase || !user || user.isGuest) return { error: new Error('로그인이 필요합니다.') };
+    const ext = (file.name?.split('.').pop() || 'png').toLowerCase();
+    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(path, file, { cacheControl: '3600', upsert: true, contentType: file.type });
+    if (error) return { error };
+
+    // 이전 이미지 정리 (실패해도 무시)
     try {
-      // 1. RLS 정책 및 Cascade 설정으로 profiles 테이블의 본인 ID 삭제 시 연관된 playlists, tracks도 삭제됨
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
+      const { data: list } = await supabase.storage.from('avatars').list(user.id);
+      const stale = (list || [])
+        .map((f) => `${user.id}/${f.name}`)
+        .filter((p) => p !== path);
+      if (stale.length) await supabase.storage.from('avatars').remove(stale);
+    } catch { /* noop */ }
 
-      if (error) throw error;
-      
-      // 2. Supabase Auth의 유저 정보 삭제는 보통 관리자 API 권한이 필요하므로, 
-      // 클라이언트 사이드에서는 DB를 정리하고 SignOut 시켜 로직을 안전히 마무리합니다.
-      await supabase.auth.signOut();
-      localStorage.clear();
-      alert('탈퇴가 정상적으로 완료되었습니다.');
-      window.location.reload();
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+    return { url: data.publicUrl, error: null };
+  };
+
+  // 계정 탈퇴: API 서버가 service role로 데이터 + auth.users까지 완전 삭제 (F-AUTH-05)
+  const withdrawAccount = async () => {
+    if (!supabase || !user || user.isGuest) return { error: new Error('로그인이 필요합니다.') };
+
+    const { data: { session: current } } = await supabase.auth.getSession();
+    const token = current?.access_token;
+    if (!token) return { error: new Error('세션이 만료되었습니다. 다시 로그인해 주세요.') };
+
+    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    try {
+      const res = await fetch(`${backendUrl}/api/me`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.message || '탈퇴 처리 중 문제가 발생했습니다.');
+      }
     } catch (err) {
       console.error('Withdraw Error:', err);
-      alert('회원 탈퇴 처리 중 에러가 발생했습니다.');
+      return { error: err };
     }
+
+    await supabase.auth.signOut().catch(() => {});
+    localStorage.clear();
+    return { error: null };
   };
 
   return (
@@ -416,7 +473,9 @@ export function AuthProvider({ children }) {
       pendingGuestData,
       executeMigration,
       discardMigration,
-      withdrawAccount
+      withdrawAccount,
+      updateProfile,
+      uploadAvatar
     }}>
       {children}
     </AuthContext.Provider>

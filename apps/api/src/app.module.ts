@@ -5,6 +5,7 @@ import { EmailModule } from './email/email.module';
 import { ChartModule } from './chart/chart.module';
 import { AdminModule } from './admin/admin.module';
 import { SearchModule } from './search/search.module';
+import { AccountModule } from './account/account.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -25,6 +26,7 @@ import { AppService } from './app.service';
     ChartModule,
     AdminModule,
     SearchModule,
+    AccountModule,
   ],
   controllers: [AppController],
   providers: [AppService],
