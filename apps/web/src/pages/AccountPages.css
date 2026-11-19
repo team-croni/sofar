@@ -664,7 +664,7 @@
 
 .acct-page {
   --enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --enter-dur: 0.7s;
+  --enter-dur: 0.52s;
 }
 
 /* 페이지 제목 (헤더 자체가 아닌 안쪽 요소를 움직여, 설정 페이지의 고정 위치 측정에 영향이 없게 함) */
@@ -672,13 +672,13 @@
   animation: acctEnterUp var(--enter-dur) var(--enter-ease) backwards;
 }
 .acct-page > .acct-page-header > :nth-child(2) {
-  animation-delay: 60ms;
+  animation-delay: 42ms;
 }
 
 /* 설정: 목차는 옆에서 살짝 미끄러지며 하나씩 */
 .settings-nav-item {
-  animation: acctEnterSide 0.5s var(--enter-ease) backwards;
-  animation-delay: calc(120ms + var(--i, 0) * 45ms);
+  animation: acctEnterSide 0.38s var(--enter-ease) backwards;
+  animation-delay: calc(84ms + var(--i, 0) * 31ms);
 }
 .settings-nav-item:nth-child(1) { --i: 0; }
 .settings-nav-item:nth-child(2) { --i: 1; }
@@ -692,10 +692,10 @@
 .setting-section > .setting-section-title,
 .setting-section > .setting-card {
   animation: acctEnterUp var(--enter-dur) var(--enter-ease) backwards;
-  animation-delay: calc(160ms + min(var(--i, 0), 4) * 90ms);
+  animation-delay: calc(112ms + min(var(--i, 0), 4) * 63ms);
 }
 .setting-section > .setting-card {
-  animation-delay: calc(220ms + min(var(--i, 0), 4) * 90ms);
+  animation-delay: calc(154ms + min(var(--i, 0), 4) * 63ms);
 }
 .setting-section:nth-child(1) { --i: 0; }
 .setting-section:nth-child(2) { --i: 1; }
@@ -710,34 +710,34 @@
   animation: acctEnterUp var(--enter-dur) var(--enter-ease) backwards;
 }
 .myinfo-page > .profile-card,
-.myinfo-page > .guest-card { animation-delay: 90ms; }
-.myinfo-page > #my-shared { animation-delay: 480ms; }
-.myinfo-page > #my-favorites { animation-delay: 560ms; }
+.myinfo-page > .guest-card { animation-delay: 63ms; }
+.myinfo-page > #my-shared { animation-delay: 336ms; }
+.myinfo-page > #my-favorites { animation-delay: 392ms; }
 
 .profile-card .profile-avatar-wrap {
-  animation: acctAvatarPop 0.8s var(--enter-ease) 200ms backwards;
+  animation: acctAvatarPop 0.6s var(--enter-ease) 140ms backwards;
 }
 
 .profile-meta > * {
-  animation: acctEnterUp 0.6s var(--enter-ease) backwards;
+  animation: acctEnterUp 0.45s var(--enter-ease) backwards;
 }
-.profile-meta > :nth-child(1) { animation-delay: 260ms; }
-.profile-meta > :nth-child(2) { animation-delay: 310ms; }
-.profile-meta > :nth-child(3) { animation-delay: 360ms; }
-.profile-meta > :nth-child(4) { animation-delay: 410ms; }
+.profile-meta > :nth-child(1) { animation-delay: 182ms; }
+.profile-meta > :nth-child(2) { animation-delay: 217ms; }
+.profile-meta > :nth-child(3) { animation-delay: 252ms; }
+.profile-meta > :nth-child(4) { animation-delay: 287ms; }
 
 .myinfo-page .acct-stat {
-  animation: acctEnterUp 0.6s var(--enter-ease) backwards;
+  animation: acctEnterUp 0.45s var(--enter-ease) backwards;
 }
-.myinfo-page .acct-stat:nth-child(1) { animation-delay: 240ms; }
-.myinfo-page .acct-stat:nth-child(2) { animation-delay: 290ms; }
-.myinfo-page .acct-stat:nth-child(3) { animation-delay: 340ms; }
-.myinfo-page .acct-stat:nth-child(4) { animation-delay: 390ms; }
+.myinfo-page .acct-stat:nth-child(1) { animation-delay: 168ms; }
+.myinfo-page .acct-stat:nth-child(2) { animation-delay: 203ms; }
+.myinfo-page .acct-stat:nth-child(3) { animation-delay: 238ms; }
+.myinfo-page .acct-stat:nth-child(4) { animation-delay: 273ms; }
 
 /* 최근 좋아요한 곡: 줄마다 짧게 이어서 */
 #my-favorites .popular-list > * {
-  animation: acctEnterUp 0.55s var(--enter-ease) backwards;
-  animation-delay: calc(620ms + min(var(--row, 0), 8) * 40ms);
+  animation: acctEnterUp 0.41s var(--enter-ease) backwards;
+  animation-delay: calc(434ms + min(var(--row, 0), 8) * 28ms);
 }
 #my-favorites .popular-list > :nth-child(2) { --row: 1; }
 #my-favorites .popular-list > :nth-child(3) { --row: 2; }
