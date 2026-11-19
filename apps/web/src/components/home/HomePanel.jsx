@@ -6,6 +6,7 @@ import HomeSpinner from './HomeSpinner';
 import TrendingSection from './TrendingSection';
 import RecommendedPlaylistsSection from './RecommendedPlaylistsSection';
 import PopularChartSection from './PopularChartSection';
+import ForYouSection from './ForYouSection';
 import HomeFooter from './HomeFooter';
 
 import './HomePanel.css';
@@ -28,6 +29,7 @@ export default function HomePanel() {
         <RecommendedPlaylistsSection />
         {statTracks?.length > 0 && <PopularChartSection />}
       </div>
+      <ForYouSection />
       <HomeFooter />
     </div>
   );

@@ -6,13 +6,11 @@ const FILTERS = [
   { id: 'genre', label: '장르' },
   { id: 'theme', label: '테마' },
   { id: 'situation', label: '상황' },
-  { id: 'shared', label: '공유' },
 ];
 
 export default function RecommendedPlaylistsSection() {
   const {
     categoryPlaylists,
-    sharedPlaylists,
     playTrack,
     addToQueue,
     setQueue,
@@ -23,23 +21,15 @@ export default function RecommendedPlaylistsSection() {
   } = useHomePanel();
   const [activeFilter, setActiveFilter] = useState('genre');
 
-  const playlists = useMemo(() => [
-    ...(categoryPlaylists || []).map((playlist) => ({
-      ...playlist,
-      playlistSource: 'category',
-    })),
-    ...(sharedPlaylists || []).map((playlist) => ({
-      ...playlist,
-      playlistSource: 'shared',
-    })),
-  ], [categoryPlaylists, sharedPlaylists]);
+  // 공유 플레이리스트는 홈 하단 '취향 저격 추천'에서 취향에 맞춰 보여 준다
+  const playlists = useMemo(() => (categoryPlaylists || []).map((playlist) => ({
+    ...playlist,
+    playlistSource: 'category',
+  })), [categoryPlaylists]);
 
   if (playlists.length === 0) return null;
 
-  const filteredPlaylists = playlists.filter((playlist) => {
-    if (activeFilter === 'shared') return playlist.playlistSource === 'shared';
-    return playlist.category === activeFilter;
-  });
+  const filteredPlaylists = playlists.filter((playlist) => playlist.category === activeFilter);
 
   const handleSelectPlaylist = (playlist) => {
     openSharedPlaylistInSidebar?.(playlist);
@@ -70,9 +60,9 @@ export default function RecommendedPlaylistsSection() {
     <section className="home-section home-section--recommended">
       <div className="section-header">
         <div className="section-title-group">
-          <h3 className="section-title">추천 플레이리스트</h3>
+          <h3 className="section-title">sofar 플레이리스트</h3>
         </div>
-        <div className="category-filter-tabs" role="tablist" aria-label="추천 플레이리스트 필터">
+        <div className="category-filter-tabs" role="tablist" aria-label="sofar 플레이리스트 필터">
           {FILTERS.map((filter) => (
             <button
               key={filter.id}
@@ -93,13 +83,13 @@ export default function RecommendedPlaylistsSection() {
             && String(activeSharedPlaylist.id) === String(playlist.id);
           return (
             <SharedPlaylistCard
+              showAuthor={false}
               key={`${playlist.playlistSource}-${playlist.id}`}
               playlist={playlist}
               isActive={isActive}
               onSelectPlaylist={handleSelectPlaylist}
               onPlayPlaylist={handlePlayPlaylist}
               onAddPlaylistToQueue={handleAddPlaylistToQueue}
-              canCopyLink={playlist.playlistSource === 'shared'}
             />
           );
         })}

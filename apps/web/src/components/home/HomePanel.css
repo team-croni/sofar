@@ -261,16 +261,31 @@
   flex-direction: column;
   gap: 0.55rem;
   cursor: pointer;
+  user-select: none;
 }
 
 .album-card__cover {
   position: relative;
+  display: block;
   width: 160px;
   height: 160px;
+  padding: 0;
   border-radius: 24px;
   border: 1.5px solid rgba(255, 255, 255, 0.15);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.album-card__cover:focus-visible {
+  outline: 2px solid var(--primary-warm, #d4a373);
+  outline-offset: 2px;
+}
+
+.album-card__cover:focus-visible .album-card__overlay {
+  opacity: 1;
 }
 
 @supports (corner-shape: squircle) {
@@ -426,6 +441,15 @@
 
 .album-card--playing .album-card__cover .album-card__cover-img {
   filter: brightness(0.25);
+}
+
+/* 재생 중 테두리: 취향 저격 추천 카드와 같은 강조색 */
+.album-card__cover {
+  transition: border-color 0.15s ease;
+}
+
+.album-card--playing .album-card__cover {
+  border-color: var(--primary-warm, #d4a373);
 }
 
 /* ── 하단 2단 분할 ── */
@@ -832,10 +856,8 @@
   text-overflow: ellipsis;
 }
 
-/* 공유 플레이리스트 리스트 그리드 마진 -14px */
 .home-section--recommended .playlist-folder-grid {
-  grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
-  margin: -14px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 }
 
 .home-section--recommended .empty-list-message {
@@ -1054,6 +1076,224 @@ html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
   .home-panel-container > .home-bottom-layout > *,
   .home-panel-container > :last-child,
   .home-panel-container > .home-section .h-scroll-track > * {
+    animation: none;
+  }
+}
+
+/* ── 취향 저격 추천 (홈 하단 그리드) ── */
+.foryou-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 1.75rem 1.25rem;
+  min-width: 0;
+}
+
+.foryou-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  /* 카드 전체가 클릭 대상: 글자 위에서도 손가락 커서, 클릭·드래그 시 글자 선택 방지 */
+  cursor: pointer;
+  user-select: none;
+}
+
+.foryou-card__cover-wrap {
+  position: relative;
+}
+
+/* 노래: 뜨고 있는 음악 카드처럼 더 둥글게 */
+.foryou-card--track .foryou-card__cover {
+  border-radius: 24px;
+}
+
+@supports (corner-shape: squircle) {
+  .foryou-card--track .foryou-card__cover {
+    border-radius: 48px;
+  }
+}
+
+.foryou-card__cover {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 16px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+@supports (corner-shape: squircle) {
+  .foryou-card__cover {
+    corner-shape: squircle;
+    border-radius: 32px;
+  }
+}
+
+.foryou-card__cover:focus-visible {
+  outline: 2px solid var(--primary-warm, #d4a373);
+  outline-offset: 2px;
+}
+
+.foryou-card--active .foryou-card__cover,
+.foryou-card--playing .foryou-card__cover {
+  border-color: var(--primary-warm, #d4a373);
+}
+
+.foryou-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.foryou-card__cover .track-thumbnail-ring,
+.foryou-card__cover .thumbnail-disk-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.foryou-card__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--text-active, #fff);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+/* 호버·재생 중 표현은 뜨고 있는 음악 카드(.album-card)와 같게 맞춘다 */
+.foryou-card:hover .foryou-card__overlay,
+.foryou-card__cover:focus-visible .foryou-card__overlay,
+.foryou-card--playing .foryou-card__overlay {
+  opacity: 1;
+}
+
+.foryou-card__play-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  transform: scale(0.85);
+  transition: transform 0.2s ease;
+}
+
+.foryou-card:hover .foryou-card__play-icon,
+.foryou-card__cover:focus-visible .foryou-card__play-icon {
+  transform: scale(1);
+}
+
+/* 재생 중: 커버를 어둡게(밝기 25%) + 헤드폰 아이콘 */
+.foryou-card--playing .foryou-card__overlay {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.foryou-card__now {
+  color: var(--primary-warm, #d4a373);
+}
+
+.foryou-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0 0.1rem 0 0.25rem;
+  min-width: 0;
+}
+
+.foryou-card__title-row {
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.foryou-card__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.foryou-card__actions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.foryou-card__sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.foryou-card__reason {
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* ── 취향 저격 추천 로딩 스켈레톤 (실제 카드와 같은 크기) ── */
+.foryou-skeleton-block {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: foryouSkeletonShimmer 1.5s infinite;
+}
+
+.foryou-card--skeleton {
+  pointer-events: none;
+}
+
+.foryou-card--skeleton .foryou-card__cover {
+  border-color: rgba(255, 255, 255, 0.06);
+  cursor: default;
+}
+
+.foryou-card--skeleton .foryou-card__meta {
+  gap: 0.45rem;
+  padding-top: 0.2rem;
+}
+
+.foryou-skeleton-line {
+  display: block;
+  border-radius: 6px;
+}
+
+@keyframes foryouSkeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+html.reduce-motion .foryou-skeleton-block {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foryou-skeleton-block {
     animation: none;
   }
 }

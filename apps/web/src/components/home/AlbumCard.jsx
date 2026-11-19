@@ -8,10 +8,12 @@ export default function AlbumCard({ track, isPlaying, onPlay, isSearching, onAdd
   const artworkSrc = track.artwork || (track.youtube_video_id ? `https://img.youtube.com/vi/${track.youtube_video_id}/hqdefault.jpg` : null);
 
   return (
+    // 카드 전체를 누르면 재생 (키보드는 커버 버튼으로 같은 동작)
     <div 
       className={`album-card ${isPlaying ? 'album-card--playing' : ''}`}
+      onClick={() => onPlay(track)}
     >
-      <div className="album-card__cover" onClick={() => onPlay(track)}>
+      <button type="button" className="album-card__cover" aria-label={`${track.custom_title} 재생`}>
         {artworkSrc ? (
           <img src={artworkSrc} alt="" className="album-card__cover-img" draggable={false} />
         ) : (
@@ -19,6 +21,8 @@ export default function AlbumCard({ track, isPlaying, onPlay, isSearching, onAdd
             title={track.custom_title}
             artist={track.custom_artist}
             youtubeId={track.youtube_video_id}
+            fallback="vinyl"
+            spinning={isPlaying}
           />
         )}
         <div className="album-card__overlay">
@@ -26,14 +30,14 @@ export default function AlbumCard({ track, isPlaying, onPlay, isSearching, onAdd
             <div className="album-card__searching"><Loader size={20} className="spin-icon" /></div>
           ) : (
             !isPlaying && (
-              <button className="album-card__play-btn" aria-label="재생">
+              <span className="album-card__play-btn" aria-hidden="true">
                 <Play size={36} fill="currentColor" strokeWidth={1.5} />
-              </button>
+              </span>
             )
           )}
         </div>
         {isPlaying && <div className="album-card__now-badge"><Headphones size={36} strokeWidth={1.875} /></div>}
-      </div>
+      </button>
       <div className="album-card__meta">
         <div className="album-card__meta-header">
           <span className="album-card__title" title={track.custom_title}>{track.custom_title}</span>
