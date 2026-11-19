@@ -1,0 +1,155 @@
+/* 앨범 이미지가 없을 때의 LP판 (VinylPlayer.css의 LP판 질감을 크기에 맞게 비율로 옮김) */
+
+/* 카드 커버에 이미 테두리가 있으므로 썸네일 테두리를 빼서 LP판 배경이 커버를 꽉 채우게 한다 */
+.track-thumbnail-ring.track-thumbnail-ring--vinyl {
+  border: none;
+}
+
+.vinyl-fallback {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(212, 163, 115, 0.08), transparent 70%),
+    var(--vinyl-bg, #5d5d8f);
+  container-type: inline-size;
+}
+
+.vinyl-fallback__disc {
+  position: relative;
+  width: 82%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #0d0d0d;
+  border: 1px solid #2c2c2c;
+  box-shadow:
+    0 6cqw 14cqw rgba(0, 0, 0, 0.55),
+    inset 0 0 8cqw rgba(0, 0, 0, 0.75);
+}
+
+.vinyl-fallback__disc.is-spinning {
+  animation: vinylFallbackSpin 11s linear infinite;
+}
+
+@keyframes vinylFallbackSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vinyl-fallback__grooves {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle,
+      transparent 0%,
+      transparent 35%,
+      rgba(0, 0, 0, 0.55) 35%,
+      rgba(0, 0, 0, 0.55) 37.5%,
+      transparent 38.5%,
+      transparent 59%,
+      rgba(0, 0, 0, 0.4) 59%,
+      rgba(0, 0, 0, 0.4) 60%,
+      transparent 61.5%,
+      transparent 68.5%,
+      rgba(0, 0, 0, 1) 68.5%,
+      rgba(0, 0, 0, 1) 70%,
+      transparent 70%,
+      transparent 100%
+    ),
+    repeating-radial-gradient(
+      circle at center,
+      #000 0px,
+      #000 1.2px,
+      rgba(255, 255, 255, 0.06) 1.8px,
+      #000 2.4px,
+      #000 2.6px
+    );
+  opacity: 0.95;
+}
+
+.vinyl-fallback__label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 37%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1.5cqw solid #111;
+  box-sizing: border-box;
+  /* 실제 LP 라벨처럼 밝은 종이색으로 검은 원판과 구분 */
+  background: #cbcbcf;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 2.5cqw rgba(0, 0, 0, 0.35);
+}
+
+.vinyl-fallback__logo {
+  width: 46%;
+  height: 46%;
+  user-select: none;
+}
+
+.vinyl-fallback__hole {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4.5%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #181412;
+  border: 1px solid #000;
+}
+
+/* 회전해도 빛 반사는 제자리에 있도록 원판과 반대로 돌린다 */
+.vinyl-fallback__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  /* 반사광은 홈(결) 부분에만: 가운데 라벨 위로 빛이 모이지 않게 가린다 */
+  -webkit-mask-image: radial-gradient(circle closest-side, transparent 38%, #000 50%);
+  mask-image: radial-gradient(circle closest-side, transparent 38%, #000 50%);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.35) 100%),
+    conic-gradient(
+      from 45deg,
+      transparent 0deg,
+      rgba(255, 255, 255, 0.04) 10deg,
+      rgba(255, 255, 255, 0.16) 45deg,
+      rgba(255, 255, 255, 0.04) 80deg,
+      transparent 90deg,
+      transparent 180deg,
+      rgba(255, 255, 255, 0.04) 190deg,
+      rgba(255, 255, 255, 0.16) 225deg,
+      rgba(255, 255, 255, 0.04) 260deg,
+      transparent 270deg,
+      transparent 360deg
+    );
+}
+
+.vinyl-fallback__disc.is-spinning .vinyl-fallback__sheen {
+  animation: vinylFallbackSpin 11s linear infinite reverse;
+}
+
+html.reduce-motion .vinyl-fallback__disc.is-spinning,
+html.reduce-motion .vinyl-fallback__disc.is-spinning .vinyl-fallback__sheen {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vinyl-fallback__disc.is-spinning,
+  .vinyl-fallback__disc.is-spinning .vinyl-fallback__sheen {
+    animation: none;
+  }
+}

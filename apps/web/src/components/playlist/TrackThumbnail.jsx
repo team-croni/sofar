@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { isUsableArtwork, isYoutubePlaceholderImage, thumbnailCache } from '../../utils/thumbnailCache';
 import sofarLogo from '@sofar/assets/sofar-logo.svg';
+import VinylFallback from './VinylFallback';
 import './TrackThumbnail.css';
 
 /**
@@ -8,8 +9,10 @@ import './TrackThumbnail.css';
  * @param {string} title - 곡 제목
  * @param {string} artist - 아티스트명
  * @param {string} youtubeId - 유튜브 비디오 ID (Fallback용)
+ * @param {'logo'|'vinyl'} fallback - 이미지가 없을 때 모양 (큰 카드는 'vinyl')
+ * @param {boolean} spinning - fallback이 'vinyl'일 때 재생 중이면 LP판을 돌린다
  */
-export default function TrackThumbnail({ title, artist, youtubeId, artwork }) {
+export default function TrackThumbnail({ title, artist, youtubeId, artwork, fallback = 'logo', spinning = false }) {
   const usableArtwork = isUsableArtwork(artwork) ? artwork : null;
   const cachedArtwork = (!usableArtwork && title) ? thumbnailCache.get(artist, title) : null;
   
@@ -53,8 +56,10 @@ export default function TrackThumbnail({ title, artist, youtubeId, artwork }) {
     setHasError(false);
   }, [finalSrc]);
 
+  const showVinyl = fallback === 'vinyl' && !(finalSrc && !hasError);
+
   return (
-    <div className="track-thumbnail-ring">
+    <div className={`track-thumbnail-ring ${showVinyl ? 'track-thumbnail-ring--vinyl' : ''}`}>
       {finalSrc && !hasError ? (
         <img 
           src={finalSrc} 
@@ -66,6 +71,8 @@ export default function TrackThumbnail({ title, artist, youtubeId, artwork }) {
           }}
           className="thumbnail-disk-img"
         />
+      ) : fallback === 'vinyl' ? (
+        <VinylFallback spinning={spinning} seed={`${artist || ''}|${title || ''}`} />
       ) : (
         <div className="thumbnail-disk-img thumbnail-disk-fallback" title={`${title} - ${artist}`}>
           <img src={sofarLogo} alt="" className="thumbnail-fallback-logo" />
