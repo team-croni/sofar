@@ -326,3 +326,11 @@
   color: var(--primary-warm, #d4a373);
   opacity: 0.85;
 }
+
+/* 앞에 만든 사람(또는 '공유 중')이 있으면 가운뎃점으로 나눠
+   만든 사람이 아니라 이 플레이리스트의 좋아요라는 게 보이게 한다 */
+.playlist-card__sub-main + .playlist-card__likes::before {
+  content: '·';
+  margin-right: 3px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
+}
