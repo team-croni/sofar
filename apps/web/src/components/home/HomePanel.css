@@ -1018,3 +1018,42 @@
   color: var(--primary-warm, #d4a373);
   margin-top: 1px;
 }
+
+/* ── 홈 진입 애니메이션: 급상승 → 추천 플레이리스트 → 인기 순위 → 푸터 순 ── */
+.home-panel-container > .home-section,
+.home-panel-container > .home-bottom-layout > *,
+.home-panel-container > :last-child {
+  animation: pageEnterUp var(--page-enter-dur) var(--page-enter-ease) backwards;
+}
+.home-panel-container > .home-bottom-layout > :nth-child(1) { animation-delay: 60ms; }
+.home-panel-container > .home-bottom-layout > :nth-child(2) { animation-delay: 110ms; }
+.home-panel-container > :last-child { animation-delay: 170ms; }
+
+/* 급상승 카드는 왼쪽부터 하나씩 (화면 밖 카드는 지연을 묶음) */
+.home-panel-container > .home-section .h-scroll-track > * {
+  animation: pageEnterUp 0.45s var(--page-enter-ease) backwards;
+  animation-delay: calc(50ms + min(var(--enter-i, 7), 7) * 28ms);
+}
+.home-panel-container > .home-section .h-scroll-track > :nth-child(1) { --enter-i: 0; }
+.home-panel-container > .home-section .h-scroll-track > :nth-child(2) { --enter-i: 1; }
+.home-panel-container > .home-section .h-scroll-track > :nth-child(3) { --enter-i: 2; }
+.home-panel-container > .home-section .h-scroll-track > :nth-child(4) { --enter-i: 3; }
+.home-panel-container > .home-section .h-scroll-track > :nth-child(5) { --enter-i: 4; }
+.home-panel-container > .home-section .h-scroll-track > :nth-child(6) { --enter-i: 5; }
+.home-panel-container > .home-section .h-scroll-track > :nth-child(7) { --enter-i: 6; }
+
+/* '동작 줄이기'가 켜져 있으면 진입 애니메이션만 생략 (로딩 스피너 등은 유지) */
+html.reduce-motion .home-panel-container > .home-section,
+html.reduce-motion .home-panel-container > .home-bottom-layout > *,
+html.reduce-motion .home-panel-container > :last-child,
+html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-panel-container > .home-section,
+  .home-panel-container > .home-bottom-layout > *,
+  .home-panel-container > :last-child,
+  .home-panel-container > .home-section .h-scroll-track > * {
+    animation: none;
+  }
+}

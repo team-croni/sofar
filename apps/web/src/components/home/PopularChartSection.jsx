@@ -55,7 +55,12 @@ export default function PopularChartSection() {
 
     rowElsRef.current.forEach((el, key) => {
       if (!el) return;
-      const newTop = el.offsetTop;
+      // 목록 안에서의 위치로 비교 (페이지 기준으로 재면 위쪽 섹션 높이가 바뀔 때
+      // 모든 줄이 움직인 것으로 잘못 판단해 한꺼번에 위에서 내려오는 모션이 생김)
+      const parent = el.parentElement;
+      const newTop = parent && el.offsetParent !== parent
+        ? el.offsetTop - parent.offsetTop
+        : el.offsetTop;
       newPositions.set(key, newTop);
 
       const oldTop = prevPositionsRef.current.get(key);

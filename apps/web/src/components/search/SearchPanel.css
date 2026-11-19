@@ -1159,3 +1159,38 @@
     transform: scale(1) translateY(0);
   }
 }
+
+/* ── 검색 첫 화면 진입 애니메이션: 인기 검색어 → 인기 아티스트, 항목은 위에서부터 하나씩 ── */
+.search-landing-section {
+  animation: pageEnterUp var(--page-enter-dur) var(--page-enter-ease) backwards;
+}
+.search-landing-section:nth-child(2) { animation-delay: 60ms; }
+
+.trending-column-list > *,
+.trending-artists-landing-grid > * {
+  animation: pageEnterUp 0.45s var(--page-enter-ease) backwards;
+  animation-delay: calc(var(--enter-base, 60ms) + min(var(--enter-i, 9), 9) * 26ms);
+}
+.trending-artists-landing-grid > * { --enter-base: 110ms; }
+.trending-column-list > :nth-child(1), .trending-artists-landing-grid > :nth-child(1) { --enter-i: 0; }
+.trending-column-list > :nth-child(2), .trending-artists-landing-grid > :nth-child(2) { --enter-i: 1; }
+.trending-column-list > :nth-child(3), .trending-artists-landing-grid > :nth-child(3) { --enter-i: 2; }
+.trending-column-list > :nth-child(4), .trending-artists-landing-grid > :nth-child(4) { --enter-i: 3; }
+.trending-column-list > :nth-child(5), .trending-artists-landing-grid > :nth-child(5) { --enter-i: 4; }
+.trending-column-list > :nth-child(6), .trending-artists-landing-grid > :nth-child(6) { --enter-i: 5; }
+.trending-column-list > :nth-child(7), .trending-artists-landing-grid > :nth-child(7) { --enter-i: 6; }
+.trending-column-list > :nth-child(8), .trending-artists-landing-grid > :nth-child(8) { --enter-i: 7; }
+.trending-column-list > :nth-child(9), .trending-artists-landing-grid > :nth-child(9) { --enter-i: 8; }
+
+html.reduce-motion .search-landing-section,
+html.reduce-motion .trending-column-list > *,
+html.reduce-motion .trending-artists-landing-grid > * {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .search-landing-section,
+  .trending-column-list > *,
+  .trending-artists-landing-grid > * {
+    animation: none;
+  }
+}

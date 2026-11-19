@@ -53,3 +53,24 @@
   }
 }
 
+
+/* ── 페이지 진입 애니메이션 (홈 · 검색 첫 화면 공용) ──
+   아래에서 살짝 흐릿하게 떠오르며 나타남. fill-mode는 backwards로 써서
+   끝난 뒤 hover 효과 등 원래 transform이 그대로 적용되게 함 */
+@keyframes pageEnterUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+:root {
+  --page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --page-enter-dur: 0.52s;
+}
