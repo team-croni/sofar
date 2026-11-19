@@ -3,9 +3,11 @@ import {
   EngineInput,
   engagementOf,
   recommend,
+  socialScoreOf,
   trackKeyOf,
   withJosa,
 } from './recommend.engine';
+import { weekStartKst } from './signals.service';
 
 const NOW = Date.parse('2026-11-20T12:00:00Z');
 const daysAgo = (d: number) => new Date(NOW - d * 86400000).toISOString();
@@ -235,5 +237,80 @@ describe('recommend.engine', () => {
     expect(withJosa("'밤편지'", '이', '가')).toBe("'밤편지'가");
     expect(withJosa("'Butter'", '과', '와')).toBe("'Butter'와");
     expect(withJosa("'Spring'", '과', '와')).toBe("'Spring'과");
+  });
+});
+
+describe('recommend.engine signals', () => {
+  const history = Array.from({ length: 4 }, (_, i) => ({
+    track_key: trackKeyOf(t('Seed', 'A')),
+    title: 'Seed',
+    artist: 'A',
+    listened_sec: 200,
+    completion: 1,
+    end_reason: 'ended',
+    started_at: daysAgo(20 + i),
+  }));
+
+  it('hides tracks and playlists marked as not interested', () => {
+    const out = recommend(
+      base({
+        history,
+        notInterested: {
+          tracks: [trackKeyOf(t('Neighbor2', 'C'))],
+          playlists: ['indie'],
+          artists: ['C'],
+        },
+      }),
+    );
+    const ids = out.items.map((i) => i.itemId);
+    expect(ids).not.toContain(trackKeyOf(t('Neighbor2', 'C')));
+    expect(ids).not.toContain('indie');
+  });
+
+  it('ranks liked and hyped shared playlists higher', () => {
+    const extra: CandidatePlaylist[] = [
+      ...playlists,
+      {
+        id: 'quiet',
+        kind: 'shared',
+        title: '조용',
+        createdAt: daysAgo(3),
+        tracks: [t('Q1', 'Q')],
+      },
+      {
+        id: 'loved',
+        kind: 'shared',
+        title: '인기',
+        createdAt: daysAgo(30),
+        tracks: [t('L1', 'L')],
+      },
+    ];
+    const stats = {
+      loved: {
+        likes: 20,
+        hypes_14d: 4,
+        viewers_30d: 80,
+        listeners_30d: 30,
+        share_visitors_30d: 5,
+      },
+    };
+    const out = recommend(base({ playlists: extra, playlistStats: stats }));
+    const order = out.items
+      .filter((i) => i.type === 'playlist')
+      .map((i) => i.itemId);
+    expect(order.indexOf('loved')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('loved')).toBeLessThan(order.indexOf('quiet'));
+    expect(socialScoreOf(stats.loved)).toBeGreaterThan(
+      socialScoreOf(undefined),
+    );
+  });
+});
+
+describe('signals helpers', () => {
+  it('computes the KST Monday of the week', () => {
+    // 2026-11-22 (일) 23:30 KST = 2026-11-22T14:30Z → 그 주 월요일 2026-11-16
+    expect(weekStartKst(Date.parse('2026-11-22T14:30:00Z'))).toBe('2026-11-16');
+    // 2026-11-23 (월) 00:10 KST = 2026-11-22T15:10Z → 2026-11-23
+    expect(weekStartKst(Date.parse('2026-11-22T15:10:00Z'))).toBe('2026-11-23');
   });
 });

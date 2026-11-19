@@ -6,6 +6,8 @@ import {
   CandidateTrack,
   EngineOutput,
   HistoryRow,
+  NotInterested,
+  PlaylistStats,
   Seed,
   SignalRow,
   SimilarGroup,
@@ -52,6 +54,12 @@ export interface RecommendationEventInput {
 }
 
 const ANONYMOUS_AUTHOR = '익명의 리스너';
+export interface VerifiedUser {
+  id: string;
+  createdAt: number;
+  emailConfirmed: boolean;
+}
+
 const END_REASONS = new Set(['ended', 'switched', 'closed', 'error']);
 const SOURCE_TYPES = new Set([
   'my',
@@ -86,7 +94,7 @@ export class ListeningService {
   // 토큰 → 사용자 ID 캐시 (재생할 때마다 Supabase Auth를 부르지 않도록)
   private readonly tokenCache = new Map<
     string,
-    { userId: string; at: number }
+    { user: VerifiedUser; at: number }
   >();
   private readonly TOKEN_TTL_MS = 10 * 60 * 1000;
 
@@ -240,15 +248,15 @@ export class ListeningService {
     }
   }
 
-  /** Bearer 토큰이 있으면 검증해서 사용자 ID를 돌려준다. 없거나 틀리면 null (익명 처리). */
-  async resolveUserId(authHeader?: string): Promise<string | null> {
+  /** Bearer 토큰이 있으면 검증해서 사용자 정보를 돌려준다. 없거나 틀리면 null (익명 처리). */
+  async resolveUser(authHeader?: string): Promise<VerifiedUser | null> {
     const token = authHeader?.startsWith('Bearer ')
       ? authHeader.slice(7).trim()
       : '';
     if (!token) return null;
     const cached = this.tokenCache.get(token);
     if (cached && Date.now() - cached.at < this.TOKEN_TTL_MS)
-      return cached.userId;
+      return cached.user;
 
     const { url, key } = this.config();
     if (!url || !key) return null;
@@ -257,14 +265,34 @@ export class ListeningService {
         headers: { apikey: key, Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return null;
-      const user = (await res.json()) as { id?: string };
-      if (!user?.id) return null;
+      const raw = (await res.json()) as {
+        id?: string;
+        created_at?: string;
+        email_confirmed_at?: string | null;
+        confirmed_at?: string | null;
+      };
+      if (!raw?.id) return null;
+      const user: VerifiedUser = {
+        id: raw.id,
+        createdAt: Date.parse(raw.created_at || '') || Date.now(),
+        emailConfirmed: Boolean(raw.email_confirmed_at || raw.confirmed_at),
+      };
       if (this.tokenCache.size > 5000) this.tokenCache.clear();
-      this.tokenCache.set(token, { userId: user.id, at: Date.now() });
-      return user.id;
+      this.tokenCache.set(token, { user, at: Date.now() });
+      return user;
     } catch {
       return null;
     }
+  }
+
+  async resolveUserId(authHeader?: string): Promise<string | null> {
+    return (await this.resolveUser(authHeader))?.id ?? null;
+  }
+
+  /** 새 감상 기록·피드백이 들어오면 다음 홈 진입 때 추천을 다시 계산하게 한다. */
+  invalidateRecommendations(userId: string | null, clientId: string | null) {
+    if (userId) this.recCache.delete(this.recCacheKey(userId, null));
+    if (clientId) this.recCache.delete(this.recCacheKey(null, clientId));
   }
 
   async recordPlayEvent(
@@ -465,6 +493,55 @@ export class ListeningService {
     return signals;
   }
 
+  /** 사용자가 '관심 없음'으로 표시한 추천 (회원·브라우저 기준 모두) */
+  private async loadNotInterested(
+    userId: string | null,
+    clientId: string | null,
+  ): Promise<NotInterested> {
+    const keys = [userId && `u:${userId}`, clientId && `c:${clientId}`].filter(
+      Boolean,
+    ) as string[];
+    const empty: NotInterested = { tracks: [], playlists: [], artists: [] };
+    if (keys.length === 0) return empty;
+    const list = keys.map((k) => `"${k.replace(/"/g, '')}"`).join(',');
+    const rows = await this.rest<
+      Array<{ item_type: string; item_id: string; artist?: string | null }>
+    >(
+      `recommendation_feedback?viewer_key=in.(${encodeURIComponent(list)})&select=item_type,item_id,artist&limit=2000`,
+    );
+    for (const row of rows || []) {
+      if (row.item_type === 'track') {
+        empty.tracks.push(row.item_id);
+        if (row.artist) empty.artists.push(row.artist);
+      } else {
+        empty.playlists.push(row.item_id);
+      }
+    }
+    return empty;
+  }
+
+  // 공개 플레이리스트 반응 집계 캐시 (모든 사용자 공통)
+  private statsCache: {
+    at: number;
+    value: Record<string, PlaylistStats>;
+  } | null = null;
+
+  private async loadPlaylistStats(): Promise<Record<string, PlaylistStats>> {
+    if (this.statsCache && Date.now() - this.statsCache.at < 10 * 60 * 1000) {
+      return this.statsCache.value;
+    }
+    const rows = await this.rest<
+      Array<PlaylistStats & { playlist_id: string }>
+    >('rpc/get_playlist_signal_stats', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    const value: Record<string, PlaylistStats> = {};
+    for (const row of rows || []) value[String(row.playlist_id)] = row;
+    if (rows || !this.statsCache) this.statsCache = { at: Date.now(), value };
+    return this.statsCache.value;
+  }
+
   private async loadSharedPlaylists(): Promise<CandidatePlaylist[]> {
     if (
       this.sharedCache &&
@@ -583,16 +660,25 @@ export class ListeningService {
     const cached = this.recCache.get(cacheKey);
     if (cached && Date.now() - cached.at < this.REC_TTL_MS) return cached.value;
 
-    const [history, signals, shared, curated, popular, top] = await Promise.all(
-      [
-        this.loadHistory(userId, clientId),
-        this.loadSignals(userId),
-        this.loadSharedPlaylists(),
-        this.loadCuratedPlaylists(),
-        this.chartService.getPopularRankings(100).catch(() => []),
-        this.chartService.getTopCharts(50).catch(() => []),
-      ],
-    );
+    const [
+      history,
+      signals,
+      shared,
+      curated,
+      popular,
+      top,
+      notInterested,
+      playlistStats,
+    ] = await Promise.all([
+      this.loadHistory(userId, clientId),
+      this.loadSignals(userId),
+      this.loadSharedPlaylists(),
+      this.loadCuratedPlaylists(),
+      this.chartService.getPopularRankings(100).catch(() => []),
+      this.chartService.getTopCharts(50).catch(() => []),
+      this.loadNotInterested(userId, clientId),
+      this.loadPlaylistStats(),
+    ]);
 
     const similar = await this.loadSimilar(
       pickSeeds({ now: Date.now(), history, signals }, 5),
@@ -608,6 +694,8 @@ export class ListeningService {
       playlists: [...curated, ...shared],
       popular: [...popular, ...top] as unknown as CandidateTrack[],
       similar,
+      notInterested,
+      playlistStats,
       trackLimit: 24,
       playlistLimit: 12,
     });

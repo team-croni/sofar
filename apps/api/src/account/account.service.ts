@@ -48,6 +48,23 @@ export class AccountService {
         `/rest/v1/recommendation_events?user_id=eq.${id}`,
         true,
       );
+      // 플레이리스트 반응·조회·공유 유입·관심 없음 (좋아요·응원은 auth 계정 삭제 시 함께 지워진다)
+      const viewer = encodeURIComponent(`u:${userId}`);
+      await del(
+        'playlist_views',
+        `/rest/v1/playlist_views?viewer_key=eq.${viewer}`,
+        true,
+      );
+      await del(
+        'playlist_share_visits',
+        `/rest/v1/playlist_share_visits?visitor_key=eq.${viewer}`,
+        true,
+      );
+      await del(
+        'recommendation_feedback',
+        `/rest/v1/recommendation_feedback?viewer_key=eq.${viewer}`,
+        true,
+      );
 
       // 2. 플레이리스트 하위 트랙 → 플레이리스트
       const plRes = await fetch(

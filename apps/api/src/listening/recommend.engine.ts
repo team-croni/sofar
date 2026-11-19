@@ -65,6 +65,36 @@ export interface Seed {
   affinity: number;
 }
 
+export interface NotInterested {
+  tracks: string[];
+  playlists: string[];
+  artists: string[];
+}
+
+export interface PlaylistStats {
+  likes: number;
+  hypes_14d: number;
+  viewers_30d: number;
+  listeners_30d: number;
+  share_visitors_30d: number;
+}
+
+/**
+ * 플레이리스트의 사회적 반응 점수.
+ * 행동마다 무게를 다르게 주고(응원 > 좋아요 > 실제 감상·공유 유입 > 조회), log로 눌러서
+ * 숫자가 큰 소수 플레이리스트가 독식하지 않게 한다. 집계 자체가 '사람 수'라 반복 클릭은 의미가 없다.
+ */
+export function socialScoreOf(stats?: PlaylistStats): number {
+  if (!stats) return 0;
+  return Math.log1p(
+    5 * stats.hypes_14d +
+      3 * stats.likes +
+      2 * stats.listeners_30d +
+      2 * stats.share_visitors_30d +
+      0.5 * stats.viewers_30d,
+  );
+}
+
 export interface EngineInput {
   now: number;
   /** 같은 날·같은 사용자에게는 같은 결과를 주기 위한 시드 */
@@ -78,6 +108,10 @@ export interface EngineInput {
   popular: CandidateTrack[];
   /** 좋아한 곡별 비슷한 곡 (없으면 생략) */
   similar?: SimilarGroup[];
+  /** 사용자가 '관심 없음'으로 표시한 곡 키·플레이리스트 ID·아티스트 */
+  notInterested?: NotInterested;
+  /** 공개 플레이리스트별 반응 집계 (본인 제외, 사람 수 기준) */
+  playlistStats?: Record<string, PlaylistStats>;
   trackLimit?: number;
   playlistLimit?: number;
 }
@@ -277,6 +311,12 @@ export function buildProfile(input: EngineInput): Profile {
     add(key, signal.title, signal.artist, w);
     const identity = songIdentityOf(signal.title, signal.artist);
     if (identity) known.add(identity);
+  }
+
+  // '관심 없음'으로 표시한 곡의 아티스트는 취향 점수를 조금 깎는다
+  for (const artist of input.notInterested?.artists || []) {
+    const aKey = artistKeyOf(artist);
+    if (aKey) artistAff.set(aKey, (artistAff.get(aKey) || 0) - 0.4);
   }
 
   return {
@@ -484,7 +524,9 @@ export function recommend(input: EngineInput): EngineOutput {
   const pickedKeys = new Set<string>();
   const identity = (c: TrackCandidate) =>
     songIdentityOf(c.track.custom_title, c.track.custom_artist) || c.key;
+  const hiddenTracks = new Set(input.notInterested?.tracks || []);
   const canPick = (c: TrackCandidate) => {
+    if (hiddenTracks.has(c.key)) return false;
     if (pickedKeys.has(identity(c))) return false;
     if (profile.known.has(identity(c))) return false;
     if ((profile.trackAff.get(c.key) || 0) < 0) return false;
@@ -527,11 +569,16 @@ export function recommend(input: EngineInput): EngineOutput {
   // 5) 플레이리스트 선택
   const relMax =
     maxPositive(Array.from(playlistRel.values(), (v) => v.rel)) || 1;
+  const hiddenPlaylists = new Set(input.notInterested?.playlists || []);
   const ownedOut = input.playlists.filter(
     (pl) =>
       pl.tracks.length > 0 &&
+      !hiddenPlaylists.has(pl.id) &&
       !(input.userId && pl.ownerId && pl.ownerId === input.userId),
   );
+  const statsOf = (pl: CandidatePlaylist) => input.playlistStats?.[pl.id];
+  const socialMax =
+    maxPositive(ownedOut.map((pl) => socialScoreOf(statsOf(pl)))) || 1;
   const popInPlaylist = (pl: CandidatePlaylist) => {
     let sum = 0;
     for (const t of pl.tracks) sum += popScore.get(trackKeyOf(t)) || 0;
@@ -544,14 +591,17 @@ export function recommend(input: EngineInput): EngineOutput {
       const info = playlistRel.get(pl.id);
       const rel = (info?.rel || 0) / relMax;
       const pop = popInPlaylist(pl) / popPlMax;
+      const social = socialScoreOf(statsOf(pl)) / socialMax;
       const score = coldStart
-        ? pop + jitter(pl.id) * 3
-        : 0.75 * rel + 0.25 * pop + jitter(pl.id);
+        ? 0.5 * pop + 0.5 * social + jitter(pl.id) * 3
+        : 0.6 * rel + 0.2 * pop + 0.2 * social + jitter(pl.id);
       let reason = '많이 듣는 플레이리스트';
       if (!coldStart && rel > 0.15 && info?.seedKey) {
         const seedTitle = profile.trackTitle.get(info.seedKey);
         if (seedTitle)
           reason = `${withJosa(`'${seedTitle}'`, '이', '가')} 담긴 플레이리스트`;
+      } else if (social > 0.6 && (statsOf(pl)?.likes || 0) > 0) {
+        reason = '리스너들이 좋아하는 플레이리스트';
       }
       return { pl, score, reason };
     })
@@ -570,16 +620,25 @@ export function recommend(input: EngineInput): EngineOutput {
     pickedPlaylists.push(s);
     pickedPlIds.add(s.pl.id);
   }
+  // 응원을 받은 플레이리스트가 먼저, 그다음 최근에 공유된 순
   const fresh = ownedOut
     .filter((pl) => pl.kind === 'shared' && !pickedPlIds.has(pl.id))
     .sort(
       (a, b) =>
+        (statsOf(b)?.hypes_14d || 0) - (statsOf(a)?.hypes_14d || 0) ||
         (Date.parse(b.createdAt || '') || 0) -
-        (Date.parse(a.createdAt || '') || 0),
+          (Date.parse(a.createdAt || '') || 0),
     );
   for (const pl of fresh) {
     if (pickedPlaylists.length >= playlistLimit) break;
-    pickedPlaylists.push({ pl, score: 0, reason: '새로 공유된 플레이리스트' });
+    const hyped = (statsOf(pl)?.hypes_14d || 0) > 0;
+    pickedPlaylists.push({
+      pl,
+      score: 0,
+      reason: hyped
+        ? '리스너들이 응원하는 플레이리스트'
+        : '새로 공유된 플레이리스트',
+    });
     pickedPlIds.add(pl.id);
   }
   for (const s of scoredPlaylists) {
