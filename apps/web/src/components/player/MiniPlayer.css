@@ -28,6 +28,34 @@
   pointer-events: auto;
 }
 
+/* 처음 나타날 때(새로고침 · 첫 재생) 한 번만 아래에서 살짝 떠오르며 등장.
+   사이드바 슬롯 위치를 재는 동안(약 150ms)은 투명하게 기다렸다가 제자리에서 시작함 */
+.mini-player-container.show.is-entering {
+  animation: miniPlayerEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s backwards;
+}
+
+@keyframes miniPlayerEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.94);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+html.reduce-motion .mini-player-container.is-entering {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-player-container.is-entering {
+    animation: none;
+  }
+}
+
 /* 모달 창과 겹칠 때: 재생을 멈추고 모달 오버레이(z-index 10000) 아래로 내림 */
 .mini-player-container.under-modal {
   z-index: 9000 !important;
