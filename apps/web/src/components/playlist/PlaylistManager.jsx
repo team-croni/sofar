@@ -12,6 +12,8 @@ import TrackRowItem from './TrackRowItem';
 import QueueRowItem from './QueueRowItem';
 import TrackThumbnail from './TrackThumbnail';
 import PlaylistCard from './PlaylistCard';
+import PlaylistSignalsBar from './PlaylistSignalsBar';
+import { supportsPlaylistSignals } from '../../utils/playlistSignals';
 import { extractMetadataWithLocalLLM, cleanYoutubeMetadata, searchYoutube, fetchVideoDurations } from '../../utils/youtube';
 import { durationCache } from '../../utils/durationCache';
 import { extractTracksFromDragData, handleTrackDragStart } from '../../utils/dragUtils';
@@ -2261,6 +2263,9 @@ export default function PlaylistManager() {
                     </div>
 
                     <div className="playlist-detail-header-actions">
+                      {isReadOnlyShared && supportsPlaylistSignals(activeSharedPlaylist) && (
+                        <PlaylistSignalsBar playlist={activeSharedPlaylist} />
+                      )}
                       <Dropdown 
                         options={playlistDetailDropdownOptions}
                         align="right"

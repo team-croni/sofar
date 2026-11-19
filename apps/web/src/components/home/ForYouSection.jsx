@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Headphones, MoreVertical, ListPlus, Link2 } from 'lucide-react';
+import { Play, Headphones, MoreVertical, ListPlus, Link2, EyeOff } from 'lucide-react';
 import TrackThumbnail from '../playlist/TrackThumbnail';
 import TrackActionDropdown from '../ui/TrackActionDropdown';
 import Dropdown from '../ui/Dropdown';
@@ -10,6 +10,7 @@ import { markNextPlayAttribution } from '../../utils/listeningTelemetry';
 import { formatArtistName } from '../../utils/trackUtils';
 import { isShareablePlaylistId, copyPlaylistShareUrl } from '../../utils/shareLink';
 import { handleTrackDragStart } from '../../utils/dragUtils';
+import { sendNotInterested } from '../../utils/playlistSignals';
 
 /**
  * 커버는 키보드로도 누를 수 있는 '버튼 역할' 요소다.
@@ -93,16 +94,17 @@ export default function ForYouSection() {
   } = useHomePanel();
   const { data, items, personalized, isLoading, logEvent } = useHomeRecommendations();
   const [activeTab, setActiveTab] = useState('track');
+  const [hiddenIds, setHiddenIds] = useState(() => new Set());
   const sectionRef = useRef(null);
   const loggedRef = useRef(new Set());
 
   const trackItems = useMemo(
-    () => items.filter((item) => item.type === 'track' && item.track),
-    [items],
+    () => items.filter((item) => item.type === 'track' && item.track && !hiddenIds.has(item.id)),
+    [items, hiddenIds],
   );
   const playlistItems = useMemo(
-    () => items.filter((item) => item.type === 'playlist' && item.playlist),
-    [items],
+    () => items.filter((item) => item.type === 'playlist' && item.playlist && !hiddenIds.has(item.id)),
+    [items, hiddenIds],
   );
   const mixTracks = useMemo(() => trackItems.map((item) => item.track), [trackItems]);
 
@@ -157,7 +159,41 @@ export default function ForYouSection() {
     setPlayingSource?.({ type: 'shared', data: mixContext });
   };
 
-  const toPlaylistObject = (item) => ({ ...item.playlist, recommendKind: item.playlistKind });
+  const toPlaylistObject = (item) => ({
+    ...item.playlist,
+    recommendKind: item.playlistKind,
+    openSource: 'recommend',
+  });
+
+  // '관심 없음': 바로 화면에서 빼고, 다음 추천부터 반영되도록 서버에 기록
+  const hideItem = async (item, position) => {
+    setHiddenIds((prev) => new Set(prev).add(item.id));
+    logEvent('click', [{ item, position }]);
+    try {
+      await sendNotInterested({
+        itemType: item.type === 'track' ? 'track' : item.playlistKind,
+        itemId: item.itemId,
+        artist: item.track?.custom_artist,
+      });
+      showToast('이 추천은 더 이상 표시하지 않습니다.');
+    } catch (error) {
+      setHiddenIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+      showToast(error.message || '요청을 처리하지 못했습니다.');
+    }
+  };
+
+  const notInterestedOption = (item, position) => ({
+    label: '관심 없음',
+    icon: <EyeOff size={15} />,
+    onClick: (e) => {
+      e?.stopPropagation();
+      hideItem(item, position);
+    },
+  });
 
   const openPlaylist = (item, position) => {
     logEvent('click', [{ item, position }]);
@@ -208,6 +244,7 @@ export default function ForYouSection() {
           showToast(ok ? '공유 링크가 복사되었습니다.' : '링크를 복사하지 못했습니다.');
         },
       }] : []),
+      notInterestedOption(item, position),
     ];
   };
 
@@ -253,6 +290,7 @@ export default function ForYouSection() {
                 onAddQueue={handleAddQueue}
                 align="right"
                 trigger={KebabTrigger}
+                extraOptions={[notInterestedOption(item, position)]}
               />
             </div>
           </div>

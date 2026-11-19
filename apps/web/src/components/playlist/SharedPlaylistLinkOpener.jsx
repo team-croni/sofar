@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { supabase, useAuth } from '../../contexts/AuthContext';
 import { useAudio } from '../../contexts/AudioContext';
 import { isShareablePlaylistId } from '../../utils/shareLink';
+import { recordShareVisit } from '../../utils/playlistSignals';
 
 /**
  * 공유 링크(/p/:playlistId)로 진입했을 때 해당 플레이리스트를 사이드바에 열어주는 컴포넌트.
@@ -12,6 +13,8 @@ import { isShareablePlaylistId } from '../../utils/shareLink';
  */
 export default function SharedPlaylistLinkOpener() {
   const { playlistId } = useParams();
+  const [searchParams] = useSearchParams();
+  const shareCode = searchParams.get('s');
   const navigate = useNavigate();
   const { user } = useAuth();
   const { setActiveSharedPlaylist, showToast } = useAudio();
@@ -59,14 +62,18 @@ export default function SharedPlaylistLinkOpener() {
         cover: pl.cover_url || null,
         trackCount: tracks.length,
         tracks,
+        openSource: 'share_link',
         _openedAt: Date.now(),
       });
+
+      // 공유 링크로 들어온 방문 (공유한 본인·소유자는 서버가 거른다)
+      if (shareCode && !isOwner) recordShareVisit(shareCode, pl.id);
     };
 
     open()
       .catch(() => showToast('플레이리스트를 불러오지 못했습니다.'))
       .finally(() => navigate('/', { replace: true }));
-  }, [playlistId, user, navigate, setActiveSharedPlaylist, showToast]);
+  }, [playlistId, shareCode, user, navigate, setActiveSharedPlaylist, showToast]);
 
   return null;
 }
