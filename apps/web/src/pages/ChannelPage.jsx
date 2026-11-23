@@ -102,18 +102,44 @@ function ChannelHeroBackdrop({ channel }) {
   );
 }
 
+/**
+ * 불러오는 동안: 실제 화면과 같은 구조·크기(프로필 → 탭 바 → 카드)로 자리를 잡아
+ * 데이터가 들어올 때 화면이 밀리지 않게 한다. 크기는 CSS의 실제 요소와 같은 값을 쓴다.
+ */
 function ChannelSkeleton() {
   return (
-    <div className="channel-layout" aria-busy="true">
+    <div className="channel-layout channel-layout--skeleton" aria-busy="true" aria-label="채널을 불러오는 중">
       <section className="channel-hero">
         <div className="channel-identity">
           <div className="channel-skel channel-skel--avatar" />
           <div className="channel-identity-text">
-            <div className="channel-skel" style={{ width: 220, height: 44 }} />
-            <div className="channel-skel" style={{ width: 280, height: 16 }} />
+            <div className="channel-skel channel-skel--name" />
+            <div className="channel-skel channel-skel--sub" />
+            <div className="channel-actions">
+              <div className="channel-skel channel-skel--button" />
+              <div className="channel-skel channel-skel--button" />
+            </div>
           </div>
         </div>
       </section>
+      <div className="channel-tabbar">
+        <div className="channel-tabbar-inner">
+          <div className="channel-tabs">
+            <div className="channel-skel channel-skel--tab" />
+            <div className="channel-skel channel-skel--tab" />
+          </div>
+        </div>
+      </div>
+      <div className="channel-panel">
+        <div className="playlist-folder-grid">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="channel-skel-card">
+              <div className="channel-skel channel-skel--cover" />
+              <div className="channel-skel channel-skel--title" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -6,6 +6,8 @@
   --ch-header: 64px;
   --ch-gutter: 2.5rem; /* 좌우 여백 (배경·탭 바를 끝까지 늘리는 데 씀) */
   --ch-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ch-name-size: clamp(2.25rem, 4.5vw, 3.75rem); /* 이름 글자 크기 (스켈레톤도 같은 값) */
+  --ch-avatar: 160px;
   /* 채널은 오른쪽 패널 전체 너비를 쓴다 (다른 계정 화면의 1040px 제한 해제) */
   max-width: none;
   padding-top: 0;
@@ -25,9 +27,9 @@
   isolation: isolate;
   display: flex;
   align-items: flex-end;
-  min-height: clamp(300px, 42vh, 420px);
   margin: 0 calc(-1 * var(--ch-gutter));
-  padding: calc(var(--ch-header) + 2.5rem) var(--ch-gutter) 2rem;
+  /* 헤더 높이 + 약간의 여백만 두고 프로필을 바로 보여 준다 (배경은 헤더 뒤까지 번짐) */
+  padding: calc(var(--ch-header) + 1.25rem) var(--ch-gutter) 1.75rem;
   box-sizing: border-box;
 }
 
@@ -107,7 +109,7 @@
 
 .channel-name {
   margin: 0;
-  font-size: clamp(2.25rem, 4.5vw, 3.75rem);
+  font-size: var(--ch-name-size);
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -0.03em;
@@ -178,7 +180,8 @@
 .channel-tabbar-inner {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  /* 간격은 gap 대신 각 요소 여백으로 준다 (숨은 작은 프로필 뒤에 간격이 남지 않게) */
+  gap: 0;
   height: 52px;
 }
 
@@ -191,12 +194,13 @@
   overflow: hidden;
   opacity: 0;
   transform: translateX(-6px);
-  transition: max-width 0.35s var(--ch-ease), opacity 0.25s ease, transform 0.35s var(--ch-ease);
+  transition: max-width 0.35s var(--ch-ease), margin-right 0.35s var(--ch-ease), opacity 0.25s ease, transform 0.35s var(--ch-ease);
   white-space: nowrap;
 }
 
 .channel-tabbar.is-stuck .channel-tabbar-identity {
   max-width: 260px;
+  margin-right: 1.25rem;
   opacity: 1;
   transform: none;
 }
@@ -213,6 +217,13 @@
   display: flex;
   align-self: stretch;
   gap: 0.25rem;
+  /* 탭 좌우 안쪽 여백만큼 당겨 첫 탭 글자를 아바타·카드의 왼쪽 선에 맞춘다 */
+  margin-left: -0.85rem;
+}
+
+/* 붙어서 작은 프로필이 앞에 나오면 그 뒤에 자연스럽게 이어지도록 당김을 푼다 */
+.channel-tabbar.is-stuck .channel-tabs {
+  margin-left: 0;
 }
 
 .channel-tab {
@@ -263,6 +274,7 @@
   display: flex;
   gap: 0.35rem;
   margin-left: auto;
+  padding-left: 1.25rem;
 }
 
 .channel-sort-btn {
@@ -381,10 +393,58 @@
 }
 
 .channel-skel--avatar {
-  width: 160px;
-  height: 160px;
+  width: var(--ch-avatar);
+  height: var(--ch-avatar);
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+/* 이름 한 줄 높이(글자 크기 × 줄 높이 1.05)와 같게 */
+.channel-skel--name {
+  width: min(320px, 60vw);
+  height: calc(var(--ch-name-size) * 1.05);
+  border-radius: 12px;
+}
+
+.channel-skel--sub {
+  width: min(300px, 55vw);
+  height: calc(0.875rem * 1.5); /* 0.875rem 글자 한 줄 (실제 21px) */
+}
+
+.channel-skel--button {
+  width: 104px;
+  height: 36px; /* Button size="sm" 실제 높이 */
+  border-radius: 9px;
+}
+
+.channel-skel--tab {
+  width: 76px;
+  height: 18px;
+  align-self: center;
+  margin: 0 0.85rem;
+}
+
+.channel-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.channel-skel--cover {
+  width: 100%;
+  margin-top: 10px; /* 카드 위로 겹쳐 보이는 층 높이만큼 (PlaylistCard 표지 위치) */
+  aspect-ratio: 1;
+  border-radius: 16px;
+}
+
+.channel-skel--title {
+  width: 60%;
+  height: 14px;
+}
+
+/* 스켈레톤은 진입 애니메이션 없이 바로 자리만 잡는다 */
+.channel-layout--skeleton .channel-identity-text > * {
+  animation: none;
 }
 
 .channel-missing {
@@ -430,9 +490,12 @@
     align-items: flex-start;
     gap: 1rem;
   }
+  .channel-page {
+    --ch-avatar: 112px;
+  }
   .channel-avatar {
-    width: 112px;
-    height: 112px;
+    width: var(--ch-avatar);
+    height: var(--ch-avatar);
   }
   .channel-tabbar.is-stuck .channel-tabbar-identity {
     max-width: 0;
