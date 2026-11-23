@@ -1069,18 +1069,54 @@
 .home-panel-container > .home-section .h-scroll-track > :nth-child(6) { --enter-i: 5; }
 .home-panel-container > .home-section .h-scroll-track > :nth-child(7) { --enter-i: 6; }
 
+/* 실시간 인기 순위: 1위부터 아래로 한 줄씩 (섹션이 나타난 뒤 이어서).
+   홈에 처음 들어왔을 때만(.is-entering) 적용해, 3분마다 순위가 바뀌어 행이 다시 그려질 때는 움직이지 않는다 */
+.home-panel-container.is-entering .popular-list > * {
+  animation: pageEnterUp 0.42s var(--page-enter-ease) backwards;
+  animation-delay: calc(140ms + var(--enter-i, 9) * 28ms);
+}
+.home-panel-container .popular-list > :nth-child(1) { --enter-i: 0; }
+.home-panel-container .popular-list > :nth-child(2) { --enter-i: 1; }
+.home-panel-container .popular-list > :nth-child(3) { --enter-i: 2; }
+.home-panel-container .popular-list > :nth-child(4) { --enter-i: 3; }
+.home-panel-container .popular-list > :nth-child(5) { --enter-i: 4; }
+.home-panel-container .popular-list > :nth-child(6) { --enter-i: 5; }
+.home-panel-container .popular-list > :nth-child(7) { --enter-i: 6; }
+.home-panel-container .popular-list > :nth-child(8) { --enter-i: 7; }
+.home-panel-container .popular-list > :nth-child(9) { --enter-i: 8; }
+.home-panel-container .popular-list > :nth-child(10) { --enter-i: 9; }
+
+/* sofar 플레이리스트: 카드가 왼쪽 위부터 하나씩. 처음 진입과 탭(장르/테마/상황) 전환 때 모두 적용
+   (화면 밖 카드는 지연을 묶어 전체가 0.4초 안에 끝나게 함) */
+.home-section--recommended .playlist-folder-grid > * {
+  animation: pageEnterUp 0.45s var(--page-enter-ease) backwards;
+  animation-delay: calc(80ms + min(var(--enter-i, 7), 7) * 35ms);
+}
+.home-section--recommended .playlist-folder-grid > :nth-child(1) { --enter-i: 0; }
+.home-section--recommended .playlist-folder-grid > :nth-child(2) { --enter-i: 1; }
+.home-section--recommended .playlist-folder-grid > :nth-child(3) { --enter-i: 2; }
+.home-section--recommended .playlist-folder-grid > :nth-child(4) { --enter-i: 3; }
+.home-section--recommended .playlist-folder-grid > :nth-child(5) { --enter-i: 4; }
+.home-section--recommended .playlist-folder-grid > :nth-child(6) { --enter-i: 5; }
+.home-section--recommended .playlist-folder-grid > :nth-child(7) { --enter-i: 6; }
+.home-section--recommended .playlist-folder-grid > :nth-child(8) { --enter-i: 7; }
+
 /* '동작 줄이기'가 켜져 있으면 진입 애니메이션만 생략 (로딩 스피너 등은 유지) */
 html.reduce-motion .home-panel-container > .home-section,
 html.reduce-motion .home-panel-container > .home-bottom-layout > *,
 html.reduce-motion .home-panel-container > :last-child,
-html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
+html.reduce-motion .home-panel-container > .home-section .h-scroll-track > *,
+html.reduce-motion .home-panel-container .popular-list > *,
+html.reduce-motion .home-section--recommended .playlist-folder-grid > * {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .home-panel-container > .home-section,
   .home-panel-container > .home-bottom-layout > *,
   .home-panel-container > :last-child,
-  .home-panel-container > .home-section .h-scroll-track > * {
+  .home-panel-container > .home-section .h-scroll-track > *,
+  .home-panel-container .popular-list > *,
+  .home-section--recommended .playlist-folder-grid > * {
     animation: none;
   }
 }
@@ -1261,6 +1297,39 @@ html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
+}
+
+/* ── 취향 저격 추천: 카드가 순서대로 나타남 ──
+   섹션이 보이기 전에는 숨겨 두고(pending), 보이면 앞 8개는 하나씩, 나머지는 8번째와 함께 */
+.foryou-grid.is-reveal-pending > * {
+  opacity: 0;
+}
+
+.foryou-grid.is-revealing > * {
+  animation: pageEnterUp 0.45s var(--page-enter-ease) backwards;
+  animation-delay: calc(40ms + min(var(--enter-i, 7), 7) * 30ms);
+}
+.foryou-grid.is-revealing > :nth-child(1) { --enter-i: 0; }
+.foryou-grid.is-revealing > :nth-child(2) { --enter-i: 1; }
+.foryou-grid.is-revealing > :nth-child(3) { --enter-i: 2; }
+.foryou-grid.is-revealing > :nth-child(4) { --enter-i: 3; }
+.foryou-grid.is-revealing > :nth-child(5) { --enter-i: 4; }
+.foryou-grid.is-revealing > :nth-child(6) { --enter-i: 5; }
+.foryou-grid.is-revealing > :nth-child(7) { --enter-i: 6; }
+.foryou-grid.is-revealing > :nth-child(8) { --enter-i: 7; }
+
+html.reduce-motion .foryou-grid.is-reveal-pending > *,
+html.reduce-motion .foryou-grid.is-revealing > * {
+  opacity: 1;
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foryou-grid.is-reveal-pending > *,
+  .foryou-grid.is-revealing > * {
+    opacity: 1;
+    animation: none;
+  }
 }
 
 /* ── 취향 저격 추천 로딩 스켈레톤 (실제 카드와 같은 크기) ── */
