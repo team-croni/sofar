@@ -47,6 +47,10 @@ function TrackCover({ track, isPlaying }) {
 }
 
 const SKELETON_COUNT = 12;
+const REVEAL_DURATION_MS = 900;
+
+// 이미 순서대로 보여 준 추천 응답 ID (다른 화면에 갔다 와도 같은 추천이면 다시 움직이지 않음)
+let lastRevealedRequestId = null;
 
 function ForYouSkeleton() {
   return (
@@ -97,6 +101,17 @@ export default function ForYouSection() {
   const [hiddenIds, setHiddenIds] = useState(() => new Set());
   const sectionRef = useRef(null);
   const loggedRef = useRef(new Set());
+  // 카드가 순서대로 나타나는 상태: pending(화면에 보이길 기다림) → revealing → done
+  const [revealState, setRevealState] = useState('done');
+  const revealTimerRef = useRef(null);
+
+  const startReveal = () => {
+    setRevealState('revealing');
+    clearTimeout(revealTimerRef.current);
+    revealTimerRef.current = setTimeout(() => setRevealState('done'), REVEAL_DURATION_MS);
+  };
+
+  useEffect(() => () => clearTimeout(revealTimerRef.current), []);
 
   const trackItems = useMemo(
     () => items.filter((item) => item.type === 'track' && item.track && !hiddenIds.has(item.id)),
@@ -114,6 +129,25 @@ export default function ForYouSection() {
     : TABS.filter((tab) => (tab.id === 'track' ? trackItems.length : playlistItems.length) > 0);
   const currentTab = tabs.some((tab) => tab.id === activeTab) ? activeTab : tabs[0]?.id;
   const visibleItems = currentTab === 'playlist' ? playlistItems : trackItems;
+
+  // 새 추천을 받으면 섹션이 화면에 들어오기 직전에 카드를 순서대로 띄운다.
+  // 홈 맨 아래라 결과가 먼저 도착하는 경우가 많아, 도착 즉시가 아니라 보일 때 시작한다.
+  const requestId = data?.requestId;
+  useEffect(() => {
+    if (!requestId || requestId === lastRevealedRequestId) return undefined;
+    const node = sectionRef.current;
+    if (!node) return undefined;
+    setRevealState('pending');
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        lastRevealedRequestId = requestId;
+        startReveal();
+        observer.disconnect();
+      }
+    }, { rootMargin: '0px 0px 120px 0px' });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [requestId]);
 
   // 탭별로 화면에 실제로 보였을 때 한 번만 노출 기록
   useEffect(() => {
@@ -334,7 +368,11 @@ export default function ForYouSection() {
                 role="tab"
                 aria-selected={currentTab === tab.id}
                 className={`category-tab-btn ${currentTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  if (tab.id === currentTab) return;
+                  setActiveTab(tab.id);
+                  startReveal();
+                }}
                 disabled={isLoading}
               >
                 <span>{tab.label}</span>
@@ -346,7 +384,11 @@ export default function ForYouSection() {
       {isLoading ? (
         <ForYouSkeleton />
       ) : (
-        <div className={`foryou-grid foryou-grid--${currentTab}`} role="tabpanel">
+        <div
+          key={currentTab}
+          className={`foryou-grid foryou-grid--${currentTab} ${revealState === 'pending' ? 'is-reveal-pending' : ''} ${revealState === 'revealing' ? 'is-revealing' : ''}`}
+          role="tabpanel"
+        >
           {visibleItems.map((item, position) => (
             currentTab === 'playlist' ? renderPlaylist(item, position) : renderTrack(item, position)
           ))}
