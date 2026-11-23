@@ -4,6 +4,7 @@
 
 | 문서 파일명 | 최종 수정일 | 수정 요약 | 버전 |
 | :--- | :--- | :--- | :--- |
+| [supabase_profile_demographics.sql](./supabase_profile_demographics.sql) | 2026-11-24 | 출생 연도·성별(선택) 별도 테이블, API만 접근, profiles의 미사용 컬럼 제거 | v1.0.0 |
 | [recommendation-spec.md](./recommendation-spec.md) | 2026-11-24 | 추천 성과 대시보드(관리자), 새 방문자 `cold-start` 분리 추가 | v1.5.0 |
 | [supabase_rec_dashboard.sql](./supabase_rec_dashboard.sql) | 2026-11-24 | 관리자 추천 성과 대시보드 집계 함수 (버전별·일별·팔별·학습·이웃) | v1.0.0 |
 | [supabase_rec_cf.sql](./supabase_rec_cf.sql) | 2026-11-23 | 곡별 '함께 들은 곡' 이웃 테이블, 매일 다시 계산하는 함수, cf 팔 허용 | v1.0.0 |
