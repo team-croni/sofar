@@ -141,22 +141,22 @@
 
 /* 스크롤이 생기면 옵션과 스크롤바 사이에 간격을 둔다 */
 .sofar-select-options-list.is-scrollable {
-  padding-right: 0.4rem;
+  padding-right: 0.2rem;
 }
 
 /* 얇은 막대를 둥근 모서리 안쪽에 띄워 놓는다 (위아래 여백 + 투명 테두리로 안쪽 배치) */
 .sofar-select-options-list::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .sofar-select-options-list::-webkit-scrollbar-track {
   background: transparent;
-  margin: 6px 0;
+  margin: 2px 0;
 }
 
 .sofar-select-options-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
 }
