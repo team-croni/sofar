@@ -1,20 +1,35 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Pencil, Check, X, LogIn, Heart, ListMusic, Music, Globe, RotateCcw, Settings } from 'lucide-react';
+import { Camera, Pencil, LogIn, Heart, ListMusic, Music, Globe, RotateCcw, Settings, AtSign } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import { usePlaylistsQuery, usePlaylistPreviewsQuery } from '../hooks/usePlaylists';
 import { useFavoritesQuery } from '../hooks/useFavorites';
-import { Avatar, Button, Dropdown } from '../components/ui';
+import { Avatar, Button, Dropdown, Input, Modal } from '../components/ui';
 import SharedPlaylistCard from '../components/home/SharedPlaylistCard';
 import { usePlaylistLikeCounts } from '../hooks/usePlaylistLikeCounts';
 import SearchTrackRow from '../components/search/SearchTrackRow';
 // 홈 인기곡 · 검색 결과와 같은 곡 목록 스타일
 import '../components/search/SearchPanel.css';
-import { getUserDisplayName, getUserAvatarUrl, getUserProvider, validateNickname, NICKNAME_MAX } from '../utils/userProfile';
+import {
+  getUserDisplayName,
+  getUserAvatarUrl,
+  getUserProvider,
+  validateNickname,
+  nicknameErrorMessage,
+  normalizeNickname,
+  NICKNAME_MAX,
+  HANDLE_MAX,
+  HANDLE_COOLDOWN_DAYS,
+} from '../utils/userProfile';
+import { useHandle, useHandleCheck } from '../hooks/useHandle';
+import { ANONYMOUS_AUTHOR } from '../hooks/useSettings';
 import './AccountPages.css';
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
+const formatDay = (iso) =>
+  new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
 function openPlaylistInSidebar(pl) {
   window.dispatchEvent(new CustomEvent('trigger-open-shared-playlist', {
@@ -28,50 +43,130 @@ function daysSince(iso) {
   return Math.max(1, Math.floor(diff / 86400000) + 1);
 }
 
+/* ── 프로필 편집 모달 (닉네임 · 핸들) ───────────────────── */
+function EditProfileModal({ isOpen, onClose, user }) {
+  const { updateProfile } = useAuth();
+  const { showToast } = useAudio();
+  const { handle, nextChangeAt, change, isSaving: savingHandle } = useHandle();
+  const currentName = getUserDisplayName(user);
+
+  const [name, setName] = useState(currentName);
+  const [handleDraft, setHandleDraft] = useState(handle || '');
+  const [nameError, setNameError] = useState(null);
+  const [handleError, setHandleError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const handleLocked = Boolean(nextChangeAt);
+  const check = useHandleCheck(handleDraft, handle, isOpen && !handleLocked);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setName(currentName);
+    setHandleDraft(handle || '');
+    setNameError(null);
+    setHandleError(null);
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const nameChanged = normalizeNickname(name) !== currentName;
+  const handleChanged = !handleLocked && check.status !== 'same' && check.status !== 'idle';
+  const handleBlocked = handleChanged && check.status !== 'available';
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!nameChanged && !handleChanged) return onClose();
+    if (nameChanged) {
+      const err = validateNickname(name);
+      if (err) return setNameError(err);
+    }
+    if (handleBlocked) return;
+
+    setSaving(true);
+    let ok = true;
+    if (nameChanged) {
+      const { error } = await updateProfile({ nickname: name });
+      if (error) {
+        setNameError(nicknameErrorMessage(error));
+        ok = false;
+      }
+    }
+    if (ok && handleChanged) {
+      try {
+        await change(check.handle);
+      } catch (err) {
+        setHandleError(err.message);
+        ok = false;
+      }
+    }
+    setSaving(false);
+    if (!ok) return;
+    showToast('프로필을 저장했습니다');
+    onClose();
+  };
+
+  const handleHelper = handleLocked
+    ? `${formatDay(nextChangeAt)}부터 다시 바꿀 수 있습니다.`
+    : check.status === 'available'
+      ? '사용할 수 있는 핸들입니다.'
+      : check.status === 'checking'
+        ? '확인하는 중…'
+        : `영문 소문자·숫자·_·. 3~${HANDLE_MAX}자. 바꾸면 ${HANDLE_COOLDOWN_DAYS}일 동안 다시 바꿀 수 없습니다.`;
+  const handleErrorText = handleError
+    || (['invalid', 'unavailable', 'error'].includes(check.status) ? check.message : null);
+
+  return (
+    <Modal isOpen={isOpen} onClose={saving ? () => {} : onClose} title="프로필 편집">
+      <form className="acct-modal-form" onSubmit={submit}>
+        <Input
+          label="닉네임"
+          value={name}
+          maxLength={NICKNAME_MAX}
+          onChange={(e) => { setName(e.target.value); setNameError(null); }}
+          error={nameError}
+          helperText={`다른 사람과 같아도 괜찮습니다. ${[...normalizeNickname(name)].length}/${NICKNAME_MAX}`}
+          autoFocus
+        />
+        <Input
+          label="핸들"
+          className={check.status === 'available' && !handleErrorText ? 'is-available' : ''}
+          leadingIcon={<AtSign size={15} />}
+          value={handleDraft}
+          maxLength={HANDLE_MAX + 1}
+          disabled={handleLocked}
+          onChange={(e) => { setHandleDraft(e.target.value.replace(/\s/g, '')); setHandleError(null); }}
+          error={handleErrorText}
+          helperText={handleHelper}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+        <div className="acct-modal-actions">
+          <Button variant="secondary" onClick={onClose} disabled={saving}>취소</Button>
+          <Button
+            variant="primary"
+            type="submit"
+            loading={saving || savingHandle}
+            disabled={handleBlocked || (!nameChanged && !handleChanged)}
+          >
+            저장
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 /* ── 프로필 카드 ───────────────────────────── */
 function ProfileCard({ user }) {
   const { updateProfile, uploadAvatar } = useAuth();
   const { showToast } = useAudio();
+  const { handle, isLoading: handleLoading } = useHandle();
   const fileRef = useRef(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const name = getUserDisplayName(user);
   const avatar = getUserAvatarUrl(user);
   const provider = getUserProvider(user);
   const days = daysSince(user?.created_at);
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState(name);
-  const [nameError, setNameError] = useState(null);
-  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  const startEdit = () => {
-    setDraft(name);
-    setNameError(null);
-    setIsEditing(true);
-  };
-
-  const saveNickname = async (e) => {
-    e?.preventDefault();
-    const err = validateNickname(draft);
-    if (err) {
-      setNameError(err);
-      return;
-    }
-    if (draft.trim() === name) {
-      setIsEditing(false);
-      return;
-    }
-    setSaving(true);
-    const { error } = await updateProfile({ nickname: draft });
-    setSaving(false);
-    if (error) {
-      setNameError('닉네임을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
-      return;
-    }
-    setIsEditing(false);
-    showToast('닉네임을 변경했습니다');
-  };
 
   const handleFile = async (e) => {
     const file = e.target.files?.[0];
@@ -146,42 +241,37 @@ function ProfileCard({ user }) {
       </div>
 
       <div className="profile-meta">
-        {isEditing ? (
-          <form className="profile-name-form" onSubmit={saveNickname}>
-            <input
-              className={`profile-name-input ${nameError ? 'has-error' : ''}`}
-              value={draft}
-              maxLength={NICKNAME_MAX}
-              onChange={(e) => { setDraft(e.target.value); setNameError(null); }}
-              onKeyDown={(e) => { if (e.key === 'Escape') setIsEditing(false); }}
-              aria-label="닉네임"
-              autoFocus
-            />
-            <button type="submit" className="acct-icon-btn" disabled={saving} title="저장" aria-label="저장">
-              {saving ? <span className="acct-spinner" /> : <Check size={16} />}
-            </button>
-            <button type="button" className="acct-icon-btn" onClick={() => setIsEditing(false)} title="취소" aria-label="취소">
-              <X size={16} />
-            </button>
-          </form>
-        ) : (
-          <div className="profile-name-row">
-            <h2 className="profile-name" title={name}>{name}</h2>
-            <button className="acct-icon-btn" onClick={startEdit} title="닉네임 수정" aria-label="닉네임 수정">
-              <Pencil size={14} />
-            </button>
-          </div>
-        )}
-        {nameError && <p className="profile-name-error">{nameError}</p>}
-
-        <div className="profile-sub">
-          <span className="profile-email">{user?.email}</span>
-          <span className={`acct-badge ${provider === 'google' ? 'is-google' : ''}`}>
-            {provider === 'google' ? 'Google 계정' : '이메일 계정'}
+        <div className="profile-identity">
+          <h2 className="profile-name" title={name}>{name}</h2>
+          <span className={`profile-handle ${handle ? '' : 'is-placeholder'}`}>
+            {handle ? `@${handle}` : handleLoading ? '@…' : ''}
           </span>
         </div>
-        {days && <p className="profile-since">sofar와 함께한 지 {days.toLocaleString()}일째</p>}
+        <div className="profile-sub">
+          <span className={`acct-badge ${provider === 'google' ? 'is-google' : ''}`}>
+            {provider === 'google' ? 'Google' : '이메일'}
+          </span>
+          <span className="profile-email" title={user?.email}>{user?.email}</span>
+          {days && (
+            <>
+              <span className="profile-sub-dot" aria-hidden="true">·</span>
+              <span className="profile-since">sofar와 함께한 지 {days.toLocaleString()}일째</span>
+            </>
+          )}
+        </div>
       </div>
+
+      <Button
+        variant="secondary"
+        size="sm"
+        className="profile-edit-btn"
+        leadingIcon={<Pencil size={14} />}
+        onClick={() => setEditOpen(true)}
+      >
+        프로필 편집
+      </Button>
+
+      <EditProfileModal isOpen={editOpen} onClose={() => setEditOpen(false)} user={user} />
     </section>
   );
 }
@@ -252,11 +342,17 @@ export default function MyInfoPage() {
   const isGuest = !user || user.isGuest;
   const hasPlayer = Boolean(currentTrack);
 
+  // 내 플레이리스트이므로 작성자 아바타는 내 프로필 이미지 (익명으로 표시 중이면 기본 아바타)
+  const myAvatar = getUserAvatarUrl(user);
   const sharedPlaylists = useMemo(
     () => playlists
       .filter((p) => p.is_public)
-      .map((p) => ({ ...p, tracks: previews[p.id] || [] })),
-    [playlists, previews],
+      .map((p) => ({
+        ...p,
+        tracks: previews[p.id] || [],
+        authorAvatar: p.author === ANONYMOUS_AUTHOR ? null : myAvatar,
+      })),
+    [playlists, previews, myAvatar],
   );
 
   const likeCounts = usePlaylistLikeCounts(sharedPlaylists.map((p) => p.id));

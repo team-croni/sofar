@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
+import { normalizeNickname, DEFAULT_NICKNAME } from '../utils/userProfile';
 
 const AuthContext = createContext(null);
 
@@ -143,24 +144,28 @@ export function AuthProvider({ children }) {
   const signUpWithEmail = async (email, password, displayName) => {
     if (!supabase) return { error: new Error('Supabase not active') };
 
+    // 닉네임은 공개되므로 이메일 앞부분으로 대신하지 않는다 (핸들도 닉네임으로 만들어짐)
+    const nickname = normalizeNickname(displayName) || DEFAULT_NICKNAME;
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: displayName || email.split('@')[0],
+          display_name: nickname,
+          full_name: nickname,
         }
       }
     });
 
     if (!error && data?.user) {
-      // profiles 테이블에 유저 정보 등록 (이메일 인증 전이라도 upsert)
-      await supabase.from('profiles').upsert({
+      // profiles 테이블에 유저 정보 등록 (이메일 인증 전이라 세션이 없으면 실패할 수 있고, 인증 후 다시 등록한다)
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
-        username: displayName || email.split('@')[0],
+        username: nickname,
         email: data.user.email,
         updated_at: new Date().toISOString()
       });
+      if (profileError) console.warn('[Auth] profile upsert before verification skipped:', profileError.message);
     }
 
     return { data, error };
@@ -234,12 +239,15 @@ export function AuthProvider({ children }) {
 
     if (!error && data?.user) {
       // profiles 테이블 upsert (인증 성공 시점에 확정 등록)
-      await supabase.from('profiles').upsert({
+      const meta = data.user.user_metadata || {};
+      const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
-        username: data.user.user_metadata?.full_name || data.user.email.split('@')[0],
+        username: normalizeNickname(meta.display_name || meta.full_name) || DEFAULT_NICKNAME,
         email: data.user.email,
         updated_at: new Date().toISOString()
       });
+      // 실패해도 처음 '내 정보'를 열 때 서버가 프로필과 핸들을 만든다
+      if (profileError) console.warn('[Auth] profile upsert after verification failed:', profileError.message);
       checkLocalDataMigration();
     }
 
@@ -274,16 +282,16 @@ export function AuthProvider({ children }) {
     try {
       const { playlists, tracks } = pendingGuestData;
 
-      // 1. 프로필이 profiles 테이블에 등록되었는지 간접 확인/생성
+      // 1. 프로필이 없을 때만 만든다 (이미 있으면 사용자가 바꾼 닉네임을 덮어쓰지 않음)
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          username: user.user_metadata.full_name || '소파 사용자',
+          username: normalizeNickname(user.user_metadata.display_name || user.user_metadata.full_name) || '소파 사용자',
           avatar_url: user.user_metadata.avatar_url || '',
           email: user.email,
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'id', ignoreDuplicates: true });
       
       if (profileError) throw profileError;
 
@@ -373,9 +381,10 @@ export function AuthProvider({ children }) {
 
     const metaPatch = {};
     const profilePatch = { id: user.id, email: user.email, updated_at: new Date().toISOString() };
-    if (nickname !== undefined) {
-      metaPatch.display_name = nickname.trim();
-      profilePatch.username = nickname.trim();
+    const cleanName = nickname !== undefined ? normalizeNickname(nickname) : undefined;
+    if (cleanName !== undefined) {
+      metaPatch.display_name = cleanName;
+      profilePatch.username = cleanName;
     }
     if (avatarUrl !== undefined) {
       metaPatch.custom_avatar_url = avatarUrl || null;
@@ -393,7 +402,7 @@ export function AuthProvider({ children }) {
     if (nickname !== undefined) {
       await supabase
         .from('playlists')
-        .update({ author: nickname.trim() })
+        .update({ author: cleanName })
         .eq('user_id', user.id)
         .or('author.is.null,author.neq."익명의 리스너"');
       queryClient.invalidateQueries({ queryKey: ['playlists'] });

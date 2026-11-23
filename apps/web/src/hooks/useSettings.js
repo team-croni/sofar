@@ -31,6 +31,29 @@ export function getPlaylistAuthorName(user, fallback = '나의 플레이리스�
   return getUserDisplayName(user, fallback);
 }
 
+/**
+ * 내 플레이리스트의 작성자 이름을 '닉네임 표시' 설정과 맞춘다.
+ * 설정 저장이 실패했는데 작성자만 '익명의 리스너'로 바뀐 경우처럼 어긋난 기록을 바로잡는다.
+ * 맞지 않는 행만 바꾸므로 평소에는 아무것도 바뀌지 않는다.
+ */
+async function syncPlaylistAuthors(user, showNickname, queryClient) {
+  try {
+    const name = getUserDisplayName(user, '');
+    if (showNickname && !name) return;
+    const query = supabase.from('playlists').update({ author: showNickname ? name : ANONYMOUS_AUTHOR }).eq('user_id', user.id);
+    const { data, error } = await (showNickname
+      ? query.eq('author', ANONYMOUS_AUTHOR)
+      : query.or(`author.is.null,author.neq."${ANONYMOUS_AUTHOR}"`)
+    ).select('id');
+    if (!error && data?.length) {
+      queryClient.invalidateQueries({ queryKey: ['playlists'] });
+      queryClient.invalidateQueries({ queryKey: ['homeFeed'] });
+    }
+  } catch {
+    /* 다음 로드 때 다시 시도 */
+  }
+}
+
 export function useAccountPreferences() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -52,6 +75,7 @@ export function useAccountPreferences() {
         ? { ...DEFAULT_ACCOUNT_PREFERENCES }
         : { ...DEFAULT_ACCOUNT_PREFERENCES, ...(row?.preferences || {}) };
       cachedAccountPreferences = prefs;
+      if (!error) syncPlaylistAuthors(user, prefs.showNicknameOnShared, queryClient);
       return prefs;
     },
   });

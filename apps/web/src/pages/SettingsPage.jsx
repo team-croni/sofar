@@ -9,7 +9,8 @@ import { useAudio } from '../contexts/AudioContext';
 import { useSettings, useAccountPreferences, ANONYMOUS_AUTHOR } from '../hooks/useSettings';
 import { usePlaylistsQuery, usePlaylistPreviewsQuery } from '../hooks/usePlaylists';
 import { useFavoritesQuery } from '../hooks/useFavorites';
-import { Button, Input, Modal } from '../components/ui';
+import { Button, Input, Modal, Select } from '../components/ui';
+import { useDemographics, birthYearOptions, GENDER_OPTIONS } from '../hooks/useDemographics';
 import { supabase } from '../contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { getUserDisplayName, getUserProvider } from '../utils/userProfile';
@@ -212,6 +213,8 @@ export default function SettingsPage() {
   const { currentTrack, showToast } = useAudio();
   const { settings, setSetting, resetSettings } = useSettings();
   const { preferences, isAvailable: hasAccountPrefs, updatePreferences } = useAccountPreferences();
+  const demographics = useDemographics();
+  const yearOptions = useMemo(() => birthYearOptions(), []);
   const { data: playlists = [] } = usePlaylistsQuery();
   const { data: previews = {} } = usePlaylistPreviewsQuery();
   const { data: favorites = [] } = useFavoritesQuery();
@@ -321,14 +324,26 @@ export default function SettingsPage() {
     try {
       await updatePreferences(patch);
       if (okMsg) showToast(okMsg);
+      return true;
     } catch {
       showToast('설정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      return false;
+    }
+  };
+
+  const saveDemographics = async (patch) => {
+    try {
+      await demographics.save(patch);
+      showToast('저장했습니다');
+    } catch (e) {
+      showToast(e?.message || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     }
   };
 
   // 닉네임 표시 설정: 이미 만든 플레이리스트의 작성자 이름도 함께 바꿈
   const toggleShowNickname = async (show) => {
-    await savePref({ showNicknameOnShared: show });
+    // 설정 저장에 실패하면 작성자 이름도 바꾸지 않는다 (설정과 기록이 어긋나지 않게)
+    if (!(await savePref({ showNicknameOnShared: show }))) return;
     if (supabase && user && !isGuest) {
       await supabase
         .from('playlists')
@@ -485,6 +500,33 @@ export default function SettingsPage() {
                   disabled={!hasAccountPrefs}
                   checked={preferences.showNicknameOnShared}
                   onChange={toggleShowNickname}
+                />
+              </Row>
+              <Row
+                title="출생 연도 (선택)"
+                desc="연령대별 통계와 추천 개선에만 쓰이며 다른 사람에게 보이지 않습니다. 만 14세 이상만 입력할 수 있습니다."
+              >
+                <Select
+                  size="sm"
+                  className="setting-select"
+                  aria-label="출생 연도"
+                  disabled={!demographics.isAvailable || demographics.isSaving}
+                  value={demographics.birthYear == null ? '' : String(demographics.birthYear)}
+                  options={yearOptions}
+                  placeholder="선택 안 함"
+                  onChange={(e) => saveDemographics({ birthYear: e.target.value ? Number(e.target.value) : null })}
+                />
+              </Row>
+              <Row title="성별 (선택)" desc="성별 통계와 추천 개선에만 쓰이며 다른 사람에게 보이지 않습니다.">
+                <Select
+                  size="sm"
+                  className="setting-select"
+                  aria-label="성별"
+                  disabled={!demographics.isAvailable || demographics.isSaving}
+                  value={demographics.gender || ''}
+                  options={GENDER_OPTIONS}
+                  placeholder="선택 안 함"
+                  onChange={(e) => saveDemographics({ gender: e.target.value || null })}
                 />
               </Row>
             </Section>

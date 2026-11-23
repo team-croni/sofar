@@ -19,6 +19,7 @@ import {
   ListMusic,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { validateNickname, NICKNAME_MAX } from '../utils/userProfile';
 import { Button, Input, Logo } from '../components/ui';
 import './LoginPage.css';
 
@@ -189,6 +190,12 @@ export default function LoginPage({ heroImage = DEFAULT_HERO_IMAGE }) {
     e.preventDefault();
     if (!displayName.trim()) {
       setErrorMsg('이용하실 닉네임을 입력해 주세요.');
+      return;
+    }
+    // 앱·DB와 같은 닉네임 규칙 (DB가 거절하면 프로필이 만들어지지 않으므로 미리 안내)
+    const nicknameError = validateNickname(displayName);
+    if (nicknameError) {
+      setErrorMsg(nicknameError);
       return;
     }
     if (!email.trim() || !password) {
@@ -667,8 +674,9 @@ export default function LoginPage({ heroImage = DEFAULT_HERO_IMAGE }) {
                       label="닉네임"
                       placeholder="홍길동"
                       value={displayName}
+                      maxLength={NICKNAME_MAX}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      autoComplete="name"
+                      autoComplete="nickname"
                       disabled={loading}
                       leadingIcon={<User size={18} />}
                     />

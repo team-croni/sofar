@@ -1006,7 +1006,9 @@ export default function DashboardPage() {
                               <span className="activity-title">{item.title}</span>
                               <div className="activity-sub">
                                 <span className="activity-author">
-                                  {item.author || item.user_nickname || '익명 사용자'} • {item.tracks?.length || 0}곡
+                                  {item.author || item.user_nickname || '익명 사용자'}
+                                  {item.owner_handle && <span className="activity-handle"> @{item.owner_handle}</span>}
+                                  {' '}• {item.tracks?.length || 0}곡
                                 </span>
                               </div>
                             </div>
@@ -1070,6 +1072,7 @@ export default function DashboardPage() {
                           <div className="activity-details">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               <span className="activity-title">{u.nickname || '익명 사용자'}</span>
+                              {u.handle && <span className="activity-handle">@{u.handle}</span>}
                               <span className={`provider-tag ${u.provider}`}>
                                 {u.provider === 'google' ? 'Google' : '이메일'}
                               </span>

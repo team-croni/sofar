@@ -8,6 +8,7 @@ import {
   Trash2,
   RefreshCw,
   Loader2,
+  Copy,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { Button, Input, Select, Modal, KpiCard } from '../components/ui';
@@ -49,6 +50,8 @@ export default function UsersPage() {
     fetchUsers,
     fetchUserStats,
     updateUserStatus,
+    resetUserHandle,
+    resetUserAvatar,
     deleteUser,
   } = useAdmin();
 
@@ -65,6 +68,8 @@ export default function UsersPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingNickname, setEditingNickname] = useState('');
   const [isSavingNickname, setIsSavingNickname] = useState(false);
+  const [isResettingHandle, setIsResettingHandle] = useState(false);
+  const [isResettingAvatar, setIsResettingAvatar] = useState(false);
 
   useEffect(() => {
     if (adminKey) {
@@ -85,9 +90,10 @@ export default function UsersPage() {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchName = user.nickname?.toLowerCase().includes(q);
+          const matchHandle = user.handle?.includes(q.replace(/^@/, ''));
           const matchEmail = user.email?.toLowerCase().includes(q);
           const matchId = user.id?.toLowerCase().includes(q);
-          if (!matchName && !matchEmail && !matchId) return false;
+          if (!matchName && !matchHandle && !matchEmail && !matchId) return false;
         }
 
         // 3. 로그인 제공자 필터
@@ -137,6 +143,53 @@ export default function UsersPage() {
       showErrorToast('오류가 발생했습니다.');
     } finally {
       setIsSavingNickname(false);
+    }
+  };
+
+  // 부적절한 핸들 초기화
+  const handleResetHandle = async () => {
+    if (!selectedUser?.handle) return;
+    const ok = window.confirm(
+      `@${selectedUser.handle} 핸들을 초기화하시겠습니까?\n\n닉네임을 바탕으로 새 핸들이 만들어지고, 사용자는 바로 다른 핸들을 고를 수 있습니다.\n이전 핸들은 30일 동안 아무도(본인 포함) 쓸 수 없습니다.`,
+    );
+    if (!ok) return;
+    setIsResettingHandle(true);
+    try {
+      const res = await resetUserHandle(selectedUser.id);
+      setSelectedUser((prev) => ({ ...prev, handle: res.handle }));
+      showSuccessToast(`@${res.previous} → @${res.handle}로 초기화했습니다.`);
+    } catch (err) {
+      showErrorToast(err.message);
+    } finally {
+      setIsResettingHandle(false);
+    }
+  };
+
+  // 부적절한 프로필 이미지 삭제
+  const handleResetAvatar = async () => {
+    if (!selectedUser?.avatar_url) return;
+    const ok = window.confirm(
+      `'${selectedUser.nickname}' 사용자의 프로필 이미지를 삭제하시겠습니까?\n\n올린 이미지 파일이 지워지고 기본 이미지로 바뀝니다. 되돌릴 수 없습니다.`,
+    );
+    if (!ok) return;
+    setIsResettingAvatar(true);
+    try {
+      await resetUserAvatar(selectedUser.id);
+      setSelectedUser((prev) => ({ ...prev, avatar_url: null }));
+      showSuccessToast('프로필 이미지를 삭제했습니다.');
+    } catch (err) {
+      showErrorToast(err.message);
+    } finally {
+      setIsResettingAvatar(false);
+    }
+  };
+
+  const copyUserId = async (id) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      showSuccessToast('사용자 ID를 복사했습니다.');
+    } catch {
+      showErrorToast('복사하지 못했습니다.');
     }
   };
 
@@ -391,9 +444,13 @@ export default function UsersPage() {
                               </div>
                               <div className="user-profile-meta">
                                 <span className="user-profile-name">{user.nickname || '익명 사용자'}</span>
-                                <span className="user-profile-id">
-                                  {user.id ? `${user.id.substring(0, 8)}...` : '-'}
-                                </span>
+                                {user.handle ? (
+                                  <span className="user-profile-handle">@{user.handle}</span>
+                                ) : (
+                                  <span className="user-profile-id">
+                                    {user.id ? `${user.id.substring(0, 8)}...` : '-'}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -506,13 +563,13 @@ export default function UsersPage() {
                 }
               >
                 <div className="user-modal-box">
-                  {/* Header Profile Box */}
+                  {/* 프로필 헤더 */}
                   <div className="user-modal-profile-card">
                     <div className="user-modal-avatar">
                       {selectedUser.avatar_url ? (
                         <img src={selectedUser.avatar_url} alt="" />
                       ) : (
-                        <span>{(selectedUser.nickname || selectedUser.email || 'U').charAt(0).toUpperCase()}</span>
+                        <span>{(selectedUser.nickname || 'U').charAt(0).toUpperCase()}</span>
                       )}
                     </div>
                     <div className="user-modal-details">
@@ -522,56 +579,127 @@ export default function UsersPage() {
                           {statusConfig.modalLabel}
                         </span>
                       </div>
-                      <span className="user-modal-email">{selectedUser.email}</span>
-                      <span className="user-modal-id">ID: {selectedUser.id}</span>
+                      {selectedUser.handle && <span className="user-modal-handle">@{selectedUser.handle}</span>}
+                      <div className="user-modal-sub">
+                        <span className={`provider-tag ${selectedUser.provider}`}>
+                          {selectedUser.provider === 'google' ? 'Google' : '이메일'}
+                        </span>
+                        <span className="user-modal-email" title={selectedUser.email}>{selectedUser.email}</span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* 닉네임 수정 폼 */}
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1 }}>
-                      <Input
-                        label="닉네임 변경"
-                        value={editingNickname}
-                        onChange={(e) => setEditingNickname(e.target.value)}
-                        placeholder="새로운 닉네임 입력"
-                      />
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      loading={isSavingNickname}
-                      disabled={editingNickname.trim() === selectedUser.nickname}
-                      onClick={handleSaveNickname}
-                      style={{ marginBottom: '0.2rem' }}
-                    >
-                      변경 저장
-                    </Button>
-                  </div>
+                  {/* 프로필 관리 */}
+                  <section className="user-modal-section">
+                    <h4 className="user-modal-section-title">프로필 관리</h4>
+                    <div className="user-modal-rows">
+                      <div className="user-modal-row">
+                        <span className="user-modal-row-label">닉네임</span>
+                        <div className="user-modal-row-body user-modal-nickname-form">
+                          <Input
+                            size="sm"
+                            value={editingNickname}
+                            onChange={(e) => setEditingNickname(e.target.value)}
+                            placeholder="새 닉네임"
+                            aria-label="닉네임"
+                          />
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={isSavingNickname}
+                            disabled={!editingNickname.trim() || editingNickname.trim() === selectedUser.nickname}
+                            onClick={handleSaveNickname}
+                          >
+                            저장
+                          </Button>
+                        </div>
+                      </div>
 
-                  {/* Stats Grid */}
-                  <div className="user-modal-meta-grid">
-                    <div className="user-modal-meta-item">
-                      <span className="user-modal-meta-label">계정 상태</span>
-                      <span className="user-modal-meta-val" style={{ color: statusConfig.color }}>
-                        {statusConfig.label}
-                      </span>
+                      <div className="user-modal-row">
+                        <span className="user-modal-row-label">핸들</span>
+                        <div className="user-modal-row-body">
+                          <div className="user-modal-row-text">
+                            <span className="user-modal-row-value">
+                              {selectedUser.handle ? `@${selectedUser.handle}` : '없음'}
+                            </span>
+                            <span className="user-modal-row-desc">이전 핸들은 30일간 사용 불가</span>
+                          </div>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={isResettingHandle}
+                            disabled={!selectedUser.handle}
+                            onClick={handleResetHandle}
+                          >
+                            초기화
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="user-modal-row">
+                        <span className="user-modal-row-label">프로필 이미지</span>
+                        <div className="user-modal-row-body">
+                          <div className="user-modal-row-text">
+                            <span className="user-modal-row-value">
+                              {selectedUser.avatar_url ? '직접 올린 이미지' : '기본 이미지'}
+                            </span>
+                            <span className="user-modal-row-desc">
+                              {selectedUser.avatar_url
+                                ? '삭제하면 기본 이미지로 바뀝니다'
+                                : '올린 이미지 없음'}
+                            </span>
+                          </div>
+                          {selectedUser.avatar_url && (
+                            <a
+                              className="user-modal-link"
+                              href={selectedUser.avatar_url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              원본 보기
+                            </a>
+                          )}
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={isResettingAvatar}
+                            disabled={!selectedUser.avatar_url}
+                            onClick={handleResetAvatar}
+                          >
+                            삭제
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="user-modal-meta-item">
-                      <span className="user-modal-meta-label">인증 제공자</span>
-                      <span className="user-modal-meta-val">
-                        {selectedUser.provider === 'google' ? 'Google OAuth' : '이메일 로그인'}
-                      </span>
-                    </div>
-                    <div className="user-modal-meta-item">
-                      <span className="user-modal-meta-label">가입 일시</span>
-                      <span className="user-modal-meta-val">{formatDateTime(selectedUser.created_at)}</span>
-                    </div>
-                    <div className="user-modal-meta-item">
-                      <span className="user-modal-meta-label">보관 플레이리스트</span>
-                      <span className="user-modal-meta-val">{selectedUser.playlist_count || 0}개 ({selectedUser.track_count || 0}곡)</span>
-                    </div>
-                  </div>
+                  </section>
+
+                  {/* 계정 정보 */}
+                  <section className="user-modal-section">
+                    <h4 className="user-modal-section-title">계정 정보</h4>
+                    <dl className="user-modal-info">
+                      <dt>사용자 ID</dt>
+                      <dd>
+                        <span className="user-modal-id" title={selectedUser.id}>{selectedUser.id}</span>
+                        <button
+                          type="button"
+                          className="user-modal-copy"
+                          onClick={() => copyUserId(selectedUser.id)}
+                          aria-label="사용자 ID 복사"
+                          title="복사"
+                        >
+                          <Copy size={13} />
+                        </button>
+                      </dd>
+                      <dt>로그인 방식</dt>
+                      <dd>{selectedUser.provider === 'google' ? 'Google 계정' : '이메일 · 비밀번호'}</dd>
+                      <dt>가입 일시</dt>
+                      <dd>{formatDateTime(selectedUser.created_at)}</dd>
+                      <dt>최근 로그인</dt>
+                      <dd>{selectedUser.last_sign_in_at ? formatDateTime(selectedUser.last_sign_in_at) : '-'}</dd>
+                      <dt>플레이리스트</dt>
+                      <dd>{selectedUser.playlist_count || 0}개 · {selectedUser.track_count || 0}곡</dd>
+                    </dl>
+                  </section>
 
                   {/* Danger Zone */}
                   <div className="user-modal-danger">
