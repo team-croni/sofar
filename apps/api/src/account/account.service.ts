@@ -1,9 +1,36 @@
 import {
   BadRequestException,
+  ServiceUnavailableException,
   Injectable,
   Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
+
+import { RateLimiter, supabaseRest } from '../listening/supabase-rest';
+import {
+  HANDLE_COOLDOWN_DAYS,
+  handleFormatProblem,
+  handleMessage,
+  normalizeHandle,
+} from './handle';
+
+export interface HandleState {
+  handle: string | null;
+  changedAt: string | null;
+  /** 다음에 바꿀 수 있는 시각 (지금 바꿀 수 있으면 null) */
+  nextChangeAt: string | null;
+}
+
+export function nextHandleChangeAt(
+  changedAt: string | null,
+  now = Date.now(),
+): string | null {
+  if (!changedAt) return null;
+  const next = Date.parse(changedAt) + HANDLE_COOLDOWN_DAYS * 86_400_000;
+  return Number.isFinite(next) && next > now
+    ? new Date(next).toISOString()
+    : null;
+}
 
 export const GENDERS = ['female', 'male', 'other'] as const;
 export type Gender = (typeof GENDERS)[number];
@@ -167,6 +194,103 @@ export class AccountService {
         '탈퇴 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.',
       );
     }
+  }
+
+  private readonly handleCheckLimiter = new RateLimiter(60, 60_000);
+  private readonly handleChangeLimiter = new RateLimiter(10, 60_000);
+
+  /** 내 핸들 (없으면 만들어 준다) */
+  async getHandle(userId: string): Promise<HandleState> {
+    const res = await supabaseRest<{
+      handle: string | null;
+      changedAt: string | null;
+    }>('rpc/ensure_handle', {
+      method: 'POST',
+      body: JSON.stringify({ p_user: userId }),
+    });
+    if (!res.ok || !res.data) {
+      throw new ServiceUnavailableException(
+        '핸들 기능이 아직 준비되지 않았습니다 (supabase_profile_handles.sql 실행 필요).',
+      );
+    }
+    return {
+      handle: res.data.handle,
+      changedAt: res.data.changedAt,
+      nextChangeAt: nextHandleChangeAt(res.data.changedAt),
+    };
+  }
+
+  /** 입력하는 동안 쓸 수 있는지 확인 */
+  async checkHandle(
+    userId: string,
+    input: unknown,
+  ): Promise<{ handle: string; available: boolean; message: string | null }> {
+    if (!this.handleCheckLimiter.allow(userId)) {
+      throw new BadRequestException('잠시 후 다시 시도해 주세요.');
+    }
+    const handle = normalizeHandle(input);
+    const formatProblem = handleFormatProblem(handle);
+    if (formatProblem) {
+      return {
+        handle,
+        available: false,
+        message: handleMessage(formatProblem),
+      };
+    }
+    const res = await supabaseRest<string | null>(
+      'rpc/handle_unavailable_reason',
+      {
+        method: 'POST',
+        body: JSON.stringify({ p_handle: handle, p_user: userId }),
+      },
+    );
+    if (!res.ok) {
+      throw new ServiceUnavailableException('잠시 후 다시 시도해 주세요.');
+    }
+    const reason = res.data;
+    return {
+      handle,
+      available: !reason,
+      message: reason ? handleMessage(reason) : null,
+    };
+  }
+
+  /** 핸들 바꾸기 (30일에 한 번) */
+  async changeHandle(userId: string, input: unknown): Promise<HandleState> {
+    if (!this.handleChangeLimiter.allow(userId)) {
+      throw new BadRequestException('잠시 후 다시 시도해 주세요.');
+    }
+    const handle = normalizeHandle(input);
+    const formatProblem = handleFormatProblem(handle);
+    if (formatProblem)
+      throw new BadRequestException(handleMessage(formatProblem));
+
+    const res = await supabaseRest<{
+      ok: boolean;
+      reason?: string;
+      handle?: string;
+      changedAt?: string | null;
+      nextChangeAt?: string;
+    }>('rpc/change_handle', {
+      method: 'POST',
+      body: JSON.stringify({ p_user: userId, p_handle: handle }),
+    });
+    if (!res.ok || !res.data) {
+      throw new ServiceUnavailableException('잠시 후 다시 시도해 주세요.');
+    }
+    if (!res.data.ok) {
+      const message =
+        res.data.reason === 'cooldown' && res.data.nextChangeAt
+          ? `${handleMessage('cooldown')} ${new Date(res.data.nextChangeAt).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}부터 바꿀 수 있습니다.`
+          : handleMessage(res.data.reason);
+      throw new BadRequestException(message);
+    }
+    const changedAt = res.data.changedAt ?? null;
+    return {
+      handle: res.data.handle ?? handle,
+      changedAt,
+      nextChangeAt: nextHandleChangeAt(changedAt),
+    };
   }
 
   /** 본인의 연령·성별. 테이블이 없으면(아직 SQL 미실행) available: false */

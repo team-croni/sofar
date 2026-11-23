@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Pencil, Check, X, LogIn, Heart, ListMusic, Music, Globe, RotateCcw, Settings } from 'lucide-react';
+import { Camera, Pencil, Check, X, LogIn, Heart, ListMusic, Music, Globe, RotateCcw, Settings, AtSign } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useAudio } from '../contexts/AudioContext';
 import { usePlaylistsQuery, usePlaylistPreviewsQuery } from '../hooks/usePlaylists';
@@ -11,10 +11,119 @@ import { usePlaylistLikeCounts } from '../hooks/usePlaylistLikeCounts';
 import SearchTrackRow from '../components/search/SearchTrackRow';
 // 홈 인기곡 · 검색 결과와 같은 곡 목록 스타일
 import '../components/search/SearchPanel.css';
-import { getUserDisplayName, getUserAvatarUrl, getUserProvider, validateNickname, NICKNAME_MAX } from '../utils/userProfile';
+import {
+  getUserDisplayName,
+  getUserAvatarUrl,
+  getUserProvider,
+  validateNickname,
+  nicknameErrorMessage,
+  normalizeNickname,
+  NICKNAME_MAX,
+  HANDLE_MAX,
+  HANDLE_COOLDOWN_DAYS,
+} from '../utils/userProfile';
+import { useHandle, useHandleCheck } from '../hooks/useHandle';
 import './AccountPages.css';
 
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
+
+const formatDay = (iso) =>
+  new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+
+/* ── 핸들(@아이디) ───────────────────────────── */
+function HandleField() {
+  const { showToast } = useAudio();
+  const { handle, nextChangeAt, isLoading, isError, change, isSaving } = useHandle();
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [saveError, setSaveError] = useState(null);
+  const check = useHandleCheck(draft, handle, isEditing);
+
+  if (isLoading) return <div className="profile-handle-row"><span className="profile-handle is-placeholder">@…</span></div>;
+  if (isError || !handle) return null;
+
+  const startEdit = () => {
+    setDraft(handle);
+    setSaveError(null);
+    setIsEditing(true);
+  };
+
+  const save = async (e) => {
+    e?.preventDefault();
+    if (check.status === 'same') {
+      setIsEditing(false);
+      return;
+    }
+    if (check.status !== 'available') return;
+    try {
+      const res = await change(check.handle);
+      setIsEditing(false);
+      showToast(`핸들을 @${res.handle}(으)로 바꿨습니다`);
+    } catch (err) {
+      setSaveError(err.message);
+    }
+  };
+
+  if (!isEditing) {
+    return (
+      <div className="profile-handle-row">
+        <span className="profile-handle" title={`@${handle}`}>@{handle}</span>
+        {nextChangeAt ? (
+          <span className="profile-handle-note">{formatDay(nextChangeAt)}부터 바꿀 수 있습니다</span>
+        ) : (
+          <button className="acct-icon-btn is-small" onClick={startEdit} title="핸들 변경" aria-label="핸들 변경">
+            <Pencil size={13} />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  const message = saveError
+    || (check.status === 'available' && '사용할 수 있는 핸들입니다.')
+    || (check.status === 'checking' && '확인하는 중…')
+    || check.message
+    || `영문 소문자·숫자·_·. 조합, 바꾸면 ${HANDLE_COOLDOWN_DAYS}일 동안 다시 바꿀 수 없습니다.`;
+  const tone = saveError || ['invalid', 'unavailable', 'error'].includes(check.status)
+    ? 'is-error'
+    : check.status === 'available' ? 'is-ok' : '';
+
+  return (
+    <div className="profile-handle-edit">
+      <form className="profile-handle-form" onSubmit={save}>
+        <label className={`profile-handle-input-wrap ${tone}`}>
+          <AtSign size={14} aria-hidden="true" />
+          <input
+            className="profile-handle-input"
+            value={draft}
+            maxLength={HANDLE_MAX + 1}
+            onChange={(e) => { setDraft(e.target.value.replace(/\s/g, '')); setSaveError(null); }}
+            onKeyDown={(e) => { if (e.key === 'Escape') setIsEditing(false); }}
+            aria-label="핸들"
+            aria-describedby="profile-handle-message"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoFocus
+          />
+        </label>
+        <button
+          type="submit"
+          className="acct-icon-btn"
+          disabled={isSaving || !['available', 'same'].includes(check.status)}
+          title="저장"
+          aria-label="저장"
+        >
+          {isSaving ? <span className="acct-spinner" /> : <Check size={16} />}
+        </button>
+        <button type="button" className="acct-icon-btn" onClick={() => setIsEditing(false)} title="취소" aria-label="취소">
+          <X size={16} />
+        </button>
+      </form>
+      <p id="profile-handle-message" className={`profile-handle-message ${tone}`} role="status">{message}</p>
+    </div>
+  );
+}
 
 function openPlaylistInSidebar(pl) {
   window.dispatchEvent(new CustomEvent('trigger-open-shared-playlist', {
@@ -58,7 +167,7 @@ function ProfileCard({ user }) {
       setNameError(err);
       return;
     }
-    if (draft.trim() === name) {
+    if (normalizeNickname(draft) === name) {
       setIsEditing(false);
       return;
     }
@@ -66,7 +175,7 @@ function ProfileCard({ user }) {
     const { error } = await updateProfile({ nickname: draft });
     setSaving(false);
     if (error) {
-      setNameError('닉네임을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      setNameError(nicknameErrorMessage(error));
       return;
     }
     setIsEditing(false);
@@ -173,6 +282,7 @@ function ProfileCard({ user }) {
           </div>
         )}
         {nameError && <p className="profile-name-error">{nameError}</p>}
+        <HandleField />
 
         <div className="profile-sub">
           <span className="profile-email">{user?.email}</span>

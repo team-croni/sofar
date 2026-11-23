@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useQueryClient } from '@tanstack/react-query';
+import { normalizeNickname } from '../utils/userProfile';
 
 const AuthContext = createContext(null);
 
@@ -274,16 +275,16 @@ export function AuthProvider({ children }) {
     try {
       const { playlists, tracks } = pendingGuestData;
 
-      // 1. 프로필이 profiles 테이블에 등록되었는지 간접 확인/생성
+      // 1. 프로필이 없을 때만 만든다 (이미 있으면 사용자가 바꾼 닉네임을 덮어쓰지 않음)
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
-          username: user.user_metadata.full_name || '소파 사용자',
+          username: normalizeNickname(user.user_metadata.display_name || user.user_metadata.full_name) || '소파 사용자',
           avatar_url: user.user_metadata.avatar_url || '',
           email: user.email,
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'id', ignoreDuplicates: true });
       
       if (profileError) throw profileError;
 
@@ -373,9 +374,10 @@ export function AuthProvider({ children }) {
 
     const metaPatch = {};
     const profilePatch = { id: user.id, email: user.email, updated_at: new Date().toISOString() };
-    if (nickname !== undefined) {
-      metaPatch.display_name = nickname.trim();
-      profilePatch.username = nickname.trim();
+    const cleanName = nickname !== undefined ? normalizeNickname(nickname) : undefined;
+    if (cleanName !== undefined) {
+      metaPatch.display_name = cleanName;
+      profilePatch.username = cleanName;
     }
     if (avatarUrl !== undefined) {
       metaPatch.custom_avatar_url = avatarUrl || null;
@@ -393,7 +395,7 @@ export function AuthProvider({ children }) {
     if (nickname !== undefined) {
       await supabase
         .from('playlists')
-        .update({ author: nickname.trim() })
+        .update({ author: cleanName })
         .eq('user_id', user.id)
         .or('author.is.null,author.neq."익명의 리스너"');
       queryClient.invalidateQueries({ queryKey: ['playlists'] });
