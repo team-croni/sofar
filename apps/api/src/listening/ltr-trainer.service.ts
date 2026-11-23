@@ -47,16 +47,21 @@ export class LtrTrainerService implements OnModuleInit, OnModuleDestroy {
   private async loadRows(): Promise<LtrRow[] | null> {
     const rows: LtrRow[] = [];
     for (let offset = 0; offset < MAX_ROWS; offset += PAGE) {
-      const res = await supabaseRest<LtrRow[]>(
-        `rpc/get_ltr_training_rows?limit=${PAGE}&offset=${offset}`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ window_days: 30, per_viewer_cap: 200 }),
-        },
-      );
+      const res = await supabaseRest<
+        Array<Omit<LtrRow, 'position'> & { item_position: number }>
+      >(`rpc/get_ltr_training_rows?limit=${PAGE}&offset=${offset}`, {
+        method: 'POST',
+        body: JSON.stringify({ window_days: 30, per_viewer_cap: 200 }),
+      });
       if (!res.ok) return offset === 0 ? null : rows;
       const page = res.data || [];
-      rows.push(...page);
+      // DB 함수는 position 대신 item_position으로 내보낸다 (예약어)
+      rows.push(
+        ...page.map(({ item_position, ...row }) => ({
+          ...row,
+          position: Number(item_position) || 0,
+        })),
+      );
       if (page.length < PAGE) break;
     }
     return rows;

@@ -43,11 +43,14 @@ ALTER TABLE public.rec_model_weights ENABLE ROW LEVEL SECURITY;
 -- - 실제로 보인(impression) 곡만 사용
 -- - 정답(label) = 그 추천에서 눌러 30초 이상 감상
 -- - 같은 사람·곡·날은 1행, 한 사람이 학습을 좌우하지 않도록 사람당 최근 per_viewer_cap행까지만
-CREATE OR REPLACE FUNCTION public.get_ltr_training_rows(
+-- - 반환 열 이름에 position은 쓸 수 없어(PostgreSQL 예약어) item_position으로 내보낸다
+-- 이전 초안의 반환 형식과 달라 먼저 지운다 (없으면 그냥 넘어감)
+DROP FUNCTION IF EXISTS public.get_ltr_training_rows(INT, INT);
+CREATE FUNCTION public.get_ltr_training_rows(
   window_days INT DEFAULT 30,
   per_viewer_cap INT DEFAULT 200
 )
-RETURNS TABLE (features JSONB, arm TEXT, position SMALLINT, label INT, viewer_key TEXT, day DATE)
+RETURNS TABLE (features JSONB, arm TEXT, item_position SMALLINT, label INT, viewer_key TEXT, day DATE)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
@@ -80,7 +83,7 @@ AS $$
       row_number() OVER (PARTITION BY sh.viewer_key ORDER BY sh.created_at DESC) AS rn
     FROM shown sh
   )
-  SELECT features, arm, position, label, viewer_key, day
+  SELECT features, arm, position AS item_position, label, viewer_key, day
   FROM labeled
   WHERE rn <= per_viewer_cap;
 $$;
