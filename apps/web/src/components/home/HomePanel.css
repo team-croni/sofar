@@ -376,6 +376,7 @@
 .album-card__meta {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   padding-left: 0.25rem;
   padding-right: 0.1rem;
 }
@@ -390,6 +391,7 @@
 
 .album-card__title {
   font-size: 0.83rem;
+  line-height: 1.35;
   color: var(--text-primary, #fff);
   white-space: nowrap;
   overflow: hidden;
@@ -402,6 +404,8 @@
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  /* 제목·아티스트 줄 간격을 좁게: 더보기 버튼(24px)이 줄 높이를 늘리지 않도록 위아래를 겹친다 */
+  margin: -3px 0;
 }
 
 .album-card__kebab-btn {
@@ -433,6 +437,7 @@
 
 .album-card__artist {
   font-size: 0.75rem;
+  line-height: 1.35;
   color: var(--text-secondary, rgba(255, 255, 255, 0.55));
   white-space: nowrap;
   overflow: hidden;
@@ -1205,7 +1210,7 @@ html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
 .foryou-card__meta {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 2px;
   padding: 0 0.1rem 0 0.25rem;
   min-width: 0;
 }
@@ -1213,7 +1218,7 @@ html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
 .foryou-card__title-row {
   display: flex;
   align-items: center;
-  min-height: 24px;
+  min-height: 18px;
   gap: 0.2rem;
   min-width: 0;
 }
@@ -1222,6 +1227,7 @@ html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
   flex: 1;
   min-width: 0;
   font-size: 0.85rem;
+  line-height: 1.35;
   color: var(--text-primary, #fff);
   white-space: nowrap;
   overflow: hidden;
@@ -1231,10 +1237,13 @@ html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
 .foryou-card__actions {
   display: flex;
   flex-shrink: 0;
+  /* 제목·아티스트 줄 간격을 좁게: 더보기 버튼(24px)이 줄 높이를 늘리지 않도록 위아래를 겹친다 */
+  margin: -3px 0;
 }
 
 .foryou-card__sub {
   font-size: 0.75rem;
+  line-height: 1.35;
   color: var(--text-secondary, rgba(255, 255, 255, 0.55));
   white-space: nowrap;
   overflow: hidden;
