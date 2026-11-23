@@ -88,7 +88,15 @@ function Progress({ value, max, label }) {
 function DailyRateChart({ daily }) {
   const [hover, setHover] = useState(null);
   const { days, series, maxRate } = useMemo(() => {
-    const daySet = Array.from(new Set(daily.map((d) => d.day))).sort();
+    // 노출이 없는 날도 가로축에 남겨 날짜 간격이 그대로 보이게 한다
+    const present = Array.from(new Set(daily.map((d) => d.day))).sort();
+    const daySet = [];
+    if (present.length) {
+      const end = new Date(`${present[present.length - 1]}T00:00:00Z`);
+      for (let t = new Date(`${present[0]}T00:00:00Z`); t <= end; t.setUTCDate(t.getUTCDate() + 1)) {
+        daySet.push(t.toISOString().slice(0, 10));
+      }
+    }
     const byVariant = {};
     for (const d of daily) {
       const key = VARIANTS[d.variant] ? d.variant : null;
@@ -129,7 +137,14 @@ function DailyRateChart({ daily }) {
     .sort((a, b) => a.y - b.y)
     .forEach((l, k, arr) => {
       if (k > 0) l.y = Math.max(l.y, arr[k - 1].y + 13);
-      labelY[l.variant] = l.y;
+      // 아래로 밀려 날짜 라벨과 겹치면 전체를 위로 올린다
+      if (k === arr.length - 1) {
+        const overflow = l.y - (H - pad.b);
+        arr.forEach((a) => {
+          if (overflow > 0) a.y -= overflow;
+          labelY[a.variant] = a.y;
+        });
+      }
     });
 
   const handleMove = (e) => {
