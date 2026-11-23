@@ -1,3 +1,4 @@
+import { uploadedAvatarUrl } from '../account/avatar-storage';
 import { Injectable, Logger } from '@nestjs/common';
 import { ChartService } from '../chart/chart.service';
 import { ARMS, Arm, ArmStats, hashSeed } from './bandit';
@@ -840,7 +841,7 @@ export class ListeningService {
       `playlists?is_public=eq.true&select=id,title,author,cover_url,user_id,created_at,` +
         `tracks(id,youtube_video_id,custom_title,custom_artist,sequence)&order=created_at.desc&limit=200`,
     );
-    const avatars = await this.loadUploadedAvatars(
+    const authors = await this.loadAuthorProfiles(
       (rows || []).map((pl) => pl.user_id).filter((id): id is string => !!id),
     );
     const value: CandidatePlaylist[] = (rows || [])
@@ -861,11 +862,15 @@ export class ListeningService {
           kind: 'shared' as const,
           title: pl.title || '공유 플레이리스트',
           author: pl.author || '공유 리스너',
-          // 익명으로 공유한 경우에는 프로필 이미지를 내보내지 않는다
+          // 익명으로 공유한 경우에는 프로필 이미지·핸들(채널 링크)을 내보내지 않는다
           authorAvatar:
             pl.author === ANONYMOUS_AUTHOR
               ? null
-              : avatars.get(pl.user_id || '') || null,
+              : authors.get(pl.user_id || '')?.avatar || null,
+          authorHandle:
+            pl.author === ANONYMOUS_AUTHOR
+              ? null
+              : authors.get(pl.user_id || '')?.handle || null,
           cover: pl.cover_url || null,
           ownerId: pl.user_id || null,
           createdAt: pl.created_at || null,
@@ -882,26 +887,33 @@ export class ListeningService {
   }
 
   /**
-   * 사용자가 직접 올린 프로필 이미지만 돌려준다.
+   * 작성자의 공개 프로필: 직접 올린 프로필 이미지와 핸들.
    * profiles.avatar_url에는 Google 프로필 사진이 들어 있을 수 있는데, 앱은 직접 올린 이미지만
    * 보여 주므로 Supabase avatars 버킷 주소만 사용한다.
    */
-  private async loadUploadedAvatars(
+  private async loadAuthorProfiles(
     userIds: string[],
-  ): Promise<Map<string, string>> {
+  ): Promise<Map<string, { avatar: string | null; handle: string | null }>> {
     const ids = Array.from(new Set(userIds)).slice(0, 200);
-    const map = new Map<string, string>();
+    const map = new Map<
+      string,
+      { avatar: string | null; handle: string | null }
+    >();
     if (ids.length === 0) return map;
-    const rows = await this.rest<Array<{ id: string; avatar_url?: string }>>(
-      `profiles?id=in.(${ids.map(encodeURIComponent).join(',')})&select=id,avatar_url`,
-    );
+    const query = `profiles?id=in.(${ids.map(encodeURIComponent).join(',')})`;
+    // handle 컬럼이 없는 DB(핸들 SQL 실행 전)에서는 이미지만 읽는다
+    const rows =
+      (await this.rest<
+        Array<{ id: string; avatar_url?: string; handle?: string | null }>
+      >(`${query}&select=id,avatar_url,handle`)) ??
+      (await this.rest<Array<{ id: string; avatar_url?: string }>>(
+        `${query}&select=id,avatar_url`,
+      ));
     for (const row of rows || []) {
-      if (
-        row.avatar_url &&
-        row.avatar_url.includes('/storage/v1/object/public/avatars/')
-      ) {
-        map.set(row.id, row.avatar_url);
-      }
+      map.set(row.id, {
+        avatar: uploadedAvatarUrl(row.avatar_url),
+        handle: (row as { handle?: string | null }).handle || null,
+      });
     }
     return map;
   }

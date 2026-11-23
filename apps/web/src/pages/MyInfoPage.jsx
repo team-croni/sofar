@@ -23,6 +23,7 @@ import {
   HANDLE_COOLDOWN_DAYS,
 } from '../utils/userProfile';
 import { useHandle, useHandleCheck } from '../hooks/useHandle';
+import { channelPath } from '../hooks/useChannel';
 import { ANONYMOUS_AUTHOR } from '../hooks/useSettings';
 import './AccountPages.css';
 
@@ -159,6 +160,7 @@ function ProfileCard({ user }) {
   const { updateProfile, uploadAvatar } = useAuth();
   const { showToast } = useAudio();
   const { handle, isLoading: handleLoading } = useHandle();
+  const navigate = useNavigate();
   const fileRef = useRef(null);
   const [editOpen, setEditOpen] = useState(false);
 
@@ -261,15 +263,26 @@ function ProfileCard({ user }) {
         </div>
       </div>
 
-      <Button
-        variant="secondary"
-        size="sm"
-        className="profile-edit-btn"
-        leadingIcon={<Pencil size={14} />}
-        onClick={() => setEditOpen(true)}
-      >
-        프로필 편집
-      </Button>
+      <div className="profile-actions">
+        {handle && (
+          <Button
+            variant="secondary"
+            size="sm"
+            leadingIcon={<AtSign size={14} />}
+            onClick={() => navigate(channelPath(handle))}
+          >
+            내 채널
+          </Button>
+        )}
+        <Button
+          variant="secondary"
+          size="sm"
+          leadingIcon={<Pencil size={14} />}
+          onClick={() => setEditOpen(true)}
+        >
+          프로필 편집
+        </Button>
+      </div>
 
       <EditProfileModal isOpen={editOpen} onClose={() => setEditOpen(false)} user={user} />
     </section>
@@ -342,8 +355,9 @@ export default function MyInfoPage() {
   const isGuest = !user || user.isGuest;
   const hasPlayer = Boolean(currentTrack);
 
-  // 내 플레이리스트이므로 작성자 아바타는 내 프로필 이미지 (익명으로 표시 중이면 기본 아바타)
+  // 내 플레이리스트이므로 작성자 아바타·채널은 내 것 (익명으로 표시 중이면 기본 아바타, 채널 링크 없음)
   const myAvatar = getUserAvatarUrl(user);
+  const { handle: myHandle } = useHandle();
   const sharedPlaylists = useMemo(
     () => playlists
       .filter((p) => p.is_public)
@@ -351,8 +365,9 @@ export default function MyInfoPage() {
         ...p,
         tracks: previews[p.id] || [],
         authorAvatar: p.author === ANONYMOUS_AUTHOR ? null : myAvatar,
+        authorHandle: p.author === ANONYMOUS_AUTHOR ? null : myHandle,
       })),
-    [playlists, previews, myAvatar],
+    [playlists, previews, myAvatar, myHandle],
   );
 
   const likeCounts = usePlaylistLikeCounts(sharedPlaylists.map((p) => p.id));

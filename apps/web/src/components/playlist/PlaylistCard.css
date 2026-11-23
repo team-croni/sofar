@@ -340,3 +340,31 @@
   margin-right: 3px;
   color: var(--text-secondary, rgba(255, 255, 255, 0.55));
 }
+
+/* 작성자 → 채널 링크 */
+.playlist-author__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.playlist-author__link:hover .playlist-author__text {
+  color: var(--text-active);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.playlist-author__link:focus-visible {
+  outline: 2px solid var(--primary-warm, #d4a373);
+  outline-offset: 2px;
+}
+
+.playlist-author__suffix {
+  flex-shrink: 0;
+  white-space: nowrap;
+}

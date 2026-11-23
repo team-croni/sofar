@@ -790,7 +790,9 @@ html.reduce-motion .acct-page * {
   font-size: 0.8125rem;
 }
 
-.profile-edit-btn {
+.profile-actions {
+  display: flex;
+  gap: 0.5rem;
   align-self: flex-start;
   flex-shrink: 0;
 }
@@ -807,8 +809,11 @@ html.reduce-motion .acct-page * {
   .profile-card {
     flex-wrap: wrap;
   }
-  .profile-edit-btn {
+  .profile-actions {
     order: 3;
     width: 100%;
+  }
+  .profile-actions > * {
+    flex: 1;
   }
 }

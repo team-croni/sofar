@@ -23,6 +23,7 @@ import { useAccountPreferences } from './hooks/useSettings';
 import SearchPanel from './components/search/SearchPanel';
 import MyInfoPage from './pages/MyInfoPage';
 import SettingsPage from './pages/SettingsPage';
+import ChannelPage from './pages/ChannelPage';
 import RightHeader from './components/header/RightHeader';
 
 import { thumbnailCache } from './utils/thumbnailCache';
@@ -160,6 +161,19 @@ function AppShell({ children }) {
   );
 }
 
+const KNOWN_HOME_PATHS = new Set(['/', '/home', '/search', '/now', '/now-playing', '/me', '/settings']);
+
+/** '/@night.owl' → 'night.owl' (채널 주소가 아니면 null) */
+function channelHandleOf(pathname) {
+  const m = /^\/@([^/]+)\/?$/.exec(pathname);
+  if (!m) return null;
+  try {
+    return decodeURIComponent(m[1]).toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
 /* ── 메인 대시보드 뷰 (홈 / 검색 / Now Playing) ── */
 function HomePage() {
   const { 
@@ -191,6 +205,13 @@ function HomePage() {
     }
     if (location.pathname === '/settings') {
       return <SettingsPage />;
+    }
+    const channelHandle = channelHandleOf(location.pathname);
+    if (channelHandle) {
+      return <ChannelPage key={channelHandle} handle={channelHandle} />;
+    }
+    if (!KNOWN_HOME_PATHS.has(location.pathname) && !location.pathname.startsWith('/p/')) {
+      return <Navigate to="/" replace />;
     }
     if (isSearchPage) {
       return <SearchPanel />;
@@ -363,6 +384,9 @@ export default function App() {
             <Route path="/terms" element={<LegalPage defaultTab="terms" />} />
             <Route path="/privacy" element={<LegalPage defaultTab="privacy" />} />
             <Route path="/legal" element={<LegalPage defaultTab="terms" />} />
+
+            {/* 채널 (sofar.app/@handle) — '@'로 시작하지 않는 한 단계 경로는 홈으로 */}
+            <Route path="/:channelPath" element={<AppShell><HomePage /></AppShell>} />
 
             {/* 나머지 경로는 / 로 리다이렉트 */}
             <Route path="*" element={<Navigate to="/" replace />} />

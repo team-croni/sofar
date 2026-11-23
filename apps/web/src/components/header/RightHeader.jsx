@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, LogOut, LogIn, Disc, Home, Search, Headset, Headphones, UserRound, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, LogOut, LogIn, Disc, Home, Search, Headset, Headphones, UserRound, Settings, AtSign } from 'lucide-react';
 import { getUserDisplayName, getUserAvatarUrl } from '../../utils/userProfile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavHistory } from '../../hooks/useNavHistory';
@@ -77,6 +77,7 @@ export default function RightHeader() {
     if (isNowPlayingPage) return { title: 'Now Playing', icon: <Headphones size={16} /> };
     if (location.pathname === '/me') return { title: '내 정보', icon: <UserRound size={16} /> };
     if (location.pathname === '/settings') return { title: '설정', icon: <Settings size={16} /> };
+    if (location.pathname.startsWith('/@')) return { title: '채널', icon: <AtSign size={16} /> };
     return { title: 'Home', icon: <Home size={16} /> };
   };
 
