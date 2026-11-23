@@ -600,10 +600,7 @@
 
 /* ── 좁은 화면 (태블릿) ── */
 @media (max-width: 1100px) {
-  .acct-page {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
+  /* 좌우 여백은 줄이지 않는다: 본문 왼쪽 선을 헤더의 '<' 선(2.5rem)과 맞춤 */
 
   .settings-layout {
     grid-template-columns: minmax(0, 1fr);
