@@ -85,9 +85,10 @@ export default function UsersPage() {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchName = user.nickname?.toLowerCase().includes(q);
+          const matchHandle = user.handle?.includes(q.replace(/^@/, ''));
           const matchEmail = user.email?.toLowerCase().includes(q);
           const matchId = user.id?.toLowerCase().includes(q);
-          if (!matchName && !matchEmail && !matchId) return false;
+          if (!matchName && !matchHandle && !matchEmail && !matchId) return false;
         }
 
         // 3. 로그인 제공자 필터
@@ -391,9 +392,13 @@ export default function UsersPage() {
                               </div>
                               <div className="user-profile-meta">
                                 <span className="user-profile-name">{user.nickname || '익명 사용자'}</span>
-                                <span className="user-profile-id">
-                                  {user.id ? `${user.id.substring(0, 8)}...` : '-'}
-                                </span>
+                                {user.handle ? (
+                                  <span className="user-profile-handle">@{user.handle}</span>
+                                ) : (
+                                  <span className="user-profile-id">
+                                    {user.id ? `${user.id.substring(0, 8)}...` : '-'}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -522,6 +527,7 @@ export default function UsersPage() {
                           {statusConfig.modalLabel}
                         </span>
                       </div>
+                      {selectedUser.handle && <span className="user-modal-handle">@{selectedUser.handle}</span>}
                       <span className="user-modal-email">{selectedUser.email}</span>
                       <span className="user-modal-id">ID: {selectedUser.id}</span>
                     </div>

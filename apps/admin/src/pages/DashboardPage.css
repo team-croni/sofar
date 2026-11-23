@@ -626,6 +626,12 @@
   text-overflow: ellipsis;
 }
 
+.activity-handle {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .activity-sub {
   display: flex;
   align-items: center;

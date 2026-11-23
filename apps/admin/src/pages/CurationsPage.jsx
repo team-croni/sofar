@@ -350,6 +350,7 @@ export default function CurationsPage() {
                               <span className="author-nickname">
                                 {item.owner_nickname || item.user_nickname || item.author || '익명'}
                               </span>
+                              {item.owner_handle && <span className="author-user-id">@{item.owner_handle}</span>}
                             </div>
                           </td>
                           <td className="col-track-count text-center">

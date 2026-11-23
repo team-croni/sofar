@@ -231,6 +231,19 @@
   text-overflow: ellipsis;
 }
 
+.user-profile-handle {
+  font-size: 0.725rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-modal-handle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
 .user-profile-id {
   font-size: 0.725rem;
   color: #64748b;

@@ -27,6 +27,32 @@ export class CuratedPlaylistDto {
   tracks?: CuratedTrackDto[];
 }
 
+/**
+ * 사용자 표시 이름: 앱과 같은 우선순위 (사용자가 정한 닉네임 → 계정 이름 → 이메일 앞부분).
+ * profiles.username은 사용자가 정한 닉네임, user_metadata.display_name도 같은 값이다.
+ */
+function displayNameOf(
+  profile: { username?: string | null } | undefined,
+  authUser: { email?: string; user_metadata?: Record<string, any> } | undefined,
+  fallback = '사용자',
+): string {
+  const meta = authUser?.user_metadata || {};
+  const email = authUser?.email || (profile as any)?.email;
+  return (
+    profile?.username ||
+    meta.display_name ||
+    meta.full_name ||
+    meta.name ||
+    (email ? String(email).split('@')[0] : '') ||
+    fallback
+  );
+}
+
+interface UserIdentity {
+  nickname: string;
+  handle: string | null;
+}
+
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
@@ -348,46 +374,52 @@ export class AdminService {
     }
   }
 
-  private async getUsersMap(): Promise<Map<string, string>> {
-    const userMap = new Map<string, string>();
+  /** 사용자 ID → 닉네임·핸들 */
+  private async getUsersMap(): Promise<Map<string, UserIdentity>> {
+    const userMap = new Map<string, UserIdentity>();
     const { url } = this.getSupabaseConfig();
     const headers = this.getHeaders();
 
     try {
-      const authRes = await fetch(`${url}/auth/v1/admin/users`, { headers });
+      const authById = new Map<string, any>();
+      const authRes = await fetch(`${url}/auth/v1/admin/users?per_page=1000`, {
+        headers,
+      });
       if (authRes.ok) {
         const json = await authRes.json();
         const users = json.users || json || [];
         if (Array.isArray(users)) {
           users.forEach((u: any) => {
-            const nickname =
-              u.user_metadata?.full_name ||
-              u.user_metadata?.name ||
-              u.user_metadata?.nickname ||
-              (u.email ? u.email.split('@')[0] : null);
-            if (u.id && nickname) {
-              userMap.set(u.id, nickname);
-            }
+            if (!u.id) return;
+            authById.set(u.id, u);
+            userMap.set(u.id, {
+              nickname: displayNameOf(undefined, u),
+              handle: null,
+            });
           });
         }
       }
 
-      const profileRes = await fetch(
-        `${url}/rest/v1/profiles?select=id,full_name,name,nickname,email`,
+      // handle 컬럼이 없는 DB(핸들 SQL 실행 전)에서도 닉네임은 보이도록 한 번 더 시도
+      let profileRes = await fetch(
+        `${url}/rest/v1/profiles?select=id,username,email,handle`,
         { headers },
       );
+      if (!profileRes.ok) {
+        profileRes = await fetch(
+          `${url}/rest/v1/profiles?select=id,username,email`,
+          { headers },
+        );
+      }
       if (profileRes.ok) {
         const profiles = await profileRes.json();
         if (Array.isArray(profiles)) {
           profiles.forEach((p: any) => {
-            const nickname =
-              p.nickname ||
-              p.full_name ||
-              p.name ||
-              (p.email ? p.email.split('@')[0] : null);
-            if (p.id && nickname) {
-              userMap.set(p.id, nickname);
-            }
+            if (!p.id) return;
+            userMap.set(p.id, {
+              nickname: displayNameOf(p, authById.get(p.id)),
+              handle: p.handle || null,
+            });
           });
         }
       }
@@ -416,7 +448,8 @@ export class AdminService {
       }
 
       return rawPlaylists.map((pl: any) => {
-        const userNickname = pl.user_id ? usersMap.get(pl.user_id) : null;
+        const owner = pl.user_id ? usersMap.get(pl.user_id) : undefined;
+        const userNickname = owner?.nickname || null;
         const author =
           pl.author ||
           userNickname ||
@@ -432,6 +465,7 @@ export class AdminService {
           author,
           user_nickname: userNickname || author,
           owner_nickname: userNickname || author,
+          owner_handle: owner?.handle || null,
         };
       });
     } catch (error: any) {
@@ -462,7 +496,8 @@ export class AdminService {
 
       if (!pl) return null;
 
-      const userNickname = pl.user_id ? usersMap.get(pl.user_id) : null;
+      const owner = pl.user_id ? usersMap.get(pl.user_id) : undefined;
+      const userNickname = owner?.nickname || null;
       const author =
         pl.author ||
         userNickname ||
@@ -478,6 +513,7 @@ export class AdminService {
         author,
         user_nickname: userNickname || author,
         owner_nickname: userNickname || author,
+        owner_handle: owner?.handle || null,
       };
     } catch (error: any) {
       this.logger.error(
@@ -727,15 +763,7 @@ export class AdminService {
           trackCount: 0,
         };
 
-        const nickname =
-          profile.nickname ||
-          profile.full_name ||
-          profile.username ||
-          profile.name ||
-          u.user_metadata?.full_name ||
-          u.user_metadata?.name ||
-          u.user_metadata?.nickname ||
-          (u.email ? u.email.split('@')[0] : '사용자');
+        const nickname = displayNameOf(profile, u);
 
         const avatar =
           profile.avatar_url ||
@@ -761,6 +789,7 @@ export class AdminService {
           id: u.id,
           email: u.email || profile.email || '이메일 없음',
           nickname,
+          handle: profile.handle || null,
           avatar_url: avatar,
           provider: provider === 'google' ? 'google' : 'email',
           created_at:
@@ -783,18 +812,14 @@ export class AdminService {
             playlistCount: 0,
             trackCount: 0,
           };
-          const nickname =
-            profile.nickname ||
-            profile.full_name ||
-            profile.username ||
-            profile.name ||
-            (profile.email ? profile.email.split('@')[0] : '사용자');
+          const nickname = displayNameOf(profile, undefined);
           const isBanned = !!profile.is_banned;
 
           userList.push({
             id,
             email: profile.email || '이메일 없음',
             nickname,
+            handle: profile.handle || null,
             avatar_url: profile.avatar_url || profile.avatar || null,
             provider: profile.email?.includes('gmail') ? 'google' : 'email',
             created_at: profile.created_at || new Date().toISOString(),
@@ -869,6 +894,9 @@ export class AdminService {
     const headers = this.getHeaders();
 
     try {
+      // 정지 여부를 보내지 않은 요청(닉네임만 변경)은 정지 상태를 건드리지 않는다
+      const banChanged =
+        data.is_banned !== undefined || data.status !== undefined;
       const isBanned =
         data.is_banned !== undefined
           ? data.is_banned
@@ -876,17 +904,36 @@ export class AdminService {
 
       // 1. profiles 테이블 업데이트
       if (url && headers.apikey) {
-        const updatePayload: Record<string, any> = {
-          updated_at: new Date().toISOString(),
-        };
-        if (data.nickname !== undefined) updatePayload.nickname = data.nickname;
-        if (isBanned !== undefined) updatePayload.is_banned = isBanned;
-
-        await fetch(`${url}/rest/v1/profiles?id=eq.${encodeURIComponent(id)}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify(updatePayload),
-        });
+        // profiles에는 닉네임(username)만 있다. 정지 여부는 Auth 계정에 둔다
+        const nickname =
+          typeof data.nickname === 'string' ? data.nickname.trim() : undefined;
+        if (nickname) {
+          const res = await fetch(
+            `${url}/rest/v1/profiles?id=eq.${encodeURIComponent(id)}`,
+            {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({
+                username: nickname,
+                updated_at: new Date().toISOString(),
+              }),
+            },
+          );
+          if (!res.ok) {
+            this.logger.warn(
+              `[Admin] profile nickname update failed (${res.status}): ${await res.text().catch(() => '')}`,
+            );
+          }
+          // 공유 플레이리스트 작성자 이름도 맞춘다 (익명으로 표시 중인 것은 그대로)
+          await fetch(
+            `${url}/rest/v1/playlists?user_id=eq.${encodeURIComponent(id)}&or=(author.is.null,author.neq.${encodeURIComponent('"익명의 리스너"')})`,
+            {
+              method: 'PATCH',
+              headers,
+              body: JSON.stringify({ author: nickname }),
+            },
+          ).catch(() => undefined);
+        }
 
         // 2. Supabase Auth 사용자 메타데이터 업데이트 (선택적)
         try {
@@ -894,11 +941,16 @@ export class AdminService {
             method: 'PUT',
             headers,
             body: JSON.stringify({
+              // 앱은 display_name을 닉네임으로 쓴다 (full_name은 Google 로그인 때 덮어써짐)
               user_metadata: {
-                full_name: data.nickname,
-                is_banned: isBanned,
+                ...(data.nickname
+                  ? { display_name: data.nickname.trim() }
+                  : {}),
+                ...(banChanged ? { is_banned: isBanned } : {}),
               },
-              ban_duration: isBanned ? '876000h' : 'none', // 100년 정지 or 해제
+              ...(banChanged
+                ? { ban_duration: isBanned ? '876000h' : 'none' } // 100년 정지 or 해제
+                : {}),
             }),
           });
         } catch (e) {
@@ -910,8 +962,9 @@ export class AdminService {
         id,
         success: true,
         ...data,
-        is_banned: isBanned,
-        status: isBanned ? 'banned' : 'active',
+        ...(banChanged
+          ? { is_banned: isBanned, status: isBanned ? 'banned' : 'active' }
+          : {}),
       };
     } catch (error: any) {
       this.logger.error(
