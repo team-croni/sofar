@@ -570,7 +570,6 @@ export default function UsersPage() {
                       loading={isSavingNickname}
                       disabled={editingNickname.trim() === selectedUser.nickname}
                       onClick={handleSaveNickname}
-                      style={{ marginBottom: '0.2rem' }}
                     >
                       변경 저장
                     </Button>
