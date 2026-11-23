@@ -4,7 +4,8 @@ import { useAudio } from '../../contexts/AudioContext';
 import { isShareablePlaylistId, copyPlaylistShareUrl } from '../../utils/shareLink';
 
 /**
- * 홈 'sofar 플레이리스트'와 내 정보 '내가 공유한 플레이리스트'에서 쓰는 카드.
+ * 홈 'sofar 플레이리스트', 내 정보 '내가 공유한 플레이리스트', 채널 목록에서 쓰는 카드.
+ * subText를 주면 만든 사람 자리에 대신 보여 준다 (채널: 만든 시점).
  * 모양은 공용 PlaylistCard를 그대로 쓰고, 메뉴 구성만 여기서 정한다.
  */
 export default function SharedPlaylistCard({
@@ -16,6 +17,7 @@ export default function SharedPlaylistCard({
   canCopyLink = false,
   showAuthor = true,
   likeCount = 0,
+  subText,
 }) {
   const { showToast } = useAudio();
   const isOfficial = playlist.playlistSource === 'category';
@@ -54,6 +56,7 @@ export default function SharedPlaylistCard({
       playlist={playlist}
       official={isOfficial}
       showAuthor={showAuthor}
+      subText={subText}
       likeCount={likeCount}
       isActive={isActive}
       onOpen={() => onSelectPlaylist(playlist)}

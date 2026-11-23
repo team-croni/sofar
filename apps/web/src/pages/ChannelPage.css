@@ -530,3 +530,10 @@ html.reduce-motion .channel-about-stats li {
     opacity: 1;
   }
 }
+
+/* 카드의 만든 시점 ('2주 전') */
+.channel-card-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

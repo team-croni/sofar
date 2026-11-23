@@ -7,6 +7,7 @@ import SharedPlaylistCard from '../components/home/SharedPlaylistCard';
 import { useChannel, channelUrl } from '../hooks/useChannel';
 import { useHandle } from '../hooks/useHandle';
 import { vinylHueFromSeed } from '../utils/vinylColor';
+import { relativeTime, fullDate } from '../utils/relativeTime';
 import './AccountPages.css';
 import './ChannelPage.css';
 
@@ -328,6 +329,12 @@ export default function ChannelPage({ handle }) {
                       onAddPlaylistToQueue={(p) => (p.tracks?.length ? addToQueue(p.tracks, 'end') : showToast('대기열에 추가할 곡이 없습니다'))}
                       canCopyLink
                       showAuthor={false}
+                      // 채널 주인이 만든 것뿐이라 만든 사람 대신 만든 시점을 보여 준다
+                      subText={pl.createdAt ? (
+                        <span className="channel-card-date" title={fullDate(pl.createdAt)}>
+                          {relativeTime(pl.createdAt)}
+                        </span>
+                      ) : undefined}
                     />
                   </div>
                 ))}
