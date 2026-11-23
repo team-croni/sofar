@@ -1,7 +1,7 @@
-# [개발 문서] 'sofar' 시스템 설계 및 개발 기술 가이드 (v2.1)
+# [개발 문서] 'sofar' 시스템 설계 및 개발 기술 가이드 (v2.2)
 
-**마지막 수정일:** 2026-08-20  
-**버전:** v2.1 (Turborepo 모노레포 아키텍처, NestJS 백엔드 파이프라인, Supabase RLS 스키마 및 공통 패키지 체계 최신화)
+**마지막 수정일:** 2026-11-20  
+**버전:** v2.2 (감상 기록·추천 이벤트 스키마, 추천 엔진 및 `listening` API 모듈 추가)
 
 본 문서는 `sofar` 프로젝트의 아키텍처, 데이터베이스 스키마, 모노레포 구조, 핵심 음악 연동 로직 및 상태 관리 엔진을 구체적으로 기술합니다.
 
@@ -148,6 +148,14 @@ ON public.curated_playlists FOR SELECT
 USING (is_active = true);
 ```
 
+### 2.5. 감상 기록 테이블 (`play_events`) · 추천 이벤트 테이블 (`recommendation_events`)
+전체 스키마는 [`docs/supabase_listening_events.sql`](docs/supabase_listening_events.sql)에 있습니다.
+
+- **`play_events`**: 재생 1회 = 1행. 실제 재생 시간, 완주율, 끝난 이유, 스킵 여부, 재생한 목록(`source_type`), 시작 방식(`trigger`), 기기 기준 시간대·시각·요일, 기기 종류를 저장합니다.
+- **`recommendation_events`**: 추천 노출(`impression`)·클릭(`click`)과 알고리즘 버전·응답 ID를 저장합니다.
+- **RLS**: 쓰기는 API 서버(service_role)만. `play_events`는 본인 기록만 조회 가능, `recommendation_events`는 정책 없음(서버 전용).
+- **보관**: 2년이 지난 기록은 pg_cron 작업이 매일 삭제. 회원 탈퇴 시 API가 즉시 삭제.
+
 ---
 
 ## 3. 모노레포 구조 및 패키지 정의 (Monorepo Layout)
@@ -194,6 +202,11 @@ sofar/
 ### 4.3. LRC 싱크 가사 파서 & 오프셋 보정 루프 (`lrcParser.js`, `LyricsViewer.jsx`)
 - `[mm:ss.xx]` 형태의 LRC 타임스탬프를 초 단위(`totalSeconds`) 배열로 파싱.
 - 오프셋 값(`offset`)을 실시간 더하여 현재 재생 시간과 대조, 활성 행(`activeIndex`)을 도출하고 부드러운 스크롤(`scrollIntoView({ block: 'center' })`)을 수행.
+
+### 4.4. 감상 기록 수집 및 추천 엔진 (`listeningTelemetry.js`, `apps/api/src/listening/`)
+- **수집**: `listeningTelemetry.js`가 곡 하나의 재생 세션을 추적하고(재생 중인 시간만 누적), 끝날 때 `POST /api/events/play`로 보냅니다. 재생 시작 방식은 `markNextPlayTrigger`로 표시합니다.
+- **추천**: `GET /api/recommend/home`이 감상 기록·즐겨찾기·플레이리스트로 취향 프로필을 만들고, `recommend.engine.ts`(순수 함수, `hybrid-v1`)가 함께 담긴 곡·비슷한 곡(Last.fm)·아티스트 취향·인기도로 점수를 매깁니다.
+- 상세: [`docs/recommendation-spec.md`](docs/recommendation-spec.md)
 
 ---
 

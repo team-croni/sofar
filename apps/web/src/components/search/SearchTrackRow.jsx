@@ -6,6 +6,7 @@ import TrackThumbnail from '../playlist/TrackThumbnail';
 import TrackTitleMarquee from '../playlist/TrackTitleMarquee';
 import TrackActionDropdown from '../ui/TrackActionDropdown';
 import { handleTrackDragStart } from '../../utils/dragUtils';
+import { markNextPlayTrigger } from '../../utils/listeningTelemetry';
 
 function formatDuration(sec) {
   if (!sec || isNaN(sec) || sec <= 0) return '';
@@ -20,6 +21,7 @@ export default function SearchTrackRow({ track, index, contextList }) {
   const isCurrent = isMatchTrack(track, currentTrack);
 
   const handlePlay = (t) => {
+    markNextPlayTrigger('search');
     playTrack(t || track, contextList || null);
   };
 

@@ -7,6 +7,7 @@ import { usePlaylistsQuery, usePlaylistPreviewsQuery } from '../hooks/usePlaylis
 import { useFavoritesQuery } from '../hooks/useFavorites';
 import { Avatar, Button, Dropdown } from '../components/ui';
 import SharedPlaylistCard from '../components/home/SharedPlaylistCard';
+import { usePlaylistLikeCounts } from '../hooks/usePlaylistLikeCounts';
 import SearchTrackRow from '../components/search/SearchTrackRow';
 // 홈 인기곡 · 검색 결과와 같은 곡 목록 스타일
 import '../components/search/SearchPanel.css';
@@ -258,6 +259,8 @@ export default function MyInfoPage() {
     [playlists, previews],
   );
 
+  const likeCounts = usePlaylistLikeCounts(sharedPlaylists.map((p) => p.id));
+
   const recentFavorites = useMemo(
     () => [...favorites]
       .sort((a, b) => new Date(b.favorited_at || 0) - new Date(a.favorited_at || 0))
@@ -307,6 +310,7 @@ export default function MyInfoPage() {
               {sharedPlaylists.map((pl) => (
                 <SharedPlaylistCard
                   key={pl.id}
+                  likeCount={likeCounts[pl.id] || 0}
                   playlist={pl}
                   onSelectPlaylist={openPlaylistInSidebar}
                   onPlayPlaylist={playPlaylist}

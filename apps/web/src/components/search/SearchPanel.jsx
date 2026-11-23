@@ -22,6 +22,7 @@ import { getSearchCache, setSearchCache } from '../../utils/searchCache';
 import { formatArtistName } from '../../utils/trackUtils';
 
 import './SearchPanel.css';
+import { markNextPlayTrigger } from '../../utils/listeningTelemetry';
 
 
 export default function SearchPanel() {
@@ -710,6 +711,7 @@ export default function SearchPanel() {
                           className="section-header-action-btn"
                           onClick={() => {
                             if (remainingTracks.length > 0) {
+                              markNextPlayTrigger('search');
                               playTrack(remainingTracks[0], remainingTracks);
                               showToast?.(`음악 ${remainingTracks.length}곡 전체 재생`);
                             }
@@ -725,6 +727,7 @@ export default function SearchPanel() {
                           onClick={() => {
                             if (remainingTracks.length > 0) {
                               const randomIndex = Math.floor(Math.random() * remainingTracks.length);
+                              markNextPlayTrigger('search');
                               playTrack(remainingTracks[randomIndex], remainingTracks);
                               showToast?.(`음악 ${remainingTracks.length}곡 셔플 재생`);
                             }

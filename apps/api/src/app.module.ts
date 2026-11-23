@@ -6,6 +6,7 @@ import { ChartModule } from './chart/chart.module';
 import { AdminModule } from './admin/admin.module';
 import { SearchModule } from './search/search.module';
 import { AccountModule } from './account/account.module';
+import { ListeningModule } from './listening/listening.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -27,6 +28,7 @@ import { AppService } from './app.service';
     AdminModule,
     SearchModule,
     AccountModule,
+    ListeningModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,8 @@
 import { isUsableArtwork, thumbnailCache } from './thumbnailCache';
+import { vinylBackground } from './vinylColor';
+import sofarLogo from '@sofar/assets/sofar-logo.svg';
+// 드래그 미리보기는 HTML 문자열로 만들므로 LP판 스타일을 직접 불러 둔다
+import '../components/playlist/VinylFallback.css';
 
 const escapeHtml = (str) => {
   if (!str) return '';
@@ -7,6 +11,20 @@ const escapeHtml = (str) => {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+};
+
+/** 앨범 이미지가 없을 때 미리보기에 넣는 LP판 (VinylFallback 컴포넌트와 같은 구조) */
+const vinylGhostHtml = (seed) => {
+  const bg = vinylBackground(seed);
+  return `
+    <div class="vinyl-fallback"${bg ? ` style="--vinyl-bg: ${bg}"` : ''}>
+      <div class="vinyl-fallback__disc">
+        <div class="vinyl-fallback__grooves"></div>
+        <div class="vinyl-fallback__label"><img src="${escapeHtml(sofarLogo)}" class="vinyl-fallback__logo" alt="" /></div>
+        <div class="vinyl-fallback__hole"></div>
+        <div class="vinyl-fallback__sheen"></div>
+      </div>
+    </div>`;
 };
 
 export const createCustomDragGhost = (track, count = 1) => {
@@ -34,7 +52,7 @@ export const createCustomDragGhost = (track, count = 1) => {
   ghost.innerHTML = `
     <div class="drag-ghost-cover-wrapper">
       <div class="drag-ghost-cover">
-        ${artworkSrc ? `<img src="${escapeHtml(artworkSrc)}" class="drag-ghost-img" />` : `<div class="drag-ghost-placeholder">🎵</div>`}
+        ${artworkSrc ? `<img src="${escapeHtml(artworkSrc)}" class="drag-ghost-img" />` : vinylGhostHtml(`${artist || ''}|${title || ''}`)}
       </div>
       ${count > 1 ? `<span class="drag-ghost-count-badge">${count}</span>` : ''}
     </div>
@@ -121,6 +139,49 @@ export const handleTrackDragStart = (e, track) => {
   e.dataTransfer.effectAllowed = 'copyMove';
 
   const ghostEl = createCustomDragGhost(track);
+  if (ghostEl && e.dataTransfer.setDragImage) {
+    e.dataTransfer.setDragImage(ghostEl, 0, 0);
+    setTimeout(() => {
+      if (document.body.contains(ghostEl)) {
+        document.body.removeChild(ghostEl);
+      }
+    }, 0);
+  }
+};
+
+/**
+ * 플레이리스트 카드를 드래그: 수록곡 전체를 한 번에 넘긴다.
+ * 받는 쪽(extractTracksFromDragData)은 { tracks: [...] } 형식을 그대로 읽는다.
+ */
+export const handlePlaylistDragStart = (e, playlist) => {
+  if (isInteractiveDragTarget(e)) {
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+  const tracks = (playlist?.tracks || []).filter(Boolean);
+  if (tracks.length === 0) {
+    e.preventDefault();
+    return;
+  }
+
+  const payload = JSON.stringify({
+    type: 'playlist',
+    id: playlist.id,
+    title: playlist.title,
+    tracks,
+  });
+  e.dataTransfer.setData('application/json', payload);
+  e.dataTransfer.setData('text/plain', payload);
+  e.dataTransfer.effectAllowed = 'copyMove';
+
+  // 고스트: 플레이리스트 이름 · 만든 사람 · 곡 수
+  const ghostEl = createCustomDragGhost({
+    custom_title: playlist.title,
+    custom_artist: playlist.author || '플레이리스트',
+    cover: playlist.cover || playlist.cover_url || tracks[0]?.artwork,
+    youtube_video_id: tracks[0]?.youtube_video_id,
+  }, tracks.length);
   if (ghostEl && e.dataTransfer.setDragImage) {
     e.dataTransfer.setDragImage(ghostEl, 0, 0);
     setTimeout(() => {
