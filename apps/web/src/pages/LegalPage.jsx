@@ -63,7 +63,7 @@ export default function LegalPage({ defaultTab }) {
             <article className="legal-content">
               <div className="legal-title-group">
                 <h1 className="legal-main-title">서비스 이용약관</h1>
-                <p className="legal-date">시행일자: 2026년 11월 20일 (v2.3.0)</p>
+                <p className="legal-date">시행일자: 2026년 11월 23일 (v2.4.0)</p>
               </div>
 
               <section className="legal-section">
@@ -150,7 +150,7 @@ export default function LegalPage({ defaultTab }) {
               <section className="legal-section">
                 <h2>제6조 (개인화 추천, 순위 및 공개 플레이리스트)</h2>
                 <p>
-                  1. 서비스는 이용자의 감상 기록, 즐겨찾기, 플레이리스트에 담은 곡을 바탕으로 노래와 플레이리스트를 추천합니다. 추천 결과는 참고용이며, 회사는 추천의 정확성이나 이용자 취향과의 일치를 보장하지 않습니다.<br />
+                  1. 서비스는 이용자의 감상 기록, 즐겨찾기, 플레이리스트에 담은 곡과, 다른 이용자들의 감상 기록을 개인을 알아볼 수 없게 집계한 '함께 들은 곡' 정보를 바탕으로 노래와 플레이리스트를 추천합니다. 추천 결과는 참고용이며, 회사는 추천의 정확성이나 이용자 취향과의 일치를 보장하지 않습니다.<br />
                   2. 실시간 인기 순위와 인기 검색어는 전체 이용자의 감상·검색 기록을 개인을 알아볼 수 없는 형태로 집계하여 제공합니다.<br />
                   3. 이용자가 공개로 설정한 플레이리스트는 다른 이용자의 홈 화면 추천 목록 등에 노출될 수 있으며, 이때 작성자 이름과 이용자가 직접 올린 프로필 이미지가 함께 표시됩니다. 작성자를 익명으로 표시하면 이름과 프로필 이미지는 표시되지 않습니다.<br />
                   4. 이용자는 플레이리스트를 언제든지 비공개로 바꿔 노출을 중단할 수 있습니다.<br />
@@ -204,7 +204,7 @@ export default function LegalPage({ defaultTab }) {
             <article className="legal-content">
               <div className="legal-title-group">
                 <h1 className="legal-main-title">개인정보 처리방침</h1>
-                <p className="legal-date">시행일자: 2026년 11월 20일 (v2.3.0)</p>
+                <p className="legal-date">시행일자: 2026년 11월 23일 (v2.4.0)</p>
               </div>
 
               <section className="legal-section">
@@ -215,7 +215,7 @@ export default function LegalPage({ defaultTab }) {
                 <ul>
                   <li><span>회원 관리</span>: 소셜/이메일 계정 기반 본인 식별, 중복 가입 방지, 비인가 부정 이용 방지</li>
                   <li><span>서비스 제공</span>: 플레이리스트 생성 및 다기기 클라우드 동기화, 프로필 이미지 저장, 사용자 맞춤 가사 오프셋 보관</li>
-                  <li><span>개인화 추천</span>: 감상 기록, 즐겨찾기, 플레이리스트에 담은 곡을 바탕으로 한 노래·플레이리스트 추천</li>
+                  <li><span>개인화 추천</span>: 감상 기록, 즐겨찾기, 플레이리스트에 담은 곡을 바탕으로 한 노래·플레이리스트 추천. 여러 이용자의 감상 기록은 곡과 곡 사이의 관계(함께 들은 곡)로만 집계되며, 이 집계에는 개인을 알아볼 수 있는 정보가 남지 않습니다.</li>
                   <li><span>통계 및 서비스 품질 향상</span>: 실시간 인기 순위·인기 검색어 집계, 플레이리스트 좋아요·조회·공유 유입 집계, 시간대별 이용 현황 등 서비스 이용 통계, 추천 품질 측정, 음원 일치 여부 피드백 정제 및 어뷰징 방지</li>
                 </ul>
               </section>
@@ -351,6 +351,7 @@ export default function LegalPage({ defaultTab }) {
               <section className="legal-section">
                 <h2>9. 개인정보 처리방침의 변경</h2>
                 <ul>
+                  <li><span>v2.4.0 (2026년 11월 23일)</span>: 다른 이용자들의 감상 기록을 개인을 알아볼 수 없게 집계한 '함께 들은 곡' 정보를 추천에 활용함을 명시</li>
                   <li><span>v2.3.0 (2026년 11월 20일)</span>: 플레이리스트 좋아요·조회·공유 유입 기록과 추천 '관심 없음' 기록 수집 및 보관 기간 추가</li>
                   <li><span>v2.2.0 (2026년 11월 20일)</span>: 감상 기록·추천 이용 기록·검색 기록 수집 및 보관 기간(2년) 추가, 개인화 추천 목적 추가, 처리 위탁 사업자(Render, Vercel, Gmail) 및 국외 이전 내용 추가</li>
                   <li><span>v2.1.0 (2026년 8월 19일)</span>: 이전 버전</li>

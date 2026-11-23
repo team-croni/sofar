@@ -1,9 +1,9 @@
 # 감상 기록 수집 및 개인화 추천 명세서
 
 - **Date**: 2026-11-20
-- **Version**: v1.3.0
+- **Version**: v1.4.0
 - **관련 코드**: `apps/api/src/listening/`, `apps/web/src/utils/listeningTelemetry.js`, `apps/web/src/components/home/ForYouSection.jsx`
-- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql), [supabase_rec_bandit.sql](./supabase_rec_bandit.sql), [supabase_rec_ltr.sql](./supabase_rec_ltr.sql)
+- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql), [supabase_rec_bandit.sql](./supabase_rec_bandit.sql), [supabase_rec_ltr.sql](./supabase_rec_ltr.sql), [supabase_rec_cf.sql](./supabase_rec_cf.sql)
 
 사용자의 감상 기록을 쌓아 두고, 그 기록으로 홈 화면 **취향 저격 추천**(노래·플레이리스트)을 만드는 기능의 명세입니다. 쌓인 기록은 나중에 시간대별·연령별 통계와 추천 고도화에도 씁니다.
 
@@ -213,8 +213,29 @@
 - 켜진 모델은 `rec_model_weights`에 하나만 있고, 없으면 v3는 v2(밴딧)로 동작합니다.
 - `recommendation_serves`도 2년 후 자동 파기, 회원 탈퇴 시 즉시 삭제합니다.
 
-## 8. 향후 고도화
+## 8. 4단계: 협업 필터링 — 함께 들은 곡 (`cf` 팔)
 
-- 4단계: 감상 기록이 수만 건 이상 쌓이면 협업 필터링(행렬 분해·임베딩) 후보를 새 팔로 추가합니다.
+"이 곡을 들은 리스너들이 함께 들은 곡". 외부 데이터(Last.fm)가 아니라 sofar 리스너들의 감상 기록에서 배웁니다.
+
+### 8.1. 계산 (`rebuild_item_neighbors`, DB에서 매일 04:10 KST)
+- 최근 90일, **30초 이상 듣고 넘기지 않은** 재생만 '좋아함'으로 봅니다.
+- 곡 i, j의 유사도 = 둘 다 좋아한 사람 수 / √(i를 좋아한 사람 수 × j를 좋아한 사람 수) (코사인). 곡마다 상위 30개 이웃을 `rec_item_neighbors`에 저장합니다.
+- 결과 테이블에는 곡과 곡 사이 점수만 있고 개인을 알아볼 수 있는 값은 없습니다.
+
+### 8.2. 어뷰징 방지
+- 한 사람(회원 또는 브라우저)은 최근 150곡까지만 반영합니다.
+- 로그인하지 않은 브라우저는 **0.5명**으로 셉니다 (브라우저 ID는 쉽게 새로 만들 수 있으므로).
+- 두 곡을 함께 좋아한 사람이 **2명 이상**일 때만 이웃으로 인정합니다. 한 사람(또는 브라우저 몇 개)으로는 관계를 만들 수 없습니다.
+
+### 8.3. 추천에 쓰기
+- 사용자의 취향 상위 10곡의 이웃을 읽어 후보로 넣고, 점수 재료 `cf`(0~1)와 새 팔 `cf`로 다룹니다. 추천 이유: "'{곡}' 리스너들이 함께 들은 곡".
+- 2단계 밴딧이 `cf` 팔의 비율을, 3단계 학습이 `cf` 가중치를 결과로 정합니다. 이전에 학습한 가중치에는 `cf`가 없어 0으로 봅니다.
+- 비교 기준인 v1(고정 가중치)에는 넣지 않습니다.
+- 관리자: `POST /api/recommend/neighbors/rebuild`(지금 다시 계산), `GET /api/recommend/model`에 이웃 상태 포함.
+- 데이터가 적을 때는 이웃이 거의 없어 기존 추천과 같습니다. 리스너가 늘수록 자연스럽게 비중이 커집니다.
+
+## 9. 향후 고도화
+
+- 감상 기록이 크게 늘면 행렬 분해·임베딩(세션 기반 item2vec)으로 이웃 품질을 높입니다.
 - 학습 재료에 시간대·기기·곡 길이 등 맥락을 추가하고, 플레이리스트 순위에도 같은 방식을 적용합니다.
 - 연령·성별 통계: `profiles.birth_year`, `profiles.gender` 컬럼은 준비되어 있으나, 입력 화면과 개인정보 처리방침 갱신 전에는 수집하지 않습니다.
