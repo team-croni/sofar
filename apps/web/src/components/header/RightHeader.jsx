@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight, ChevronDown, LogOut, LogIn, Disc, Home, Sear
 import { getUserDisplayName, getUserAvatarUrl } from '../../utils/userProfile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavHistory } from '../../hooks/useNavHistory';
+import { useHandle } from '../../hooks/useHandle';
+import { channelPath } from '../../hooks/useChannel';
 import Avatar from '../ui/Avatar';
 import Dropdown from '../ui/Dropdown';
 import './RightHeader.css';
@@ -13,6 +15,7 @@ export default function RightHeader() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { canGoBack, canGoForward } = useNavHistory();
+  const { handle: myHandle } = useHandle();
 
   const [scrollOpacity, setScrollOpacity] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -89,7 +92,7 @@ export default function RightHeader() {
 
   return (
     <header 
-      className={`right-panel-header ${isTransitioning ? 'is-transitioning' : ''}`}
+      className={`right-panel-header ${isTransitioning ? 'is-transitioning' : ''} ${location.pathname.startsWith('/@') ? 'is-channel' : ''}`}
       ref={headerRef}
       style={{ '--header-scroll-opacity': headerOpacity }}
     >
@@ -171,6 +174,18 @@ export default function RightHeader() {
               <div className="profile-dropdown-divider" />
 
               <div className="profile-dropdown-actions">
+                {!isGuest && myHandle && (
+                  <button
+                    className="profile-dropdown-item"
+                    onClick={() => {
+                      close();
+                      navigate(channelPath(myHandle));
+                    }}
+                  >
+                    <AtSign size={15} />
+                    <span>내 채널</span>
+                  </button>
+                )}
                 <button
                   className="profile-dropdown-item"
                   onClick={() => {

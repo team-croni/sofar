@@ -235,3 +235,14 @@
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.12);
 }
+
+/* 채널: 헤더 바로 아래에 탭 바가 붙으므로, 헤더 배경을 헤더 높이 안에서만 칠하고
+   (아래로 번지는 흐림이 탭 바를 가리지 않게) 탭 바와 같은 색으로 맞춰 한 덩어리로 보이게 한다 */
+.right-panel-header.is-channel::before {
+  bottom: 0;
+  mask: none;
+  -webkit-mask: none;
+  background: color-mix(in srgb, var(--bg-cozy, #121212) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}

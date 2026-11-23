@@ -1,99 +1,377 @@
-/* ── 채널 (sofar.app/@handle) ── */
-.channel-hero {
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  padding: 2rem 2.25rem;
-  animation: acctEnterUp var(--enter-dur, 0.52s) var(--enter-ease, ease) backwards;
+/* ── 채널 (sofar.app/@handle) ─────────────────────────────
+   배너(패럴렉스) → 프로필 → 헤더 아래에 붙는 탭 바 → 내용
+   스크롤 컨테이너는 .right-main-content (sticky·패럴렉스 모두 이 기준)
+──────────────────────────────────────────────────────────── */
+.channel-page {
+  --ch-header: 64px;
+  --ch-gutter: 2.5rem; /* .acct-page 좌우 여백과 같게 (탭 바를 끝까지 늘리는 데 씀) */
+  --ch-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  padding-top: 4.5rem;
+  gap: 0;
 }
 
-.channel-hero-meta {
+.channel-layout {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  flex: 1;
+}
+
+/* 배너 ─────────────────────────── */
+.channel-banner {
+  position: relative;
+  height: clamp(140px, 22vw, 220px);
+  border-radius: 20px;
+  overflow: hidden;
+  isolation: isolate;
+  background: oklch(0.32 0.05 var(--ch-hue, 280));
+  animation: channelFade 0.6s var(--ch-ease) backwards;
+}
+
+@supports (corner-shape: squircle) {
+  .channel-banner {
+    corner-shape: squircle;
+    border-radius: 40px;
+  }
+}
+
+/* 스크롤보다 느리게 내려가는 배경 (JS가 --ch-parallax를 바꾼다) */
+.channel-banner-media {
+  position: absolute;
+  inset: -12% 0;
+  transform: translate3d(0, var(--ch-parallax, 0px), 0) scale(1.08);
+  opacity: var(--ch-banner-fade, 1);
+  will-change: transform, opacity;
+}
+
+/* 프로필 이미지가 있으면 크게 흐려서 배경으로 */
+.channel-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(36px) saturate(1.4) brightness(0.8);
+  transform: scale(1.25);
+}
+
+/* 없으면 핸들마다 다른 색 (LP판 기본색과 같은 OKLCH 톤) */
+.channel-banner-gradient {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(60% 90% at 15% 20%, oklch(0.62 0.12 var(--ch-hue)) 0%, transparent 70%),
+    radial-gradient(55% 80% at 85% 85%, oklch(0.5 0.11 calc(var(--ch-hue) + 50)) 0%, transparent 70%),
+    linear-gradient(135deg, oklch(0.42 0.08 var(--ch-hue)) 0%, oklch(0.28 0.06 calc(var(--ch-hue) + 30)) 100%);
+}
+
+.channel-banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.35) 100%);
+  pointer-events: none;
+}
+
+/* 프로필 ─────────────────────────── */
+.channel-identity {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  padding: 1.75rem 0.25rem 1.5rem;
+}
+
+.channel-avatar {
+  flex-shrink: 0;
+  animation: acctAvatarPop 0.6s var(--ch-ease) 120ms backwards;
+}
+
+.channel-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   min-width: 0;
 }
 
+.channel-identity-text > * {
+  animation: acctEnterUp 0.5s var(--ch-ease) backwards;
+}
+.channel-identity-text > :nth-child(1) { animation-delay: 160ms; }
+.channel-identity-text > :nth-child(2) { animation-delay: 200ms; }
+.channel-identity-text > :nth-child(3) { animation-delay: 240ms; }
+
 .channel-name {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 2.25rem;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: var(--text-active);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.channel-handle {
-  font-size: 1rem;
-  color: var(--text-secondary);
-}
-
-.channel-stats {
+.channel-sub {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem 1.1rem;
-  margin: 0.6rem 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.8125rem;
+  align-items: center;
+  gap: 0.25rem 0.45rem;
+  margin: 0;
+  font-size: 0.875rem;
   color: var(--text-secondary);
 }
 
-.channel-stats li {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.channel-stats svg {
-  color: var(--text-muted);
-}
-
-.channel-stats strong {
+.channel-handle {
+  color: var(--text-primary);
   font-weight: 500;
-  color: var(--text-active);
-  font-variant-numeric: tabular-nums;
-}
-
-.channel-joined {
-  font-size: 0.75rem;
-  color: var(--text-muted);
 }
 
 .channel-actions {
   display: flex;
   gap: 0.5rem;
-  align-self: flex-start;
-  flex-shrink: 0;
+  margin-top: 0.4rem;
 }
 
-/* 불러오는 중 */
+/* 붙는 탭 바 ─────────────────────── */
+.channel-sticky-sentinel {
+  height: 0;
+}
+
+.channel-tabbar {
+  position: sticky;
+  top: var(--ch-header);
+  z-index: 20;
+  margin: 0 calc(-1 * var(--ch-gutter));
+  padding: 0 var(--ch-gutter);
+  border-bottom: 1px solid var(--border-cozy);
+  transition: background-color 0.2s ease, backdrop-filter 0.2s ease;
+}
+
+/* 헤더 아래에 붙으면 배경을 깔아 아래 내용과 겹치지 않게 */
+.channel-tabbar.is-stuck {
+  background: color-mix(in srgb, var(--bg-cozy, #121212) 86%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.channel-tabbar-inner {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  height: 52px;
+}
+
+/* 붙었을 때만 왼쪽에 작은 프로필이 나타난다 */
+.channel-tabbar-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: max-width 0.35s var(--ch-ease), opacity 0.25s ease, transform 0.35s var(--ch-ease);
+  white-space: nowrap;
+}
+
+.channel-tabbar.is-stuck .channel-tabbar-identity {
+  max-width: 260px;
+  opacity: 1;
+  transform: none;
+}
+
+.channel-tabbar-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-active);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 0.25rem;
+}
+
+.channel-tab {
+  position: relative;
+  padding: 0 0.85rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.channel-tab::after {
+  content: '';
+  position: absolute;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-active);
+  transform: scaleX(0);
+  transition: transform 0.3s var(--ch-ease);
+}
+
+.channel-tab:hover {
+  color: var(--text-primary);
+}
+
+.channel-tab.is-active {
+  color: var(--text-active);
+}
+
+.channel-tab.is-active::after {
+  transform: scaleX(1);
+}
+
+.channel-tab:focus-visible {
+  outline: 2px solid var(--primary-warm, #d4a373);
+  outline-offset: -4px;
+  border-radius: 8px;
+}
+
+.channel-sort {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.channel-sort-btn {
+  height: 30px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border-cozy);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.channel-sort-btn:hover {
+  color: var(--text-primary);
+}
+
+.channel-sort-btn.is-active {
+  background: var(--text-active);
+  border-color: var(--text-active);
+  color: #111;
+}
+
+/* 내용 ─────────────────────────── */
+.channel-panel {
+  padding-top: 1.75rem;
+  /* 내용이 짧아도 탭 바가 헤더 아래에 붙을 때까지 스크롤할 수 있게 (화면 높이 − 헤더 − 탭 바) */
+  min-height: calc(100vh - var(--ch-header) - 53px);
+  box-sizing: border-box;
+}
+
+/* 공개 플레이리스트: 왼쪽 위부터 한 장씩 */
+.channel-grid-item {
+  min-width: 0;
+  animation: pageEnterUp 0.45s var(--ch-ease) backwards;
+  animation-delay: calc(260ms + var(--enter-i, 0) * 40ms);
+}
+
+/* 정보 탭 */
+.channel-about {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 640px;
+}
+
+.channel-about-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.channel-about-stats li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.75rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border-cozy);
+  border-radius: 14px;
+  background: var(--bg-card);
+  animation: acctEnterUp 0.45s var(--ch-ease) backwards;
+}
+
+.channel-about-stats li:nth-child(2) { animation-delay: 40ms; }
+.channel-about-stats li:nth-child(3) { animation-delay: 80ms; }
+.channel-about-stats li:nth-child(4) { animation-delay: 120ms; }
+
+.channel-about-stats svg {
+  grid-row: span 2;
+  color: var(--text-muted);
+}
+
+.channel-about-stats strong {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-active);
+  font-variant-numeric: tabular-nums;
+}
+
+.channel-about-stats span {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.channel-about-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--border-cozy);
+  border-radius: 14px;
+}
+
+.channel-about-url {
+  min-width: 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 불러오는 중 · 없는 채널 ─────────── */
 .channel-skel {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
-  animation: channel-pulse 1.4s ease-in-out infinite;
+  animation: channelPulse 1.4s ease-in-out infinite;
+}
+
+.channel-banner.channel-skel {
+  border-radius: 20px;
 }
 
 .channel-skel--avatar {
-  width: 112px;
-  height: 112px;
+  width: 128px;
+  height: 128px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-@keyframes channel-pulse {
-  50% { opacity: 0.5; }
-}
-
-/* 없는 채널 */
 .channel-missing {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.75rem;
+  margin-top: 1rem;
   padding: 2.25rem;
 }
 
@@ -110,21 +388,58 @@
   color: var(--text-secondary);
 }
 
-@media (max-width: 720px) {
-  .channel-hero {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1.25rem;
-    padding: 1.5rem;
-  }
-  .channel-actions {
-    align-self: stretch;
+@keyframes channelPulse {
+  50% { opacity: 0.5; }
+}
+
+@keyframes channelFade {
+  from { opacity: 0; }
+}
+
+/* 좁은 화면 ─────────────────────── */
+@media (max-width: 1100px) {
+  .channel-page {
+    --ch-gutter: 1.5rem;
   }
 }
 
+@media (max-width: 720px) {
+  .channel-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .channel-name {
+    font-size: 1.75rem;
+  }
+  .channel-tabbar.is-stuck .channel-tabbar-identity {
+    max-width: 0;
+    opacity: 0;
+  }
+  .channel-sort-btn {
+    padding: 0 0.6rem;
+  }
+}
+
+/* '동작 줄이기' · 시스템 설정: 진입 애니메이션과 패럴렉스 생략 */
+html.reduce-motion .channel-banner,
+html.reduce-motion .channel-avatar,
+html.reduce-motion .channel-identity-text > *,
+html.reduce-motion .channel-grid-item,
+html.reduce-motion .channel-about-stats li {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .channel-hero,
+  .channel-banner,
+  .channel-avatar,
+  .channel-identity-text > *,
+  .channel-grid-item,
+  .channel-about-stats li,
   .channel-skel {
     animation: none;
+  }
+  .channel-banner-media {
+    transform: none;
   }
 }
