@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ChartService } from '../chart/chart.service';
+import { ARMS, Arm, ArmStats, hashSeed } from './bandit';
+import { supabaseRest } from './supabase-rest';
 import {
   ALGO_VERSION,
   CandidatePlaylist,
@@ -50,6 +52,7 @@ export interface RecommendationEventInput {
     itemId?: string;
     position?: number;
     reason?: string;
+    arm?: string;
   }>;
 }
 
@@ -120,6 +123,59 @@ export class ListeningService {
   private triggerColumn: { at: number; exists: boolean } | null = null;
 
   constructor(private readonly chartService: ChartService) {}
+
+  // recommendation_events.arm 컬럼이 있는지 (supabase_rec_bandit.sql 실행 전에도 기록이 끊기지 않도록)
+  private armColumn: { at: number; exists: boolean } | null = null;
+
+  private async hasArmColumn(): Promise<boolean> {
+    if (this.armColumn && Date.now() - this.armColumn.at < 10 * 60 * 1000) {
+      return this.armColumn.exists;
+    }
+    const res = await supabaseRest('recommendation_events?select=arm&limit=0');
+    this.armColumn = { at: Date.now(), exists: res.ok };
+    return res.ok;
+  }
+
+  // 팔별 노출·보상 집계 캐시 (모든 사용자 공통, 10분)
+  private armStatsCache: {
+    at: number;
+    value: Partial<Record<Arm, ArmStats>>;
+  } | null = null;
+
+  private async loadArmStats(): Promise<Partial<Record<Arm, ArmStats>>> {
+    if (
+      this.armStatsCache &&
+      Date.now() - this.armStatsCache.at < 10 * 60 * 1000
+    ) {
+      return this.armStatsCache.value;
+    }
+    const res = await supabaseRest<Array<{ arm: string } & ArmStats>>(
+      'rpc/get_rec_arm_stats',
+      { method: 'POST', body: JSON.stringify({ window_days: 14 }) },
+    );
+    const value: Partial<Record<Arm, ArmStats>> = {};
+    for (const row of res.data || []) {
+      if ((ARMS as readonly string[]).includes(row.arm)) {
+        value[row.arm as Arm] = {
+          impressions: row.impressions || 0,
+          rewards: row.rewards || 0,
+        };
+      }
+    }
+    // 집계 함수가 아직 없으면 빈 값(모든 팔 동일한 사전분포)으로 동작한다
+    this.armStatsCache = { at: Date.now(), value };
+    return value;
+  }
+
+  /**
+   * A/B: 사용자(또는 브라우저)마다 고정으로 나눠 밴딧 버전을 보여 준다.
+   * REC_BANDIT_SHARE(0~100, 기본 50)%가 밴딧, 나머지는 hybrid-v1. 알고리즘 버전은 이벤트에 남아 비교할 수 있다.
+   */
+  private isBanditViewer(cacheKey: string): boolean {
+    const raw = Number(process.env.REC_BANDIT_SHARE ?? 50);
+    const share = Number.isFinite(raw) ? Math.min(100, Math.max(0, raw)) : 50;
+    return hashSeed(`ab:${cacheKey}`) % 100 < share;
+  }
 
   private async hasTriggerColumn(): Promise<boolean> {
     if (
@@ -412,6 +468,18 @@ export class ListeningService {
         reason: str(it.reason, 200),
       }));
     if (rows.length === 0) return false;
+    if (await this.hasArmColumn()) {
+      const arms = Array.isArray(body.items) ? body.items : [];
+      rows.forEach((row) => {
+        const source = arms.find((it) => str(it?.itemId, 500) === row.item_id);
+        const arm = String(source?.arm || '');
+        (row as Record<string, unknown>).arm = (
+          ARMS as readonly string[]
+        ).includes(arm)
+          ? arm
+          : null;
+      });
+    }
     await this.rest('recommendation_events', {
       method: 'POST',
       headers: { Prefer: 'return=minimal' },
@@ -685,6 +753,9 @@ export class ListeningService {
     );
 
     const day = new Date().toISOString().slice(0, 10);
+    const useBandit = this.isBanditViewer(cacheKey);
+    const armStats = useBandit ? await this.loadArmStats() : null;
+
     const output = recommend({
       now: Date.now(),
       seed: `${cacheKey}:${day}`,
@@ -696,6 +767,7 @@ export class ListeningService {
       similar,
       notInterested,
       playlistStats,
+      ...(armStats ? { bandit: { stats: armStats } } : {}),
       trackLimit: 24,
       playlistLimit: 12,
     });

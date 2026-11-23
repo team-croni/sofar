@@ -1,9 +1,9 @@
 # 감상 기록 수집 및 개인화 추천 명세서
 
 - **Date**: 2026-11-20
-- **Version**: v1.1.0
+- **Version**: v1.2.0
 - **관련 코드**: `apps/api/src/listening/`, `apps/web/src/utils/listeningTelemetry.js`, `apps/web/src/components/home/ForYouSection.jsx`
-- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql)
+- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql), [supabase_rec_bandit.sql](./supabase_rec_bandit.sql)
 
 사용자의 감상 기록을 쌓아 두고, 그 기록으로 홈 화면 **취향 저격 추천**(노래·플레이리스트)을 만드는 기능의 명세입니다. 쌓인 기록은 나중에 시간대별·연령별 통계와 추천 고도화에도 씁니다.
 
@@ -157,7 +157,38 @@
 
 ---
 
-## 6. 향후 고도화
+## 6. 2단계: 밴딧으로 후보 출처 비율 자동 조정 (`hybrid-v2-bandit`)
 
-- 감상 기록이 수만 건 이상 쌓이면 협업 필터링(행렬 분해·임베딩) 후보를 추가하고, `recommendation_events`로 `hybrid-v1`과 A/B 비교합니다.
+고정 비율 대신, 실제로 잘 들리는 후보 출처에 자리를 더 주도록 결과로 학습합니다. 코드: `apps/api/src/listening/bandit.ts`.
+
+### 6.1. 팔(arm)과 보상
+| 팔 | 후보 |
+| :--- | :--- |
+| `cooc` | 좋아한 곡과 같은 플레이리스트에 함께 담긴 곡 |
+| `similar` | 좋아한 곡과 비슷한 곡 (Last.fm) |
+| `artist` | 자주 듣는 아티스트의 곡 |
+| `popular` | sofar 인기곡 |
+
+- 곡마다 점수에 가장 크게 기여한 신호로 팔을 정하고, 응답·노출·클릭 이벤트에 `arm`을 남깁니다.
+- **보상** = 추천에서 눌러 30초 이상 들은 경우. `get_rec_arm_stats(14)`가 최근 14일 팔별 노출·보상을 셉니다.
+- 같은 사람·같은 곡·같은 날은 노출 1회·보상 1회로만 세서, 새로고침이나 반복 클릭으로 수치가 부풀지 않습니다.
+
+### 6.2. 자리 나누기 (Thompson sampling)
+1. 팔마다 `Beta(1 + 보상, 1 + 노출 - 보상)`에서 값을 하나 뽑습니다. 기록이 적으면 넓게 흩어져 여러 팔을 고루 시도하고, 쌓일수록 잘되는 팔로 모입니다.
+2. 개인화 팔(cooc·similar·artist)에는 취향 신뢰도(기존 개인화 비율, 최대 0.85)를, 인기 팔에는 나머지를 곱합니다.
+3. 곡 자리 24개를 그 비율로 나누되, 후보가 있는 팔은 최소 8%를 받습니다(계속 시도해야 학습이 되므로).
+4. 아티스트 제한 등으로 못 채운 자리는 점수 순 → 인기 순으로 채웁니다.
+5. 한 팔이 앞자리를 독차지하면 위치 효과로 그 팔만 잘되는 것처럼 학습되므로, 팔별 목록을 전체 길이에 고르게 펼칩니다.
+
+- 같은 날·같은 사용자는 같은 시드로 뽑아 하루 동안 결과가 크게 흔들리지 않습니다.
+- 기록이 없는 사용자(인기 위주)는 밴딧을 쓰지 않습니다.
+
+### 6.3. A/B 비교
+- 사용자(또는 브라우저)를 해시로 고정 배정해 `REC_BANDIT_SHARE`%(기본 50)는 `hybrid-v2-bandit`, 나머지는 `hybrid-v1`을 봅니다.
+- 이벤트의 `algo`로 버전별 클릭률·30초 이상 감상 비율을 비교합니다 (`supabase_rec_bandit.sql`의 예시 쿼리).
+
+## 7. 향후 고도화
+
+- 3단계: 노출마다 점수 재료(함께 담긴 곡·비슷한 곡·아티스트·인기·시간대·기기·위치)와 결과를 짝지어 가중치 자체를 학습합니다(위치 편향 보정 포함).
+- 4단계: 감상 기록이 수만 건 이상 쌓이면 협업 필터링(행렬 분해·임베딩) 후보를 새 팔로 추가합니다.
 - 연령·성별 통계: `profiles.birth_year`, `profiles.gender` 컬럼은 준비되어 있으나, 입력 화면과 개인정보 처리방침 갱신 전에는 수집하지 않습니다.

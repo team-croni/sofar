@@ -13,7 +13,18 @@
  * 새로 공유된 플레이리스트와 인기곡 몇 개를 섞어 새로운 음악도 만나게 한다.
  */
 
+import {
+  Arm,
+  ArmStats,
+  allocateSlots,
+  createRng,
+  sampleArmThetas,
+  spreadEvenly,
+} from './bandit';
+
 export const ALGO_VERSION = 'hybrid-v1';
+/** 2단계: 후보 출처(팔) 비율을 Thompson sampling으로 정하는 버전 */
+export const ALGO_BANDIT = 'hybrid-v2-bandit';
 
 export interface HistoryRow {
   track_key: string;
@@ -113,6 +124,8 @@ export interface EngineInput {
   notInterested?: NotInterested;
   /** 공개 플레이리스트별 반응 집계 (본인 제외, 사람 수 기준) */
   playlistStats?: Record<string, PlaylistStats>;
+  /** 있으면 밴딧 모드: 팔별 노출·보상 집계로 곡 자리를 나눈다 */
+  bandit?: { stats: Partial<Record<Arm, ArmStats>> };
   trackLimit?: number;
   playlistLimit?: number;
 }
@@ -124,6 +137,8 @@ export interface RecommendationItem {
   playlistKind?: 'curated' | 'shared';
   reason: string;
   score: number;
+  /** 곡이 나온 후보 출처 (밴딧 학습과 성과 비교에 쓴다) */
+  arm?: Arm;
   track?: CandidateTrack;
   playlist?: CandidatePlaylist;
 }
@@ -132,6 +147,8 @@ export interface EngineOutput {
   algo: string;
   coldStart: boolean;
   items: RecommendationItem[];
+  /** 밴딧 모드에서 팔별로 나눈 곡 자리 수 */
+  armQuotas?: Record<Arm, number>;
 }
 
 const DAY_MS = 24 * 3600 * 1000;
@@ -376,6 +393,7 @@ interface TrackCandidate {
   pop: number;
   score: number;
   reason: string;
+  arm: Arm;
 }
 
 export function recommend(input: EngineInput): EngineOutput {
@@ -442,6 +460,7 @@ export function recommend(input: EngineInput): EngineOutput {
         pop: popScore.get(key) || 0,
         score: 0,
         reason: '',
+        arm: 'popular',
       };
       candidates.set(key, c);
     }
@@ -491,6 +510,7 @@ export function recommend(input: EngineInput): EngineOutput {
     if (coldStart) {
       c.score = c.pop + 0.3 * cooc + jitter(c.key);
       c.reason = '지금 sofar에서 인기';
+      c.arm = 'popular';
       continue;
     }
     const parts = [
@@ -501,6 +521,14 @@ export function recommend(input: EngineInput): EngineOutput {
     c.personal = parts.reduce((sum, part) => sum + part.v, 0);
     c.score = c.personal + 0.15 * c.pop + jitter(c.key);
     const top = parts.sort((a, b) => b.v - a.v)[0].kind;
+    c.arm =
+      c.personal <= 0
+        ? 'popular'
+        : top === 'sim'
+          ? 'similar'
+          : top === 'artist'
+            ? 'artist'
+            : 'cooc';
     const coocSeed = c.bestPlaylist?.seedKey
       ? profile.trackTitle.get(c.bestPlaylist.seedKey)
       : undefined;
@@ -544,26 +572,102 @@ export function recommend(input: EngineInput): EngineOutput {
   };
 
   // 취향 정보가 많을수록 개인화 자리를 늘리고, 나머지는 인기곡으로 채운다
-  const personalSlots = coldStart
+  const confidence = coldStart
     ? 0
-    : Math.round(trackLimit * Math.min(0.85, 0.4 + profile.positiveMass * 0.2));
+    : Math.min(0.85, 0.4 + profile.positiveMass * 0.2);
   const personalSorted = Array.from(candidates.values())
     .filter((c) => c.personal > 0)
     .sort((a, b) => b.score - a.score);
-  for (const c of personalSorted) {
-    if (pickedTracks.length >= personalSlots) break;
-    if (canPick(c)) pick(c);
-  }
   const popularFirst = Array.from(candidates.values())
     .filter((c) => c.pop > 0)
     .sort(
       (a, b) => b.pop + jitter(`p${b.key}`) - (a.pop + jitter(`p${a.key}`)),
     );
-  for (const c of popularFirst) {
-    if (pickedTracks.length >= trackLimit) break;
-    if (canPick(c)) {
-      c.reason = '지금 sofar에서 인기';
-      pick(c);
+  const pickAsPopular = (c: TrackCandidate) => {
+    c.reason = '지금 sofar에서 인기';
+    c.arm = 'popular';
+    pick(c);
+  };
+
+  let armQuotas: Record<Arm, number> | undefined;
+  const useBandit = Boolean(input.bandit) && !coldStart;
+
+  if (useBandit) {
+    // 2단계(밴딧): 팔마다 보상 비율을 뽑아 자리를 나눈다.
+    // 개인화 팔(cooc·similar·artist)은 취향 신뢰도만큼, 인기 팔은 나머지만큼 가중한다.
+    const rng = createRng(`${input.seed}:bandit`);
+    const thetas = sampleArmThetas(input.bandit?.stats || {}, rng);
+    const pools: Record<Arm, TrackCandidate[]> = {
+      cooc: personalSorted.filter((c) => c.arm === 'cooc'),
+      similar: personalSorted.filter((c) => c.arm === 'similar'),
+      artist: personalSorted.filter((c) => c.arm === 'artist'),
+      popular: popularFirst,
+    };
+    const available = {
+      cooc: pools.cooc.filter(canPick).length,
+      similar: pools.similar.filter(canPick).length,
+      artist: pools.artist.filter(canPick).length,
+      popular: pools.popular.filter(canPick).length,
+    };
+    armQuotas = allocateSlots(
+      trackLimit,
+      {
+        cooc: thetas.cooc * confidence,
+        similar: thetas.similar * confidence,
+        artist: thetas.artist * confidence,
+        popular: thetas.popular * (1 - confidence),
+      },
+      available,
+    );
+    const byArm: Record<Arm, TrackCandidate[]> = {
+      cooc: [],
+      similar: [],
+      artist: [],
+      popular: [],
+    };
+    const armOrder = (Object.keys(thetas) as Arm[]).sort(
+      (x, y) => thetas[y] - thetas[x],
+    );
+    for (const arm of armOrder) {
+      for (const c of pools[arm]) {
+        if (byArm[arm].length >= armQuotas[arm]) break;
+        if (!canPick(c)) continue;
+        if (arm === 'popular') pickAsPopular(c);
+        else pick(c);
+        byArm[arm].push(c);
+      }
+    }
+    // 아티스트 제한 등으로 못 채운 자리는 점수 순 → 인기 순으로 채운다
+    const leftovers: TrackCandidate[] = [];
+    for (const c of personalSorted) {
+      if (pickedTracks.length >= trackLimit) break;
+      if (canPick(c)) {
+        pick(c);
+        leftovers.push(c);
+      }
+    }
+    for (const c of popularFirst) {
+      if (pickedTracks.length >= trackLimit) break;
+      if (canPick(c)) {
+        pickAsPopular(c);
+        leftovers.push(c);
+      }
+    }
+    // 한 팔이 앞자리를 독차지하지 않게 고르게 펼친다 (위치 효과로 학습이 치우치지 않게)
+    const spread = spreadEvenly([
+      ...armOrder.map((arm) => byArm[arm]),
+      leftovers,
+    ]);
+    pickedTracks.splice(0, pickedTracks.length, ...spread);
+  } else {
+    const personalSlots = Math.round(trackLimit * confidence);
+    for (const c of personalSorted) {
+      if (pickedTracks.length >= personalSlots) break;
+      if (canPick(c)) pick(c);
+    }
+    for (const c of popularFirst) {
+      if (pickedTracks.length >= trackLimit) break;
+      if (canPick(c)) pickAsPopular(c);
     }
   }
 
@@ -655,6 +759,7 @@ export function recommend(input: EngineInput): EngineOutput {
     type: 'track',
     itemId: c.key,
     reason: c.reason,
+    arm: c.arm,
     score: Number(c.score.toFixed(4)),
     track: c.track,
   }));
@@ -677,5 +782,10 @@ export function recommend(input: EngineInput): EngineOutput {
       items.push(trackItems[ti++]);
   }
 
-  return { algo: ALGO_VERSION, coldStart, items };
+  return {
+    algo: useBandit ? ALGO_BANDIT : ALGO_VERSION,
+    coldStart,
+    items,
+    ...(armQuotas ? { armQuotas } : {}),
+  };
 }

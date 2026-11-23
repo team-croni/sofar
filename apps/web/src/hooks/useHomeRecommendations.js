@@ -53,6 +53,8 @@ export function sendRecommendationEvent(data, event, items) {
           itemId: item.itemId,
           position,
           reason: item.reason,
+          // 곡이 나온 후보 출처: 서버가 팔별 보상을 집계해 다음 추천의 비율을 정한다 (밴딧)
+          arm: item.arm,
         })),
       }),
     }).catch(() => {});
