@@ -133,6 +133,7 @@ export class LtrTrainerService implements OnModuleInit, OnModuleDestroy {
   async status() {
     return {
       active: await this.listening.loadActiveModel(),
+      cfNeighbors: await this.listening.cfNeighborStatus(),
       lastRun: this.lastResult,
       running: this.running,
     };

@@ -358,6 +358,73 @@ export class ListeningService {
     }
   }
 
+  /**
+   * 4단계(협업 필터링): 좋아한 곡마다 '같은 곡을 들은 리스너들이 함께 들은 곡'.
+   * DB가 매일 계산해 둔 rec_item_neighbors에서 필요한 곡의 이웃만 읽는다. 테이블이 없으면 빈 값.
+   */
+  private async loadCfNeighbors(seeds: Seed[]): Promise<SimilarGroup[]> {
+    if (seeds.length === 0) return [];
+    const list = seeds.map((s) => `"${s.key.replace(/"/g, '')}"`).join(',');
+    const res = await supabaseRest<
+      Array<{
+        item_key: string;
+        neighbor_key: string;
+        score: number;
+        neighbor_title: string | null;
+        neighbor_artist: string | null;
+        neighbor_video_id: string | null;
+      }>
+    >(
+      `rec_item_neighbors?item_key=in.(${encodeURIComponent(list)})` +
+        `&select=item_key,neighbor_key,score,neighbor_title,neighbor_artist,neighbor_video_id` +
+        `&order=score.desc&limit=400`,
+    );
+    const groups = new Map<string, SimilarGroup>();
+    for (const row of res.data || []) {
+      if (!row.neighbor_title || !row.neighbor_artist) continue;
+      const group = groups.get(row.item_key) || {
+        seedKey: row.item_key,
+        tracks: [],
+      };
+      group.tracks.push({
+        custom_title: row.neighbor_title,
+        custom_artist: row.neighbor_artist,
+        ...(row.neighbor_video_id
+          ? { youtube_video_id: row.neighbor_video_id }
+          : {}),
+        searchQuery: `${row.neighbor_title} ${row.neighbor_artist}`,
+        match: Number(row.score) || 0,
+      });
+      groups.set(row.item_key, group);
+    }
+    return Array.from(groups.values());
+  }
+
+  /** 관리자: 함께 들은 곡 이웃을 지금 다시 계산 */
+  async rebuildCfNeighbors() {
+    const res = await supabaseRest<number>('rpc/rebuild_item_neighbors', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+    if (res.ok) this.recCache.clear();
+    return res.ok
+      ? { rebuilt: true, rows: Number(res.data) || 0 }
+      : {
+          rebuilt: false,
+          error: '이웃 계산 함수가 없습니다 (supabase_rec_cf.sql 실행 필요)',
+        };
+  }
+
+  /** 관리자: 함께 들은 곡 이웃 상태 */
+  async cfNeighborStatus() {
+    const res = await supabaseRest<Array<{ updated_at: string }>>(
+      'rec_item_neighbors?select=updated_at&order=updated_at.desc&limit=1',
+      { headers: { Prefer: 'count=exact' } },
+    );
+    if (!res.ok) return { available: false };
+    return { available: true, updatedAt: res.data?.[0]?.updated_at ?? null };
+  }
+
   private async loadSimilar(seeds: Seed[]): Promise<SimilarGroup[]> {
     const groups = await Promise.all(
       seeds.map(async (seed) => ({
@@ -860,6 +927,13 @@ export class ListeningService {
     const variant = this.variantFor(cacheKey);
     const armStats = variant === 'v1' ? null : await this.loadArmStats();
     const model = variant === 'v3' ? await this.loadActiveModel() : null;
+    // 협업 필터링 후보는 비교 기준(v1)에는 넣지 않는다
+    const cf =
+      variant === 'v1'
+        ? []
+        : await this.loadCfNeighbors(
+            pickSeeds({ now: Date.now(), history, signals }, 10),
+          );
 
     const output = recommend({
       now: Date.now(),
@@ -874,6 +948,7 @@ export class ListeningService {
       playlistStats,
       ...(armStats ? { bandit: { stats: armStats } } : {}),
       ...(model ? { learnedWeights: model.weights } : {}),
+      ...(cf.length > 0 ? { cf } : {}),
       trackLimit: 24,
       playlistLimit: 12,
     });

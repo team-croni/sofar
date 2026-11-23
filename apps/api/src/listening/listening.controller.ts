@@ -35,6 +35,16 @@ export class ListeningController {
   }
 
   /** 관리자: 지금 바로 학습 (데이터가 부족하거나 기존보다 낫지 않으면 바꾸지 않음) */
+  /** 관리자: '함께 들은 곡' 이웃을 지금 다시 계산 (평소에는 DB가 매일 새벽 계산) */
+  @Post('recommend/neighbors/rebuild')
+  @UseGuards(AdminGuard)
+  async rebuildNeighbors() {
+    return {
+      success: true,
+      ...(await this.listeningService.rebuildCfNeighbors()),
+    };
+  }
+
   @Post('recommend/model/train')
   @UseGuards(AdminGuard)
   async train() {

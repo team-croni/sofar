@@ -12,19 +12,19 @@
  */
 import { hashSeed } from './bandit';
 
-export const LTR_FEATURES = ['cooc', 'sim', 'artist', 'pop'] as const;
+/** 점수 재료. cf = 같은 곡을 들은 리스너들이 함께 들은 곡 (4단계) */
+export const LTR_FEATURES = ['cooc', 'sim', 'artist', 'pop', 'cf'] as const;
 export type LtrFeature = (typeof LTR_FEATURES)[number];
 export type LtrFeatureValues = Record<LtrFeature, number>;
 
-export interface LtrWeights {
+export type LtrWeights = {
   bias: number;
-  cooc: number;
-  sim: number;
-  artist: number;
-  pop: number;
   /** 학습할 때만 쓰는 위치 효과 (추천 점수에는 쓰지 않음) */
   position: number;
-}
+} & Partial<Record<LtrFeature, number>>;
+
+/** 새 재료가 추가되기 전에 학습한 가중치에는 그 재료가 없으므로 0으로 본다 */
+const weightOf = (w: LtrWeights, f: LtrFeature) => w[f] ?? 0;
 
 export interface LtrRow {
   features: Partial<LtrFeatureValues>;
@@ -65,6 +65,7 @@ export const BASELINE_WEIGHTS: LtrWeights = {
   sim: 0.35,
   artist: 0.3,
   pop: 0.15,
+  cf: 0.35,
   position: 0,
 };
 
@@ -82,13 +83,9 @@ export function scoreWithWeights(
   w: LtrWeights,
   f: Partial<LtrFeatureValues>,
 ): number {
-  return (
-    w.bias +
-    w.cooc * clamp01(f.cooc) +
-    w.sim * clamp01(f.sim) +
-    w.artist * clamp01(f.artist) +
-    w.pop * clamp01(f.pop)
-  );
+  let z = w.bias;
+  for (const k of LTR_FEATURES) z += weightOf(w, k) * clamp01(f[k]);
+  return z;
 }
 
 const sigmoid = (z: number) =>
@@ -98,57 +95,42 @@ function trainLogistic(
   rows: LtrRow[],
   opts: Required<TrainOptions>,
 ): LtrWeights {
-  const w: LtrWeights = {
+  const zero = (): Required<Pick<LtrWeights, 'bias' | 'position'>> &
+    Record<LtrFeature, number> => ({
     bias: 0,
-    cooc: 0,
-    sim: 0,
-    artist: 0,
-    pop: 0,
     position: 0,
-  };
+    ...(Object.fromEntries(LTR_FEATURES.map((k) => [k, 0])) as Record<
+      LtrFeature,
+      number
+    >),
+  });
+  const w = zero();
   // 정답이 드물어서(대부분 0) 양성에 가중치를 줘 학습이 '전부 0'으로 쏠리지 않게 한다
   const positives = rows.filter((r) => r.label === 1).length;
   const posWeight =
     positives > 0 ? Math.min(20, (rows.length - positives) / positives) : 1;
   for (let epoch = 0; epoch < opts.epochs; epoch++) {
     const lr = opts.learningRate / (1 + epoch * 0.05);
-    const grad: LtrWeights = {
-      bias: 0,
-      cooc: 0,
-      sim: 0,
-      artist: 0,
-      pop: 0,
-      position: 0,
-    };
+    const grad = zero();
     let total = 0;
     for (const r of rows) {
-      const x = {
-        cooc: clamp01(r.features.cooc),
-        sim: clamp01(r.features.sim),
-        artist: clamp01(r.features.artist),
-        pop: clamp01(r.features.pop),
-        position: positionFeature(r.position),
-      };
-      const z =
-        w.bias +
-        w.cooc * x.cooc +
-        w.sim * x.sim +
-        w.artist * x.artist +
-        w.pop * x.pop +
-        w.position * x.position;
+      const pos = positionFeature(r.position);
+      let z = w.bias + w.position * pos;
+      const x = {} as Record<LtrFeature, number>;
+      for (const k of LTR_FEATURES) {
+        x[k] = clamp01(r.features[k]);
+        z += w[k] * x[k];
+      }
       const sampleWeight = r.label === 1 ? posWeight : 1;
       const err = (sigmoid(z) - r.label) * sampleWeight;
       grad.bias += err;
-      grad.cooc += err * x.cooc;
-      grad.sim += err * x.sim;
-      grad.artist += err * x.artist;
-      grad.pop += err * x.pop;
-      grad.position += err * x.position;
+      grad.position += err * pos;
+      for (const k of LTR_FEATURES) grad[k] += err * x[k];
       total += sampleWeight;
     }
     const n = total || 1;
     w.bias -= lr * (grad.bias / n);
-    for (const k of ['cooc', 'sim', 'artist', 'pop', 'position'] as const) {
+    for (const k of [...LTR_FEATURES, 'position'] as const) {
       w[k] -= lr * (grad[k] / n + opts.l2 * w[k]);
     }
   }

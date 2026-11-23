@@ -43,8 +43,8 @@ describe('allocateSlots', () => {
   it('fills exactly the total and gives every available arm a floor', () => {
     const quotas = allocateSlots(
       24,
-      { cooc: 0.01, similar: 0.9, artist: 0.01, popular: 0.01 },
-      { cooc: 50, similar: 50, artist: 50, popular: 50 },
+      { cooc: 0.01, similar: 0.9, artist: 0.01, popular: 0.01, cf: 0.01 },
+      { cooc: 50, similar: 50, artist: 50, popular: 50, cf: 50 },
     );
     const total = Object.values(quotas).reduce((a, b) => a + b, 0);
     expect(total).toBe(24);
@@ -56,8 +56,8 @@ describe('allocateSlots', () => {
   it('never assigns more than an arm can provide', () => {
     const quotas = allocateSlots(
       10,
-      { cooc: 1, similar: 1, artist: 1, popular: 1 },
-      { cooc: 2, similar: 0, artist: 1, popular: 30 },
+      { cooc: 1, similar: 1, artist: 1, popular: 1, cf: 1 },
+      { cooc: 2, similar: 0, artist: 1, popular: 30, cf: 0 },
     );
     expect(quotas.cooc).toBeLessThanOrEqual(2);
     expect(quotas.similar).toBe(0);
@@ -161,5 +161,52 @@ describe('recommend in bandit mode', () => {
     expect(count(strongCooc, 'cooc')).toBeGreaterThan(
       count(strongSimilar, 'cooc'),
     );
+  });
+});
+
+describe('recommend with collaborative filtering (cf)', () => {
+  const t = (title: string, artist: string) => ({
+    custom_title: title,
+    custom_artist: artist,
+  });
+  const NOW = Date.parse('2026-11-24T12:00:00Z');
+  const seed = trackKeyOf(t('Seed', 'A'));
+  const history = Array.from({ length: 5 }, (_, i) => ({
+    track_key: seed,
+    title: 'Seed',
+    artist: 'A',
+    listened_sec: 200,
+    completion: 1,
+    end_reason: 'ended',
+    started_at: new Date(NOW - (i + 1) * 86400000).toISOString(),
+  }));
+
+  it('adds tracks other listeners played together as the cf arm', () => {
+    const out = recommend({
+      now: NOW,
+      seed: 'cf-user',
+      history,
+      signals: [],
+      playlists: [],
+      popular: Array.from({ length: 10 }, (_, i) => t(`Pop${i}`, `P${i}`)),
+      cf: [
+        {
+          seedKey: seed,
+          tracks: Array.from({ length: 8 }, (_, i) => ({
+            ...t(`Together${i}`, `T${i}`),
+            match: 0.9 - i * 0.05,
+          })),
+        },
+      ],
+      bandit: { stats: {} },
+      trackLimit: 10,
+      playlistLimit: 1,
+    });
+    const cfItems = out.items.filter(
+      (i) => i.type === 'track' && i.arm === 'cf',
+    );
+    expect(cfItems.length).toBeGreaterThan(0);
+    expect(cfItems[0].reason).toBe("'Seed' 리스너들이 함께 들은 곡");
+    expect(cfItems.every((i) => (i.features?.cf ?? 0) > 0)).toBe(true);
   });
 });

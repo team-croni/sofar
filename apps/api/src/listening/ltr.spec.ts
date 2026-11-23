@@ -44,9 +44,10 @@ describe('trainModel', () => {
     const result = trainModel(synthetic(8000));
     expect(result.accepted).toBe(true);
     const w = result.weights!;
-    expect(w.sim).toBeGreaterThan(w.artist);
-    expect(w.sim).toBeGreaterThan(0);
-    expect(w.cooc).toBeLessThan(0);
+    const wt = (k: 'cooc' | 'sim' | 'artist') => w[k] ?? 0;
+    expect(wt('sim')).toBeGreaterThan(wt('artist'));
+    expect(wt('sim')).toBeGreaterThan(0);
+    expect(wt('cooc')).toBeLessThan(0);
     // 위치 효과는 학습에서 따로 잡아낸다 (추천 점수에는 쓰지 않음)
     expect(w.position).toBeGreaterThan(0);
     expect(result.metrics.auc!).toBeGreaterThan(
