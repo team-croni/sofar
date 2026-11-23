@@ -31,6 +31,18 @@ const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
 const formatDay = (iso) =>
   new Date(iso).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
 
+function openPlaylistInSidebar(pl) {
+  window.dispatchEvent(new CustomEvent('trigger-open-shared-playlist', {
+    detail: { ...pl, _openedAt: Date.now() },
+  }));
+}
+
+function daysSince(iso) {
+  if (!iso) return null;
+  const diff = Date.now() - new Date(iso).getTime();
+  return Math.max(1, Math.floor(diff / 86400000) + 1);
+}
+
 /* ── 프로필 편집 모달 (닉네임 · 핸들) ───────────────────── */
 function EditProfileModal({ isOpen, onClose, user }) {
   const { updateProfile } = useAuth();
