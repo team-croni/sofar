@@ -28,7 +28,7 @@ export default function PlaylistAuthor({ playlist, official = false, prefix = nu
           <img src={sofarLogo} alt="" />
         </span>
       ) : (
-        <Avatar src={playlist?.authorAvatar || null} name={author} size={16} className="playlist-author__avatar" />
+        <Avatar src={playlist?.authorAvatar || null} name={author} size={14} className="playlist-author__avatar" />
       )}
       <span className="playlist-author__text">{author}</span>
     </>

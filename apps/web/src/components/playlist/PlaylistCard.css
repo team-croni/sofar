@@ -149,7 +149,7 @@
 .playlist-card__meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   padding: 0 0.1rem 0 0.25rem;
   min-width: 0;
 }
@@ -221,7 +221,6 @@
 }
 
 .playlist-card__reason {
-  margin-top: 0.1rem;
   font-size: 0.7rem;
   font-weight: 400;
   /* 추천 이유는 브랜드 색으로 바로 윗줄(아티스트·만든 사람)과 구분 */
@@ -299,9 +298,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  padding: 2px;
+  width: 14px;
+  height: 14px;
   box-sizing: border-box;
   flex-shrink: 0;
 }
