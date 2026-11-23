@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { RateLimiter, supabaseRest } from '../listening/supabase-rest';
+import { removeUserAvatarFiles } from './avatar-storage';
 import {
   HANDLE_COOLDOWN_DAYS,
   handleFormatProblem,
@@ -357,20 +358,6 @@ export class AccountService {
 
   private async removeAvatars(userId: string) {
     const { url, headers } = this.config();
-    const listRes = await fetch(`${url}/storage/v1/object/list/avatars`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ prefix: userId, limit: 100 }),
-    });
-    if (!listRes.ok) return;
-    const files = (await listRes.json()) as Array<{ name: string }>;
-    if (!Array.isArray(files) || files.length === 0) return;
-    await fetch(`${url}/storage/v1/object/avatars`, {
-      method: 'DELETE',
-      headers,
-      body: JSON.stringify({
-        prefixes: files.map((f) => `${userId}/${f.name}`),
-      }),
-    });
+    await removeUserAvatarFiles(url, headers, userId);
   }
 }

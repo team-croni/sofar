@@ -6,6 +6,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { supabaseRest } from '../listening/supabase-rest';
+import {
+  removeUserAvatarFiles,
+  uploadedAvatarUrl,
+} from '../account/avatar-storage';
 import { ChartService, MismatchReport } from '../chart/chart.service';
 import { SearchService } from '../search/search.service';
 
@@ -772,12 +776,10 @@ export class AdminService {
 
         const nickname = displayNameOf(profile, u);
 
+        // 앱과 같은 기준: 직접 올린 이미지만 (Google 사진은 앱에 보이지 않음)
         const avatar =
-          profile.avatar_url ||
-          profile.avatar ||
-          u.user_metadata?.avatar_url ||
-          u.user_metadata?.picture ||
-          null;
+          uploadedAvatarUrl(u.user_metadata?.custom_avatar_url) ||
+          uploadedAvatarUrl(profile.avatar_url);
 
         const provider =
           u.app_metadata?.provider ||
@@ -827,7 +829,7 @@ export class AdminService {
             email: profile.email || '이메일 없음',
             nickname,
             handle: profile.handle || null,
-            avatar_url: profile.avatar_url || profile.avatar || null,
+            avatar_url: uploadedAvatarUrl(profile.avatar_url),
             provider: profile.email?.includes('gmail') ? 'google' : 'email',
             created_at: profile.created_at || new Date().toISOString(),
             last_sign_in_at: profile.updated_at || null,
@@ -1013,6 +1015,38 @@ export class AdminService {
       `[Admin] handle reset ${id}: @${res.data.previous} → @${res.data.handle}`,
     );
     return { handle: res.data.handle, previous: res.data.previous ?? null };
+  }
+
+  /** 프로필 이미지 삭제 (부적절한 이미지) → 기본 아바타로 */
+  async resetAvatar(id: string): Promise<{ removedFiles: number }> {
+    const { url } = this.getSupabaseConfig();
+    const headers = this.getHeaders();
+    const uid = encodeURIComponent(id);
+
+    const removedFiles = await removeUserAvatarFiles(url, headers, id);
+    const profileRes = await fetch(`${url}/rest/v1/profiles?id=eq.${uid}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        avatar_url: '',
+        updated_at: new Date().toISOString(),
+      }),
+    });
+    const authRes = await fetch(`${url}/auth/v1/admin/users/${uid}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ user_metadata: { custom_avatar_url: null } }),
+    });
+    if (!profileRes.ok || !authRes.ok) {
+      this.logger.error(
+        `[Admin] reset avatar failed (profile ${profileRes.status}, auth ${authRes.status})`,
+      );
+      throw new ServiceUnavailableException(
+        '프로필 이미지를 지우지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+    this.logger.log(`[Admin] avatar reset ${id} (${removedFiles} files)`);
+    return { removedFiles };
   }
 
   /** 사용자 삭제 */

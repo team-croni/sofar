@@ -221,6 +221,15 @@ export class AdminController {
     return { success: true, ...(await this.adminService.resetHandle(id)) };
   }
 
+  /** 프로필 이미지 삭제 (부적절한 이미지) → 기본 아바타 */
+  @Post('users/:id/reset-avatar')
+  @UseGuards(AdminGuard)
+  async resetAvatar(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; removedFiles: number }> {
+    return { success: true, ...(await this.adminService.resetAvatar(id)) };
+  }
+
   /** 사용자 삭제 */
   @Delete('users/:id')
   @UseGuards(AdminGuard)

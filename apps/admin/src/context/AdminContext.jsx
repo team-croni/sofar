@@ -163,6 +163,18 @@ export function AdminProvider({ children }) {
     return false;
   };
 
+  // 부적절한 프로필 이미지 삭제 → 기본 아바타
+  const resetUserAvatar = async (userId) => {
+    const res = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/reset-avatar`, {
+      method: 'POST',
+      headers: { 'x-admin-key': adminKey },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json?.message || '프로필 이미지를 지우지 못했습니다.');
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, avatar_url: null } : u)));
+    return json;
+  };
+
   // 부적절한 핸들 초기화 → { handle, previous } 또는 오류 문구
   const resetUserHandle = async (userId) => {
     const res = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/reset-handle`, {
@@ -632,6 +644,7 @@ export function AdminProvider({ children }) {
     fetchUserStats,
     updateUserStatus,
     resetUserHandle,
+    resetUserAvatar,
     deleteUser,
     fetchDashboardInsights,
     resolveMismatch,
