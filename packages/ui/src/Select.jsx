@@ -20,6 +20,8 @@ export default function Select({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  const listRef = useRef(null);
+  const [isScrollable, setIsScrollable] = useState(false);
 
   // children(option 태그들)이 넘어온 경우 options 배열로 정규화
   const normalizedOptions = React.useMemo(() => {
@@ -65,6 +67,18 @@ export default function Select({
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('scroll', handleScroll, true);
     };
+  }, [isOpen]);
+
+  // 열릴 때: 스크롤이 생기는지 확인하고, 선택된 항목이 보이도록 가운데로 옮긴다
+  useEffect(() => {
+    if (!isOpen) return;
+    const list = listRef.current;
+    if (!list) return;
+    setIsScrollable(list.scrollHeight > list.clientHeight + 1);
+    const selected = list.querySelector('.sofar-select-option.is-selected');
+    if (selected) {
+      list.scrollTop = selected.offsetTop - list.clientHeight / 2 + selected.offsetHeight / 2;
+    }
   }, [isOpen]);
 
   // 옵션 선택 처리 (기존 onChange({ target: { value } }) 인터페이스 100% 호환)
@@ -126,7 +140,7 @@ export default function Select({
         {/* Custom Dropdown Popover Menu */}
         {isOpen && !disabled && (
           <div className="sofar-select-dropdown" role="listbox">
-            <div className="sofar-select-options-list">
+            <div ref={listRef} className={`sofar-select-options-list ${isScrollable ? 'is-scrollable' : ''}`}>
               {normalizedOptions.map((opt) => {
                 const isSelected = String(opt.value) === String(value);
                 return (
