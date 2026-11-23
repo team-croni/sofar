@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ChartService } from '../chart/chart.service';
 import { ARMS, Arm, ArmStats, hashSeed } from './bandit';
+import { LtrWeights } from './ltr';
 import { supabaseRest } from './supabase-rest';
 import {
   ALGO_VERSION,
@@ -15,6 +16,8 @@ import {
   SimilarGroup,
   pickSeeds,
   recommend,
+  ALGO_LTR,
+  RecommendationItem,
   trackKeyOf,
 } from './recommend.engine';
 
@@ -168,13 +171,114 @@ export class ListeningService {
   }
 
   /**
-   * A/B: 사용자(또는 브라우저)마다 고정으로 나눠 밴딧 버전을 보여 준다.
-   * REC_BANDIT_SHARE(0~100, 기본 50)%가 밴딧, 나머지는 hybrid-v1. 알고리즘 버전은 이벤트에 남아 비교할 수 있다.
+   * A/B: 사용자(또는 브라우저)마다 해시로 고정 배정한다.
+   * REC_AB_SPLIT="v1:20,v2:40,v3:40" (기본값) 형식. v1=고정 가중치, v2=밴딧, v3=밴딧+학습 가중치.
+   * (예전 설정 REC_BANDIT_SHARE만 있으면 v1/v2 두 갈래로 나눈다)
+   * 알고리즘 버전은 이벤트에 남아 버전별 성과를 비교할 수 있다.
    */
-  private isBanditViewer(cacheKey: string): boolean {
-    const raw = Number(process.env.REC_BANDIT_SHARE ?? 50);
-    const share = Number.isFinite(raw) ? Math.min(100, Math.max(0, raw)) : 50;
-    return hashSeed(`ab:${cacheKey}`) % 100 < share;
+  private variantFor(cacheKey: string): 'v1' | 'v2' | 'v3' {
+    let split: Array<['v1' | 'v2' | 'v3', number]>;
+    const raw = process.env.REC_AB_SPLIT;
+    if (raw) {
+      split = raw
+        .split(',')
+        .map((part) => part.split(':').map((x) => x.trim()))
+        .filter(([k, v]) => ['v1', 'v2', 'v3'].includes(k) && Number(v) >= 0)
+        .map(([k, v]) => [k as 'v1' | 'v2' | 'v3', Number(v)]);
+    } else if (process.env.REC_BANDIT_SHARE !== undefined) {
+      const share = Math.min(
+        100,
+        Math.max(0, Number(process.env.REC_BANDIT_SHARE) || 0),
+      );
+      split = [
+        ['v1', 100 - share],
+        ['v2', share],
+      ];
+    } else {
+      split = [
+        ['v1', 20],
+        ['v2', 40],
+        ['v3', 40],
+      ];
+    }
+    const total = split.reduce((sum, [, v]) => sum + v, 0);
+    if (total <= 0) return 'v1';
+    let bucket = hashSeed(`ab:${cacheKey}`) % total;
+    for (const [variant, weight] of split) {
+      if (bucket < weight) return variant;
+      bucket -= weight;
+    }
+    return 'v1';
+  }
+
+  // 켜져 있는 학습 가중치 (10분 캐시). 없으면 v3도 v2(밴딧)로 동작한다.
+  private modelCache: {
+    at: number;
+    value: { version: string; weights: LtrWeights } | null;
+  } | null = null;
+
+  async loadActiveModel(): Promise<{
+    version: string;
+    weights: LtrWeights;
+  } | null> {
+    if (this.modelCache && Date.now() - this.modelCache.at < 10 * 60 * 1000) {
+      return this.modelCache.value;
+    }
+    const res = await supabaseRest<
+      Array<{ version: string; weights: LtrWeights }>
+    >('rec_model_weights?active=eq.true&select=version,weights&limit=1');
+    const row = res.data?.[0];
+    const value = row?.weights
+      ? { version: row.version, weights: row.weights }
+      : null;
+    this.modelCache = { at: Date.now(), value };
+    return value;
+  }
+
+  clearModelCache() {
+    this.modelCache = null;
+    this.recCache.clear();
+  }
+
+  // recommendation_serves 테이블이 있는지 (supabase_rec_ltr.sql 실행 전에는 기록하지 않음)
+  private servesTable: { at: number; exists: boolean } | null = null;
+
+  private async hasServesTable(): Promise<boolean> {
+    if (this.servesTable && Date.now() - this.servesTable.at < 10 * 60 * 1000) {
+      return this.servesTable.exists;
+    }
+    const res = await supabaseRest(
+      'recommendation_serves?select=request_id&limit=0',
+    );
+    this.servesTable = { at: Date.now(), exists: res.ok };
+    return res.ok;
+  }
+
+  /** 내보낸 곡과 점수 재료를 서버에서 남긴다 (학습 데이터. 클라이언트 값은 쓰지 않음) */
+  private async logServes(
+    requestId: string,
+    viewerKey: string,
+    algo: string,
+    items: RecommendationItem[],
+  ) {
+    if (!(await this.hasServesTable())) return;
+    const rows = items
+      .filter((item) => item.type === 'track' && item.features)
+      .map((item, position) => ({
+        request_id: requestId,
+        item_id: item.itemId.slice(0, 500),
+        viewer_key: viewerKey,
+        algo,
+        arm: item.arm ?? null,
+        position,
+        features: item.features,
+      }));
+    if (rows.length === 0) return;
+    await supabaseRest('recommendation_serves', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify(rows),
+    });
   }
 
   private async hasTriggerColumn(): Promise<boolean> {
@@ -753,8 +857,9 @@ export class ListeningService {
     );
 
     const day = new Date().toISOString().slice(0, 10);
-    const useBandit = this.isBanditViewer(cacheKey);
-    const armStats = useBandit ? await this.loadArmStats() : null;
+    const variant = this.variantFor(cacheKey);
+    const armStats = variant === 'v1' ? null : await this.loadArmStats();
+    const model = variant === 'v3' ? await this.loadActiveModel() : null;
 
     const output = recommend({
       now: Date.now(),
@@ -768,12 +873,22 @@ export class ListeningService {
       notInterested,
       playlistStats,
       ...(armStats ? { bandit: { stats: armStats } } : {}),
+      ...(model ? { learnedWeights: model.weights } : {}),
       trackLimit: 24,
       playlistLimit: 12,
     });
 
+    // 학습 가중치를 썼다면 어느 버전인지까지 남긴다 (예: hybrid-v3-ltr:ltr-2026-11-24T03-00)
+    const algo =
+      output.algo === ALGO_LTR && model
+        ? `${ALGO_LTR}:${model.version}`.slice(0, 40)
+        : output.algo;
+    const requestId = `rec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    this.logServes(requestId, cacheKey, algo, output.items).catch(() => {});
+
     // 카드에 좋아요 수를 보여 주기 위해 공유 플레이리스트에 붙인다 (사람 수 기준 집계)
-    const items = output.items.map((item) =>
+    // 점수 재료(features)는 서버에만 남기고 응답에서는 뺀다
+    const items = output.items.map(({ features: _features, ...item }) =>
       item.type === 'playlist' &&
       item.playlistKind === 'shared' &&
       item.playlist
@@ -788,8 +903,9 @@ export class ListeningService {
     );
     const value = {
       ...output,
+      algo,
       items,
-      requestId: `rec_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+      requestId,
     };
     if (this.recCache.size > 2000) this.recCache.clear();
     this.recCache.set(cacheKey, { at: Date.now(), value });

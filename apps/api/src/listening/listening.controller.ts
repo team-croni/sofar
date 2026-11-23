@@ -6,8 +6,11 @@ import {
   HttpCode,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ListeningService } from './listening.service';
+import { LtrTrainerService } from './ltr-trainer.service';
+import { AdminGuard } from '../admin/admin.guard';
 import type {
   PlayEventInput,
   RecommendationEventInput,
@@ -19,7 +22,24 @@ import type {
  */
 @Controller()
 export class ListeningController {
-  constructor(private readonly listeningService: ListeningService) {}
+  constructor(
+    private readonly listeningService: ListeningService,
+    private readonly trainer: LtrTrainerService,
+  ) {}
+
+  /** 관리자: 학습 가중치 상태 (켜진 버전, 마지막 학습 결과) */
+  @Get('recommend/model')
+  @UseGuards(AdminGuard)
+  async modelStatus() {
+    return { success: true, ...(await this.trainer.status()) };
+  }
+
+  /** 관리자: 지금 바로 학습 (데이터가 부족하거나 기존보다 낫지 않으면 바꾸지 않음) */
+  @Post('recommend/model/train')
+  @UseGuards(AdminGuard)
+  async train() {
+    return { success: true, result: await this.trainer.train() };
+  }
 
   @Post('events/play')
   @HttpCode(202)

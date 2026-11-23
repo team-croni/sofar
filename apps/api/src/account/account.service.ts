@@ -51,6 +51,11 @@ export class AccountService {
       // 플레이리스트 반응·조회·공유 유입·관심 없음 (좋아요·응원은 auth 계정 삭제 시 함께 지워진다)
       const viewer = encodeURIComponent(`u:${userId}`);
       await del(
+        'recommendation_serves',
+        `/rest/v1/recommendation_serves?viewer_key=eq.${viewer}`,
+        true,
+      );
+      await del(
         'playlist_views',
         `/rest/v1/playlist_views?viewer_key=eq.${viewer}`,
         true,
