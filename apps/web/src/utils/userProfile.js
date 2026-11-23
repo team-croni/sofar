@@ -6,10 +6,11 @@
  */
 export function getUserDisplayName(user, fallback = 'Guest') {
   const meta = user?.user_metadata || {};
+  // 이메일 앞부분은 쓰지 않는다 (닉네임은 공유 플레이리스트 작성자로 공개됨)
   return meta.display_name
     || meta.full_name
     || meta.name
-    || user?.email?.split('@')[0]
+    || (user && !user.isGuest ? DEFAULT_NICKNAME : null)
     || fallback;
 }
 
@@ -28,6 +29,8 @@ export function getUserProvider(user) {
 }
 
 export const NICKNAME_MIN = 2;
+/** 닉네임을 정할 수 없을 때 쓰는 이름 (DB ensure_handle과 같음) */
+export const DEFAULT_NICKNAME = '리스너';
 export const NICKNAME_MAX = 20;
 
 // 보이지 않는 문자(제어 문자, 제로폭 공백, 방향 표시 등) — DB normalize_display_name과 같은 범위

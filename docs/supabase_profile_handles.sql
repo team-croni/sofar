@@ -201,17 +201,22 @@ DECLARE
 BEGIN
   SELECT handle, handle_changed_at INTO row FROM profiles WHERE id = p_user;
   IF NOT FOUND THEN
+    -- 계정 정보의 이름을 쓰되, 규칙에 맞지 않으면(사칭·길이) '리스너'로 둔다. 이메일은 쓰지 않는다
     INSERT INTO profiles (id, username, email, updated_at)
     SELECT u.id,
-           normalize_display_name(coalesce(
-             u.raw_user_meta_data ->> 'display_name',
-             u.raw_user_meta_data ->> 'full_name',
-             u.raw_user_meta_data ->> 'name',
-             '리스너'
-           )),
+           CASE WHEN display_name_problem(n.name) IS NULL THEN n.name ELSE '리스너' END,
            u.email,
            now()
-    FROM auth.users u WHERE u.id = p_user
+    FROM auth.users u
+    CROSS JOIN LATERAL (
+      SELECT normalize_display_name(coalesce(
+        u.raw_user_meta_data ->> 'display_name',
+        u.raw_user_meta_data ->> 'full_name',
+        u.raw_user_meta_data ->> 'name',
+        ''
+      )) AS name
+    ) n
+    WHERE u.id = p_user
     ON CONFLICT (id) DO NOTHING;
     SELECT handle, handle_changed_at INTO row FROM profiles WHERE id = p_user;
     IF NOT FOUND THEN
