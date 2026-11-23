@@ -44,6 +44,7 @@ export default function AdminSidebar({
   const isCurationsPage = location.pathname === '/curations';
   const isSearchRankingPage = location.pathname === '/search-ranking';
   const isUsersPage = location.pathname === '/users';
+  const isRecommendationPage = location.pathname === '/recommendation';
   const isEditorPage = location.pathname.startsWith('/playlist/');
 
   const handleDashboardClick = () => {
@@ -52,6 +53,10 @@ export default function AdminSidebar({
 
   const handleSearchRankingClick = () => {
     navigate('/search-ranking');
+  };
+
+  const handleRecommendationClick = () => {
+    navigate('/recommendation');
   };
 
   const handleUsersClick = () => {
@@ -229,6 +234,20 @@ export default function AdminSidebar({
                 <TrendingUp size={18} />
               </span>
               <span className="admin-snb-item-label">검색어 순위 관리</span>
+            </div>
+          </button>
+
+          {/* 추천 성과 */}
+          <button
+            className={`admin-snb-item ${isRecommendationPage ? 'active' : ''}`}
+            onClick={handleRecommendationClick}
+            title={isCollapsed ? '추천 성과' : undefined}
+          >
+            <div className="admin-snb-item-left">
+              <span className="admin-snb-item-icon">
+                <Sparkles size={18} />
+              </span>
+              <span className="admin-snb-item-label">추천 성과</span>
             </div>
           </button>
 

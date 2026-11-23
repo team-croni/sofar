@@ -1,9 +1,9 @@
 # 감상 기록 수집 및 개인화 추천 명세서
 
 - **Date**: 2026-11-20
-- **Version**: v1.4.0
-- **관련 코드**: `apps/api/src/listening/`, `apps/web/src/utils/listeningTelemetry.js`, `apps/web/src/components/home/ForYouSection.jsx`
-- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql), [supabase_rec_bandit.sql](./supabase_rec_bandit.sql), [supabase_rec_ltr.sql](./supabase_rec_ltr.sql), [supabase_rec_cf.sql](./supabase_rec_cf.sql)
+- **Version**: v1.5.0
+- **관련 코드**: `apps/api/src/listening/`, `apps/admin/src/pages/RecommendationPage.jsx`, `apps/web/src/utils/listeningTelemetry.js`, `apps/web/src/components/home/ForYouSection.jsx`
+- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql), [supabase_rec_bandit.sql](./supabase_rec_bandit.sql), [supabase_rec_ltr.sql](./supabase_rec_ltr.sql), [supabase_rec_cf.sql](./supabase_rec_cf.sql), [supabase_rec_dashboard.sql](./supabase_rec_dashboard.sql)
 
 사용자의 감상 기록을 쌓아 두고, 그 기록으로 홈 화면 **취향 저격 추천**(노래·플레이리스트)을 만드는 기능의 명세입니다. 쌓인 기록은 나중에 시간대별·연령별 통계와 추천 고도화에도 씁니다.
 
@@ -187,6 +187,7 @@
 - 사용자(또는 브라우저)를 해시로 고정 배정합니다. `REC_AB_SPLIT`(기본 `v1:20,v2:40,v3:40`)
   - `hybrid-v1`: 고정 가중치, `hybrid-v2-bandit`: 밴딧, `hybrid-v3-ltr:{모델 버전}`: 밴딧 + 학습 가중치
 - 이벤트의 `algo`로 버전별 클릭률·30초 이상 감상 비율을 비교합니다 (`supabase_rec_bandit.sql`의 예시 쿼리).
+- 기록이 없어 인기 위주로 받은 새 방문자는 어느 그룹이든 `cold-start`로 따로 기록해, 버전 비교에 섞이지 않게 합니다. (2026-11-23 이전 기록의 `hybrid-v1`에는 새 방문자가 섞여 있습니다.)
 
 ## 7. 3단계: 점수 가중치 학습 (`hybrid-v3-ltr`)
 
@@ -234,7 +235,19 @@
 - 관리자: `POST /api/recommend/neighbors/rebuild`(지금 다시 계산), `GET /api/recommend/model`에 이웃 상태 포함.
 - 데이터가 적을 때는 이웃이 거의 없어 기존 추천과 같습니다. 리스너가 늘수록 자연스럽게 비중이 커집니다.
 
-## 9. 향후 고도화
+## 9. 추천 성과 대시보드 (관리자 '추천 성과' 화면)
+
+- **집계**: DB 함수 `get_rec_dashboard(window_days)` ([supabase_rec_dashboard.sql](./supabase_rec_dashboard.sql)). 세는 기준은 밴딧·학습과 같습니다 (같은 사람·곡·날은 노출·클릭·감상 각 1회, 감상 = 그 추천에서 눌러 30초 이상).
+- **API**: `GET /api/recommend/dashboard?days=7|14|30` (`x-admin-key`). A/B 비율 설정, 마지막 학습 결과도 함께 돌려줍니다. 함수가 없으면 `available: false`와 안내 문구를 돌려줍니다.
+- **화면**
+  - 요약: 추천 노출, 클릭률, 30초 이상 감상률, 사용 중인 학습 가중치
+  - 버전별 성과(A/B): 클릭률·감상률과 95% 신뢰구간(Wilson). 노출 300회 미만은 '표본 부족'으로 표시해 섣부른 판단을 막습니다.
+  - 일별 30초 이상 감상률: 버전별 꺾은선, 노출이 없는 날은 선을 끊습니다.
+  - 후보 출처(팔)별 노출·보상·보상률과 최근 7일 서버가 내보낸 비중
+  - 가중치 학습: 채택에 필요한 데이터(노출 2,000 · 감상 50) 진행도, 최근 모델 5개, '지금 학습' 버튼
+  - 함께 들은 곡: 이웃이 있는 곡 수·연결 수·마지막 계산 시각, '지금 다시 계산' 버튼
+
+## 10. 향후 고도화
 
 - 감상 기록이 크게 늘면 행렬 분해·임베딩(세션 기반 item2vec)으로 이웃 품질을 높입니다.
 - 학습 재료에 시간대·기기·곡 길이 등 맥락을 추가하고, 플레이리스트 순위에도 같은 방식을 적용합니다.

@@ -4,14 +4,15 @@
 
 | 문서 파일명 | 최종 수정일 | 수정 요약 | 버전 |
 | :--- | :--- | :--- | :--- |
-| [recommendation-spec.md](./recommendation-spec.md) | 2026-11-23 | 4단계 협업 필터링(함께 들은 곡, cf 팔)과 어뷰징 방지 추가 | v1.4.0 |
+| [recommendation-spec.md](./recommendation-spec.md) | 2026-11-24 | 추천 성과 대시보드(관리자), 새 방문자 `cold-start` 분리 추가 | v1.5.0 |
+| [supabase_rec_dashboard.sql](./supabase_rec_dashboard.sql) | 2026-11-24 | 관리자 추천 성과 대시보드 집계 함수 (버전별·일별·팔별·학습·이웃) | v1.0.0 |
 | [supabase_rec_cf.sql](./supabase_rec_cf.sql) | 2026-11-23 | 곡별 '함께 들은 곡' 이웃 테이블, 매일 다시 계산하는 함수, cf 팔 허용 | v1.0.0 |
 | [supabase_rec_ltr.sql](./supabase_rec_ltr.sql) | 2026-11-23 | 서버 추천 기록(점수 재료), 학습 가중치 버전, 학습 데이터 함수, 2년 자동 파기 | v1.0.0 |
 | [supabase_rec_bandit.sql](./supabase_rec_bandit.sql) | 2026-11-23 | 추천 이벤트 arm 컬럼, 팔별 노출·보상 집계 함수, 버전별 성과 비교 쿼리 | v1.0.0 |
 | [supabase_playlist_signals.sql](./supabase_playlist_signals.sql) | 2026-11-20 | 플레이리스트 반응·조회·공유 유입·관심 없음 테이블, 사람 수 기준 집계 함수, 2년 자동 파기 | v1.0.0 |
 | [supabase_listening_events.sql](./supabase_listening_events.sql) | 2026-11-20 | 감상 기록·추천 이벤트 테이블, 2년 자동 파기 예약 작업, 연령·성별 선택 컬럼 | v1.0.0 |
 | [legal-privacy-policy-guide.md](./legal-privacy-policy-guide.md) | 2026-11-23 | 다른 이용자 감상 기록의 비식별 집계('함께 들은 곡')를 추천에 활용함을 명시 | v2.4.0 |
-| [admin-dashboard-spec.md](./admin-dashboard-spec.md) | 2026-08-15 | 음원 불일치 리포트 상태 관리(미해결/해결완료), 영구 보존 및 서브 필터 정책 추가 | v1.4.0 |
+| [admin-dashboard-spec.md](./admin-dashboard-spec.md) | 2026-11-24 | 추천 성과 화면(`/recommendation`) 경로 추가 | v1.5.0 |
 | [manual-youtube-matching-sidebar.md](./manual-youtube-matching-sidebar.md) | 2026-08-13 | 관리자 수동 매칭 오른쪽 사이드바 (노래/유튜브 검색 패널, Drag&Drop 기능) 규격 작성 | v1.1.0 |
 | [youtube-curated-spec.md](./youtube-curated-spec.md) | 2026-08-11 | Last.fm 기반 한국 테마 후보 생성 및 수익화 전환용 관리자 확정본 운영 | v3.0.0 |
 | [supabase_curated_playlists.sql](./supabase_curated_playlists.sql) | 2026-08-12 | 관리자 큐레이션 플레이리스트 저장 테이블 (장르 카테고리 추가) | v1.1.0 |

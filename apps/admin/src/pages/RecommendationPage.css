@@ -1,0 +1,384 @@
+.rec-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 40px;
+}
+
+.rec-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rec-segment {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid var(--border-cozy);
+  background: var(--bg-card);
+}
+
+.rec-segment-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rec-segment-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-active);
+}
+
+.rec-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+  color: var(--text-secondary);
+}
+
+.rec-spin {
+  animation: rec-spin 0.9s linear infinite;
+}
+
+@keyframes rec-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rec-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(229, 115, 115, 0.35);
+  background: rgba(229, 115, 115, 0.08);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.rec-notice svg {
+  color: var(--error);
+  flex-shrink: 0;
+}
+
+.rec-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.rec-two-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .rec-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .rec-two-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rec-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-cozy);
+  border-radius: 12px;
+  padding: 18px 20px;
+  min-width: 0;
+}
+
+.rec-card-head {
+  margin-bottom: 14px;
+}
+
+.rec-card-head h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-active);
+}
+
+.rec-card-head p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.rec-table-wrap {
+  overflow-x: auto;
+}
+
+.rec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.rec-table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-cozy);
+  white-space: nowrap;
+}
+
+.rec-table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.rec-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.rec-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-table.compact {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.rec-table.compact td {
+  padding: 7px 10px;
+}
+
+.rec-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-muted {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.rec-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+.rec-variant {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-active);
+}
+
+.rec-rate {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.rec-rate-ci {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.rec-pill {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 4px;
+}
+
+.rec-pill.ok {
+  color: var(--success);
+  background: rgba(129, 199, 132, 0.12);
+}
+
+.rec-pill.warn {
+  color: var(--primary-warm);
+  background: rgba(212, 163, 115, 0.12);
+}
+
+.rec-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rec-share-track {
+  width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.rec-share-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary-warm);
+}
+
+/* 차트 */
+.rec-chart {
+  position: relative;
+}
+
+.rec-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rec-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rec-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.rec-chart-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.rec-grid {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.rec-crosshair {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+}
+
+.rec-axis {
+  font-size: 11px;
+  fill: var(--text-muted);
+}
+
+.rec-direct-label {
+  font-size: 11px;
+  fill: var(--text-secondary);
+}
+
+.rec-tooltip {
+  position: absolute;
+  top: 36px;
+  transform: translateX(-50%);
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #1f1d1e;
+  border: 1px solid var(--border-cozy);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  color: var(--text-primary);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.rec-tooltip-title {
+  color: var(--text-active);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.rec-tooltip-row {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+}
+
+/* 학습 · 이웃 */
+.rec-model {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.rec-progress {
+  width: 100%;
+}
+
+.rec-progress-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.rec-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.rec-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary-warm);
+}
+
+.rec-model-last {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rec-divider {
+  height: 1px;
+  background: var(--border-cozy);
+  margin: 20px 0;
+}
+
+.rec-neighbors {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.rec-neighbors > div {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.rec-big {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-active);
+}

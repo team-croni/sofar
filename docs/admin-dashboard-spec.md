@@ -1,7 +1,7 @@
 # Admin Dashboard Specification (관리자 종합 대시보드 명세서)
 
-- **Date**: 2026-08-15
-- **Version**: v1.4.0
+- **Date**: 2026-11-24
+- **Version**: v1.5.0
 
 ---
 
@@ -18,6 +18,7 @@ sofar 관리자 애플리케이션(`apps/admin`)의 메인 랜딩 페이지로 *
 - **메인 경로 (`/`)**: 신규 종합 대시보드 (`DashboardPage`)
 - **큐레이션 관리 경로 (`/curations`)**: 전체 및 카테고리별 큐레이션 관리 페이지 (`CurationsPage`)
 - **사용자 관리 경로 (`/users`)**: 전체 가입 리스너 목록 및 계정 관리 페이지 (`UsersPage`)
+- **추천 성과 경로 (`/recommendation`)**: 취향 저격 추천의 버전별 A/B 성과, 일별 감상률, 후보 출처별 성과, 가중치 학습·함께 들은 곡 상태 (`RecommendationPage`, 상세는 [recommendation-spec.md](./recommendation-spec.md) 9장)
 - **기타 하위 페이지**: 플레이리스트 에디터(`PlaylistEditorPage`), 유튜브 검색 전용 화면(`YoutubeSearchPage`), 시스템 설정 등
 
 ### 2.2 실시간 핵심 KPI 지표 (Dashboard KPI Row)
