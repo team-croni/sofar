@@ -1,6 +1,9 @@
 import {
+  Body,
   Controller,
   Delete,
+  Get,
+  Put,
   HttpCode,
   HttpStatus,
   Req,
@@ -22,5 +25,27 @@ export class AccountController {
   ): Promise<{ success: boolean }> {
     await this.accountService.deleteAccount(req.user.id);
     return { success: true };
+  }
+
+  /** 연령·성별 (선택) — 본인만 읽고 쓸 수 있다 */
+  @Get('demographics')
+  @UseGuards(SupabaseUserGuard)
+  async getDemographics(@Req() req: { user: { id: string } }) {
+    return {
+      success: true,
+      ...(await this.accountService.getDemographics(req.user.id)),
+    };
+  }
+
+  @Put('demographics')
+  @UseGuards(SupabaseUserGuard)
+  async saveDemographics(
+    @Req() req: { user: { id: string } },
+    @Body() body: unknown,
+  ) {
+    return {
+      success: true,
+      ...(await this.accountService.saveDemographics(req.user.id, body)),
+    };
   }
 }

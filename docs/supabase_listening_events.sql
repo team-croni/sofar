@@ -106,11 +106,8 @@ SELECT cron.schedule(
 -- 회원 탈퇴 시에는 API(account.service)가 이 두 테이블의 해당 사용자 기록을 바로 삭제한다.
 
 -- 4. 연령·성별 통계용 프로필 컬럼 (선택 입력) ------------------------
--- 수집 전 개인정보 처리방침에 항목과 목적을 추가하고, 설정 화면에서 선택 입력으로 받는다.
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS birth_year SMALLINT
-  CHECK (birth_year IS NULL OR birth_year BETWEEN 1900 AND 2100);
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS gender TEXT
-  CHECK (gender IS NULL OR gender IN ('female', 'male', 'other', 'undisclosed'));
+-- ※ 이 컬럼은 supabase_profile_demographics.sql 에서 별도 테이블(profile_demographics)로 옮기고 지운다.
+--    (profiles는 다른 사람에게 보일 수 있는 테이블이라 여기에 컬럼을 만들지 않는다)
 
 -- =============================================================
 -- 통계 쿼리 예시 (실행할 필요 없음, 참고용)
@@ -121,10 +118,10 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS gender TEXT
 --   GROUP BY 1 ORDER BY 1;
 --
 -- 연령대 · 성별별 많이 들은 곡
---   SELECT (extract(year FROM e.started_at)::int - p.birth_year) / 10 * 10 AS age_group,
---          p.gender, e.title, e.artist, count(*) AS plays
---   FROM play_events e JOIN profiles p ON p.id = e.user_id
---   WHERE p.birth_year IS NOT NULL AND NOT e.is_skip
+--   SELECT (extract(year FROM e.started_at)::int - d.birth_year) / 10 * 10 AS age_group,
+--          d.gender, e.title, e.artist, count(*) AS plays
+--   FROM play_events e JOIN profile_demographics d ON d.user_id = e.user_id
+--   WHERE d.birth_year IS NOT NULL AND NOT e.is_skip
 --   GROUP BY 1, 2, 3, 4 ORDER BY plays DESC LIMIT 100;
 --
 -- 곡별 완주율 · 스킵률

@@ -1,8 +1,63 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   InternalServerErrorException,
 } from '@nestjs/common';
+
+export const GENDERS = ['female', 'male', 'other'] as const;
+export type Gender = (typeof GENDERS)[number];
+export interface Demographics {
+  birthYear: number | null;
+  gender: Gender | null;
+}
+
+/** 만 14세 미만은 법정대리인 동의가 필요하므로 연령 정보를 받지 않는다 */
+export const MIN_AGE = 14;
+export const MAX_AGE = 100;
+
+/** 만 14세 이상이 확실한 가장 늦은 출생 연도 (2026년이면 2011) */
+export function latestBirthYear(now = new Date()) {
+  return now.getFullYear() - MIN_AGE - 1;
+}
+
+/**
+ * 입력값 검사. 빈 값(null·'')은 '선택 안 함'으로 지운다.
+ * 연도 범위를 벗어나거나 알 수 없는 성별이면 오류 문구를 돌려준다.
+ */
+export function parseDemographics(
+  body: unknown,
+  now = new Date(),
+): { value: Demographics } | { error: string } {
+  const raw = (body && typeof body === 'object' ? body : {}) as Record<
+    string,
+    unknown
+  >;
+  const thisYear = now.getFullYear();
+  let birthYear: number | null = null;
+  if (
+    raw.birthYear !== null &&
+    raw.birthYear !== undefined &&
+    raw.birthYear !== ''
+  ) {
+    const y = Number(raw.birthYear);
+    if (!Number.isInteger(y))
+      return { error: '출생 연도가 올바르지 않습니다.' };
+    // 연도만 받으므로 생일이 지나지 않았어도 만 14세 이상이 확실한 해까지만 받는다
+    if (y > latestBirthYear(now))
+      return { error: `만 ${MIN_AGE}세 이상만 입력할 수 있습니다.` };
+    if (y < thisYear - MAX_AGE)
+      return { error: '출생 연도가 올바르지 않습니다.' };
+    birthYear = y;
+  }
+  let gender: Gender | null = null;
+  if (raw.gender !== null && raw.gender !== undefined && raw.gender !== '') {
+    if (!GENDERS.includes(raw.gender as Gender))
+      return { error: '성별 값이 올바르지 않습니다.' };
+    gender = raw.gender as Gender;
+  }
+  return { value: { birthYear, gender } };
+}
 
 @Injectable()
 export class AccountService {
@@ -40,6 +95,12 @@ export class AccountService {
     };
 
     try {
+      // 0. 연령·성별 (auth 계정 삭제 시에도 지워지지만 먼저 직접 지운다)
+      await del(
+        'profile_demographics',
+        `/rest/v1/profile_demographics?user_id=eq.${id}`,
+        true,
+      );
       // 1. 좋아요, 감상 기록, 추천 노출·클릭 기록
       await del('favorites', `/rest/v1/favorites?user_id=eq.${id}`, true);
       await del('play_events', `/rest/v1/play_events?user_id=eq.${id}`, true);
@@ -106,6 +167,68 @@ export class AccountService {
         '탈퇴 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.',
       );
     }
+  }
+
+  /** 본인의 연령·성별. 테이블이 없으면(아직 SQL 미실행) available: false */
+  async getDemographics(
+    userId: string,
+  ): Promise<Demographics & { available: boolean }> {
+    const { url, headers } = this.config();
+    const res = await fetch(
+      `${url}/rest/v1/profile_demographics?user_id=eq.${encodeURIComponent(userId)}&select=birth_year,gender`,
+      { headers },
+    );
+    if (!res.ok) return { birthYear: null, gender: null, available: false };
+    const rows = (await res.json()) as Array<{
+      birth_year: number | null;
+      gender: Gender | null;
+    }>;
+    return {
+      birthYear: rows[0]?.birth_year ?? null,
+      gender: rows[0]?.gender ?? null,
+      available: true,
+    };
+  }
+
+  /** 둘 다 비우면 행을 지운다 (선택 정보를 남겨 두지 않음) */
+  async saveDemographics(userId: string, body: unknown): Promise<Demographics> {
+    const parsed = parseDemographics(body);
+    if ('error' in parsed) throw new BadRequestException(parsed.error);
+    const { birthYear, gender } = parsed.value;
+    const { url, headers } = this.config();
+    const id = encodeURIComponent(userId);
+    const res =
+      birthYear === null && gender === null
+        ? await fetch(`${url}/rest/v1/profile_demographics?user_id=eq.${id}`, {
+            method: 'DELETE',
+            headers,
+          })
+        : await fetch(
+            `${url}/rest/v1/profile_demographics?on_conflict=user_id`,
+            {
+              method: 'POST',
+              headers: {
+                ...headers,
+                Prefer: 'resolution=merge-duplicates,return=minimal',
+              },
+              body: JSON.stringify({
+                user_id: userId,
+                birth_year: birthYear,
+                gender,
+                updated_at: new Date().toISOString(),
+              }),
+            },
+          );
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      this.logger.error(
+        `[Account] demographics save failed (${res.status}): ${text}`,
+      );
+      throw new InternalServerErrorException(
+        '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+    return { birthYear, gender };
   }
 
   private async removeAvatars(userId: string) {

@@ -757,3 +757,8 @@ html.reduce-motion .acct-page * {
     animation: none !important;
   }
 }
+
+/* 설정 행 안의 드롭다운 (출생 연도 · 성별) */
+.setting-select {
+  width: 140px;
+}
