@@ -438,6 +438,28 @@
   color: #e2e8f0;
 }
 
+.user-modal-handle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--border-cozy);
+  border-radius: 14px;
+}
+
+.user-modal-handle-value {
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+  color: var(--text-active);
+}
+
+.user-modal-handle-desc {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .user-modal-danger {
   border: 1px solid rgba(239, 68, 68, 0.25);
   background: rgba(239, 68, 68, 0.08);

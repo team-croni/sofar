@@ -1,4 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { supabaseRest } from '../listening/supabase-rest';
 import { ChartService, MismatchReport } from '../chart/chart.service';
 import { SearchService } from '../search/search.service';
 
@@ -972,6 +979,40 @@ export class AdminService {
       );
       return null;
     }
+  }
+
+  /** 핸들 초기화 (supabase_profile_handles.sql의 admin_reset_handle) */
+  async resetHandle(
+    id: string,
+  ): Promise<{ handle: string; previous: string | null }> {
+    const res = await supabaseRest<{
+      ok: boolean;
+      reason?: string;
+      handle?: string;
+      previous?: string | null;
+    }>('rpc/admin_reset_handle', {
+      method: 'POST',
+      body: JSON.stringify({ p_user: id }),
+    });
+    if (!res.ok || !res.data) {
+      this.logger.error(`[Admin] reset handle failed: ${res.error}`);
+      throw new ServiceUnavailableException(
+        res.status === 404
+          ? '핸들 초기화 함수가 없습니다 (supabase_profile_handles.sql 다시 실행 필요).'
+          : '핸들을 초기화하지 못했습니다.',
+      );
+    }
+    if (!res.data.ok || !res.data.handle) {
+      throw new BadRequestException(
+        res.data.reason === 'no_profile'
+          ? '프로필이 없는 사용자입니다. 사용자가 처음 로그인하면 핸들이 만들어집니다.'
+          : '핸들을 초기화하지 못했습니다.',
+      );
+    }
+    this.logger.log(
+      `[Admin] handle reset ${id}: @${res.data.previous} → @${res.data.handle}`,
+    );
+    return { handle: res.data.handle, previous: res.data.previous ?? null };
   }
 
   /** 사용자 삭제 */

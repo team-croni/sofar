@@ -49,6 +49,7 @@ export default function UsersPage() {
     fetchUsers,
     fetchUserStats,
     updateUserStatus,
+    resetUserHandle,
     deleteUser,
   } = useAdmin();
 
@@ -65,6 +66,7 @@ export default function UsersPage() {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [editingNickname, setEditingNickname] = useState('');
   const [isSavingNickname, setIsSavingNickname] = useState(false);
+  const [isResettingHandle, setIsResettingHandle] = useState(false);
 
   useEffect(() => {
     if (adminKey) {
@@ -138,6 +140,25 @@ export default function UsersPage() {
       showErrorToast('오류가 발생했습니다.');
     } finally {
       setIsSavingNickname(false);
+    }
+  };
+
+  // 부적절한 핸들 초기화
+  const handleResetHandle = async () => {
+    if (!selectedUser?.handle) return;
+    const ok = window.confirm(
+      `@${selectedUser.handle} 핸들을 초기화하시겠습니까?\n\n닉네임을 바탕으로 새 핸들이 만들어지고, 사용자는 바로 다른 핸들을 고를 수 있습니다.\n이전 핸들은 30일 동안 아무도(본인 포함) 쓸 수 없습니다.`,
+    );
+    if (!ok) return;
+    setIsResettingHandle(true);
+    try {
+      const res = await resetUserHandle(selectedUser.id);
+      setSelectedUser((prev) => ({ ...prev, handle: res.handle }));
+      showSuccessToast(`@${res.previous} → @${res.handle}로 초기화했습니다.`);
+    } catch (err) {
+      showErrorToast(err.message);
+    } finally {
+      setIsResettingHandle(false);
     }
   };
 
@@ -554,6 +575,27 @@ export default function UsersPage() {
                       변경 저장
                     </Button>
                   </div>
+
+                  {/* 핸들 초기화 */}
+                  {selectedUser.handle && (
+                    <div className="user-modal-handle-row">
+                      <div>
+                        <div className="user-modal-meta-label">핸들</div>
+                        <div className="user-modal-handle-value">@{selectedUser.handle}</div>
+                        <div className="user-modal-handle-desc">
+                          부적절한 핸들이면 초기화합니다. 이전 핸들은 30일 동안 아무도 쓸 수 없습니다.
+                        </div>
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        loading={isResettingHandle}
+                        onClick={handleResetHandle}
+                      >
+                        핸들 초기화
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Stats Grid */}
                   <div className="user-modal-meta-grid">

@@ -163,6 +163,19 @@ export function AdminProvider({ children }) {
     return false;
   };
 
+  // 부적절한 핸들 초기화 → { handle, previous } 또는 오류 문구
+  const resetUserHandle = async (userId) => {
+    const res = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/reset-handle`, {
+      method: 'POST',
+      headers: { 'x-admin-key': adminKey },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json?.message || '핸들을 초기화하지 못했습니다.');
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, handle: json.handle } : u)));
+    fetchUserPlaylists(adminKey);
+    return json;
+  };
+
   const deleteUser = async (userId) => {
     try {
       const res = await fetch(`${API_BASE}/api/admin/users/${encodeURIComponent(userId)}`, {
@@ -618,6 +631,7 @@ export function AdminProvider({ children }) {
     fetchUsers,
     fetchUserStats,
     updateUserStatus,
+    resetUserHandle,
     deleteUser,
     fetchDashboardInsights,
     resolveMismatch,

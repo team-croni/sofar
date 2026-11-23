@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS public.profile_handle_history (
   released_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (handle, user_id)
 );
+-- 관리자가 초기화한 핸들은 본인도 30일 동안 다시 쓸 수 없다
+ALTER TABLE public.profile_handle_history ADD COLUMN IF NOT EXISTS by_admin BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE public.profile_handle_history ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.profile_handle_history FROM anon, authenticated;
 
@@ -238,7 +240,9 @@ AS $$
       WHEN EXISTS (SELECT 1 FROM profiles WHERE handle = p_handle AND id IS DISTINCT FROM p_user) THEN 'taken'
       WHEN EXISTS (
         SELECT 1 FROM profile_handle_history
-        WHERE handle = p_handle AND user_id IS DISTINCT FROM p_user AND released_at > now() - interval '30 days'
+        WHERE handle = p_handle
+          AND (user_id IS DISTINCT FROM p_user OR by_admin)
+          AND released_at > now() - interval '30 days'
       ) THEN 'recently_used'
     END
   )
@@ -294,6 +298,40 @@ GRANT EXECUTE ON FUNCTION public.handle_unavailable_reason(TEXT, UUID) TO servic
 GRANT EXECUTE ON FUNCTION public.change_handle(UUID, TEXT, INT) TO service_role;
 -- generate_handle은 소유자 권한으로 도는 트리거·함수 안에서만 쓴다
 REVOKE ALL ON FUNCTION public.profiles_guard() FROM PUBLIC, anon, authenticated;
+
+-- 관리자: 부적절한 핸들 초기화 (닉네임으로 새로 만들고, 사용자는 바로 다시 고를 수 있다)
+-- 이전 핸들은 기록에 남겨 30일 동안 아무도(본인 포함) 쓰지 못하게 한다.
+CREATE OR REPLACE FUNCTION public.admin_reset_handle(p_user UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  cur RECORD;
+  next_handle TEXT;
+BEGIN
+  SELECT handle, username INTO cur FROM profiles WHERE id = p_user FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'no_profile');
+  END IF;
+  IF cur.handle IS NOT NULL THEN
+    INSERT INTO profile_handle_history (handle, user_id, released_at, by_admin)
+    VALUES (cur.handle, p_user, now(), true)
+    ON CONFLICT (handle, user_id) DO UPDATE SET released_at = excluded.released_at, by_admin = true;
+  END IF;
+  -- 같은 핸들이 다시 나오지 않게 잠시 비운 뒤 새로 만든다
+  UPDATE profiles SET handle = NULL WHERE id = p_user;
+  next_handle := generate_handle(cur.username);
+  UPDATE profiles
+  SET handle = next_handle, handle_changed_at = NULL, updated_at = now()
+  WHERE id = p_user;
+  RETURN jsonb_build_object('ok', true, 'handle', next_handle, 'previous', cur.handle);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.admin_reset_handle(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_reset_handle(UUID) TO service_role;
 
 -- 6. 기존 회원에게 핸들 채우기 (한 명씩 → 같은 핸들이 겹치지 않음) ------------
 DO $$
