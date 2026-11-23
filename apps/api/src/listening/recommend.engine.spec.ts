@@ -66,6 +66,8 @@ describe('recommend.engine', () => {
   it('uses chart popularity when there is no history (cold start)', () => {
     const out = recommend(base());
     expect(out.coldStart).toBe(true);
+    // 새 방문자는 A/B 갈래와 상관없이 따로 표시해 버전 비교에 섞이지 않게 한다
+    expect(out.algo).toBe('cold-start');
     const firstTrack = out.items.find((i) => i.type === 'track');
     expect(firstTrack?.reason).toBe('지금 sofar에서 인기');
   });

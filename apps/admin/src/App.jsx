@@ -3,6 +3,7 @@ import DashboardPage from './pages/DashboardPage';
 import CurationsPage from './pages/CurationsPage';
 import SearchRankingPage from './pages/SearchRankingPage';
 import UsersPage from './pages/UsersPage';
+import RecommendationPage from './pages/RecommendationPage';
 import AdminPlaylistEditor from './pages/AdminPlaylistEditor';
 import { AdminProvider } from './context/AdminContext';
 import { ToastProvider } from './context/ToastContext';
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/curations" element={<CurationsPage />} />
           <Route path="/search-ranking" element={<SearchRankingPage />} />
           <Route path="/users" element={<UsersPage />} />
+          <Route path="/recommendation" element={<RecommendationPage />} />
           <Route path="/playlist/new" element={<AdminPlaylistEditor />} />
           <Route path="/playlist/:id" element={<AdminPlaylistEditor />} />
           <Route path="*" element={<Navigate to="/" replace />} />

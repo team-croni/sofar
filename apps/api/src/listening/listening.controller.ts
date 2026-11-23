@@ -27,6 +27,23 @@ export class ListeningController {
     private readonly trainer: LtrTrainerService,
   ) {}
 
+  /** 관리자: 추천 성과 대시보드 (버전별·일별·팔별 성과, 학습 모델, 함께 들은 곡 이웃) */
+  @Get('recommend/dashboard')
+  @UseGuards(AdminGuard)
+  async dashboard(@Query('days') days?: string) {
+    const [stats, trainer] = await Promise.all([
+      this.listeningService.getDashboard(Number(days) || 14),
+      this.trainer.status(),
+    ]);
+    return {
+      success: true,
+      abSplit: this.listeningService.abSplitConfig(),
+      lastTraining: trainer.lastRun,
+      trainingRunning: trainer.running,
+      ...stats,
+    };
+  }
+
   /** 관리자: 학습 가중치 상태 (켜진 버전, 마지막 학습 결과) */
   @Get('recommend/model')
   @UseGuards(AdminGuard)

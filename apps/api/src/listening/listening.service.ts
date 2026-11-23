@@ -415,6 +415,39 @@ export class ListeningService {
         };
   }
 
+  /** 현재 A/B 비율 설정 (대시보드 표시용) */
+  abSplitConfig(): string {
+    if (process.env.REC_AB_SPLIT) return process.env.REC_AB_SPLIT;
+    if (process.env.REC_BANDIT_SHARE !== undefined) {
+      const share = Math.min(
+        100,
+        Math.max(0, Number(process.env.REC_BANDIT_SHARE) || 0),
+      );
+      return `v1:${100 - share},v2:${share}`;
+    }
+    return 'v1:20,v2:40,v3:40';
+  }
+
+  /** 관리자: 추천 성과 대시보드 집계 (supabase_rec_dashboard.sql) */
+  async getDashboard(windowDays: number) {
+    const days = Math.min(90, Math.max(1, Math.round(windowDays) || 14));
+    const res = await supabaseRest<Record<string, unknown>>(
+      'rpc/get_rec_dashboard',
+      {
+        method: 'POST',
+        body: JSON.stringify({ window_days: days }),
+      },
+    );
+    if (!res.ok) {
+      return {
+        available: false,
+        error:
+          '대시보드 집계 함수가 없습니다 (supabase_rec_dashboard.sql 실행 필요)',
+      };
+    }
+    return { available: true, ...(res.data || {}) };
+  }
+
   /** 관리자: 함께 들은 곡 이웃 상태 */
   async cfNeighborStatus() {
     const res = await supabaseRest<Array<{ updated_at: string }>>(

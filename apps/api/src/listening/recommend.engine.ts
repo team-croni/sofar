@@ -28,6 +28,11 @@ export const ALGO_VERSION = 'hybrid-v1';
 export const ALGO_BANDIT = 'hybrid-v2-bandit';
 /** 3단계: 밴딧 배분 + 학습한 가중치로 곡 순위 */
 export const ALGO_LTR = 'hybrid-v3-ltr';
+/**
+ * 감상 기록이 거의 없는 사용자(인기 위주)는 A/B 갈래와 상관없이 같은 추천을 받으므로 따로 표시한다.
+ * (예전에는 hybrid-v1로 기록돼 v1 성과에 새 방문자가 섞였다)
+ */
+export const ALGO_COLD = 'cold-start';
 
 export interface HistoryRow {
   track_key: string;
@@ -827,8 +832,9 @@ export function recommend(input: EngineInput): EngineOutput {
   }
 
   return {
-    algo:
-      useBandit && input.learnedWeights
+    algo: coldStart
+      ? ALGO_COLD
+      : useBandit && input.learnedWeights
         ? ALGO_LTR
         : useBandit
           ? ALGO_BANDIT
