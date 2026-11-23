@@ -1245,7 +1245,9 @@ html.reduce-motion .home-panel-container > .home-section .h-scroll-track > * {
   margin-top: 0.1rem;
   font-size: 0.7rem;
   font-weight: 400;
-  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+  /* 추천 이유는 브랜드 색으로 바로 윗줄(아티스트·만든 사람)과 구분 */
+  color: var(--primary-warm, #d4a373);
+  opacity: 0.85;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -511,7 +511,7 @@ export function recommend(input: EngineInput): EngineOutput {
       c.reason = `${withJosa(`'${simSeed}'`, '과', '와')} 비슷한 곡`;
     } else if (top === 'artist' && c.artist > 0 && c.track.custom_artist) {
       const name = profile.artistName.get(c.artistKey) || c.track.custom_artist;
-      c.reason = `${name} 노래를 즐겨 들어서`;
+      c.reason = `자주 듣는 ${name}의 곡`;
     } else if (top === 'cooc' && coocSeed) {
       c.reason = `${withJosa(`'${coocSeed}'`, '과', '와')} 함께 담긴 곡`;
     } else {
