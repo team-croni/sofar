@@ -92,7 +92,7 @@ export default function RightHeader() {
 
   return (
     <header 
-      className={`right-panel-header ${isTransitioning ? 'is-transitioning' : ''} ${location.pathname.startsWith('/@') ? 'is-channel' : ''}`}
+      className={`right-panel-header ${isTransitioning ? 'is-transitioning' : ''}`}
       ref={headerRef}
       style={{ '--header-scroll-opacity': headerOpacity }}
     >

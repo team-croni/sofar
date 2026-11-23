@@ -12,6 +12,7 @@ import './ChannelPage.css';
 
 const HEADER_HEIGHT = 64; // RightHeader 높이 (sticky 바가 이 아래에 붙는다)
 
+
 function openPlaylistInSidebar(pl) {
   window.dispatchEvent(new CustomEvent('trigger-open-shared-playlist', {
     detail: { ...pl, _openedAt: Date.now() },
@@ -54,13 +55,15 @@ function useChannelScroll(pageRef, bannerRef, sentinelRef, enabled) {
     const update = () => {
       frame = 0;
       const y = scroller.scrollTop;
-      const banner = bannerRef.current;
-      if (banner && !reduceMotion) {
-        const h = banner.offsetHeight || 1;
+      const hero = bannerRef.current;
+      if (hero && !reduceMotion) {
+        const h = hero.offsetHeight || 1;
         const p = Math.min(1, Math.max(0, y / h));
-        // 배너 이미지는 스크롤보다 느리게(0.45배) 내려가며 살짝 확대·흐려진다
-        banner.style.setProperty('--ch-parallax', `${y * 0.45}px`);
-        banner.style.setProperty('--ch-banner-fade', String(1 - p * 0.65));
+        // 배경은 스크롤보다 느리게(0.5배) 내려가며 옅어지고, 프로필은 살짝 위로 빠지며 흐려진다
+        hero.style.setProperty('--ch-parallax', `${y * 0.5}px`);
+        hero.style.setProperty('--ch-hero-fade', String(1 - p * 0.9));
+        hero.style.setProperty('--ch-hero-lift', `${y * -0.12}px`);
+        hero.style.setProperty('--ch-hero-content-fade', String(Math.max(0, 1 - p * 1.3)));
       }
       const sentinel = sentinelRef.current;
       if (sentinel) {
@@ -84,23 +87,17 @@ function useChannelScroll(pageRef, bannerRef, sentinelRef, enabled) {
   return stuck;
 }
 
-function ChannelBanner({ channel, bannerRef }) {
-  const hue = vinylHueFromSeed(channel.handle);
+/** 프로필 뒤 배경: 프로필 이미지를 크게 흐리거나(없으면 핸들별 색), 아래로 갈수록 페이지 배경에 녹아든다 */
+function ChannelHeroBackdrop({ channel }) {
   return (
-    <div
-      ref={bannerRef}
-      className="channel-banner"
-      style={{ '--ch-hue': hue }}
-      aria-hidden="true"
-    >
-      <div className="channel-banner-media">
+    <div className="channel-hero-backdrop" aria-hidden="true">
+      <div className="channel-hero-media">
         {channel.avatarUrl ? (
-          <img src={channel.avatarUrl} alt="" className="channel-banner-img" draggable={false} />
+          <img src={channel.avatarUrl} alt="" className="channel-hero-img" draggable={false} />
         ) : (
-          <div className="channel-banner-gradient" />
+          <div className="channel-hero-gradient" />
         )}
       </div>
-      <div className="channel-banner-shade" />
     </div>
   );
 }
@@ -108,19 +105,20 @@ function ChannelBanner({ channel, bannerRef }) {
 function ChannelSkeleton() {
   return (
     <div className="channel-layout" aria-busy="true">
-      <div className="channel-banner channel-skel" />
-      <div className="channel-identity">
-        <div className="channel-skel channel-skel--avatar" />
-        <div className="channel-identity-text">
-          <div className="channel-skel" style={{ width: 180, height: 30 }} />
-          <div className="channel-skel" style={{ width: 260, height: 16 }} />
+      <section className="channel-hero">
+        <div className="channel-identity">
+          <div className="channel-skel channel-skel--avatar" />
+          <div className="channel-identity-text">
+            <div className="channel-skel" style={{ width: 220, height: 44 }} />
+            <div className="channel-skel" style={{ width: 280, height: 16 }} />
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
 
-/** 채널 = sofar.app/@handle 공개 프로필 (유튜브 채널처럼 배너 + 붙는 탭 바) */
+/** 채널 = sofar.app/@handle 공개 프로필 (헤더 뒤까지 번지는 프로필 배경 + 헤더 아래에 붙는 탭 바) */
 export default function ChannelPage({ handle }) {
   const navigate = useNavigate();
   const { currentTrack, playTrack, addToQueue, setPlayingSource, showToast } = useAudio();
@@ -211,10 +209,14 @@ export default function ChannelPage({ handle }) {
   return (
     <div className={pageClass} ref={pageRef}>
       <div className="channel-layout">
-        <ChannelBanner channel={data} bannerRef={bannerRef} />
-
-        <section className="channel-identity">
-          <Avatar src={data.avatarUrl} name={data.nickname} size={128} className="channel-avatar" />
+        <section
+          ref={bannerRef}
+          className="channel-hero"
+          style={{ '--ch-hue': vinylHueFromSeed(data.handle) }}
+        >
+          <ChannelHeroBackdrop channel={data} />
+          <div className="channel-identity">
+          <Avatar src={data.avatarUrl} name={data.nickname} size={160} className="channel-avatar" />
           <div className="channel-identity-text">
             <h1 className="channel-name" title={data.nickname}>{data.nickname}</h1>
             <p className="channel-sub">
@@ -234,6 +236,7 @@ export default function ChannelPage({ handle }) {
                 링크 복사
               </Button>
             </div>
+          </div>
           </div>
         </section>
 
