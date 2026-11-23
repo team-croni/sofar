@@ -123,6 +123,8 @@ export interface EngineInput {
   popular: CandidateTrack[];
   /** 좋아한 곡별 비슷한 곡 (없으면 생략) */
   similar?: SimilarGroup[];
+  /** 같은 곡을 들은 리스너들이 함께 들은 곡 (4단계, 협업 필터링). match = 코사인 유사도 */
+  cf?: SimilarGroup[];
   /** 사용자가 '관심 없음'으로 표시한 곡 키·플레이리스트 ID·아티스트 */
   notInterested?: NotInterested;
   /** 공개 플레이리스트별 반응 집계 (본인 제외, 사람 수 기준) */
@@ -395,6 +397,8 @@ interface TrackCandidate {
   bestPlaylist?: { rel: number; seedKey?: string };
   sim: number;
   bestSim?: { v: number; seedKey: string };
+  cf: number;
+  bestCf?: { v: number; seedKey: string };
   personal: number;
   artist: number;
   pop: number;
@@ -463,13 +467,14 @@ export function recommend(input: EngineInput): EngineOutput {
         artistKey,
         cooc: 0,
         sim: 0,
+        cf: 0,
         personal: 0,
         artist: artistScore(artistKey),
         pop: popScore.get(key) || 0,
         score: 0,
         reason: '',
         arm: 'popular',
-        features: { cooc: 0, sim: 0, artist: 0, pop: 0 },
+        features: { cooc: 0, sim: 0, artist: 0, pop: 0, cf: 0 },
       };
       candidates.set(key, c);
     }
@@ -508,15 +513,29 @@ export function recommend(input: EngineInput): EngineOutput {
     }
   }
 
+  for (const group of input.cf || []) {
+    const seedAff = Math.max(0, profile.trackAff.get(group.seedKey) || 0);
+    if (seedAff <= 0) continue;
+    for (const t of group.tracks) {
+      const c = touch(t);
+      if (!c) continue;
+      const v = seedAff * (typeof t.match === 'number' ? t.match : 0.5);
+      c.cf += v;
+      if (!c.bestCf || v > c.bestCf.v) c.bestCf = { v, seedKey: group.seedKey };
+    }
+  }
+
   const coocMax =
     maxPositive(Array.from(candidates.values(), (c) => c.cooc)) || 1;
+  const cfMax = maxPositive(Array.from(candidates.values(), (c) => c.cf)) || 1;
   const simMax =
     maxPositive(Array.from(candidates.values(), (c) => c.sim)) || 1;
 
   for (const c of candidates.values()) {
     const cooc = c.cooc / coocMax;
     const sim = c.sim / simMax;
-    c.features = { cooc, sim, artist: c.artist, pop: c.pop };
+    const cf = c.cf / cfMax;
+    c.features = { cooc, sim, artist: c.artist, pop: c.pop, cf };
     if (coldStart) {
       c.score = c.pop + 0.3 * cooc + jitter(c.key);
       c.reason = '지금 sofar에서 인기';
@@ -527,6 +546,7 @@ export function recommend(input: EngineInput): EngineOutput {
       { kind: 'cooc', v: 0.35 * cooc },
       { kind: 'sim', v: 0.35 * sim },
       { kind: 'artist', v: 0.3 * c.artist },
+      { kind: 'cf', v: 0.35 * cf },
     ];
     c.personal = parts.reduce((sum, part) => sum + part.v, 0);
     c.score = input.learnedWeights
@@ -540,14 +560,21 @@ export function recommend(input: EngineInput): EngineOutput {
           ? 'similar'
           : top === 'artist'
             ? 'artist'
-            : 'cooc';
+            : top === 'cf'
+              ? 'cf'
+              : 'cooc';
     const coocSeed = c.bestPlaylist?.seedKey
       ? profile.trackTitle.get(c.bestPlaylist.seedKey)
       : undefined;
     const simSeed = c.bestSim
       ? profile.trackTitle.get(c.bestSim.seedKey)
       : undefined;
-    if (top === 'sim' && simSeed) {
+    const cfSeed = c.bestCf
+      ? profile.trackTitle.get(c.bestCf.seedKey)
+      : undefined;
+    if (top === 'cf' && cfSeed) {
+      c.reason = `'${cfSeed}' 리스너들이 함께 들은 곡`;
+    } else if (top === 'sim' && simSeed) {
       c.reason = `${withJosa(`'${simSeed}'`, '과', '와')} 비슷한 곡`;
     } else if (top === 'artist' && c.artist > 0 && c.track.custom_artist) {
       const name = profile.artistName.get(c.artistKey) || c.track.custom_artist;
@@ -606,19 +633,21 @@ export function recommend(input: EngineInput): EngineOutput {
 
   if (useBandit) {
     // 2단계(밴딧): 팔마다 보상 비율을 뽑아 자리를 나눈다.
-    // 개인화 팔(cooc·similar·artist)은 취향 신뢰도만큼, 인기 팔은 나머지만큼 가중한다.
+    // 개인화 팔(cooc·similar·artist·cf)은 취향 신뢰도만큼, 인기 팔은 나머지만큼 가중한다.
     const rng = createRng(`${input.seed}:bandit`);
     const thetas = sampleArmThetas(input.bandit?.stats || {}, rng);
     const pools: Record<Arm, TrackCandidate[]> = {
       cooc: personalSorted.filter((c) => c.arm === 'cooc'),
       similar: personalSorted.filter((c) => c.arm === 'similar'),
       artist: personalSorted.filter((c) => c.arm === 'artist'),
+      cf: personalSorted.filter((c) => c.arm === 'cf'),
       popular: popularFirst,
     };
     const available = {
       cooc: pools.cooc.filter(canPick).length,
       similar: pools.similar.filter(canPick).length,
       artist: pools.artist.filter(canPick).length,
+      cf: pools.cf.filter(canPick).length,
       popular: pools.popular.filter(canPick).length,
     };
     armQuotas = allocateSlots(
@@ -627,6 +656,7 @@ export function recommend(input: EngineInput): EngineOutput {
         cooc: thetas.cooc * confidence,
         similar: thetas.similar * confidence,
         artist: thetas.artist * confidence,
+        cf: thetas.cf * confidence,
         popular: thetas.popular * (1 - confidence),
       },
       available,
@@ -635,6 +665,7 @@ export function recommend(input: EngineInput): EngineOutput {
       cooc: [],
       similar: [],
       artist: [],
+      cf: [],
       popular: [],
     };
     const armOrder = (Object.keys(thetas) as Arm[]).sort(

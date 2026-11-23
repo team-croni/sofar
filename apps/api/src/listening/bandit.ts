@@ -8,7 +8,7 @@
  * 외부 의존성 없는 순수 함수만 둔다.
  */
 
-export const ARMS = ['cooc', 'similar', 'artist', 'popular'] as const;
+export const ARMS = ['cooc', 'similar', 'artist', 'popular', 'cf'] as const;
 export type Arm = (typeof ARMS)[number];
 
 export interface ArmStats {
@@ -101,10 +101,13 @@ export function allocateSlots(
   available: Record<Arm, number>,
   floor = 0.08,
 ): Record<Arm, number> {
-  const quotas = { cooc: 0, similar: 0, artist: 0, popular: 0 } as Record<
-    Arm,
-    number
-  >;
+  const quotas = {
+    cooc: 0,
+    similar: 0,
+    artist: 0,
+    popular: 0,
+    cf: 0,
+  } as Record<Arm, number>;
   const active = ARMS.filter((arm) => available[arm] > 0);
   if (active.length === 0 || total <= 0) return quotas;
 
