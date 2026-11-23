@@ -58,6 +58,9 @@
   align-items: center;
   gap: 0.35rem;
   height: 36px;
+  /* 광학 정렬: 버튼(36px) 안의 아이콘 여백만큼 당겨, 눈에 보이는 '<' 선을
+     헤더 안쪽 여백(2.5rem) = 본문 왼쪽 선에 맞춘다 (호버 원은 살짝 바깥으로 나감) */
+  margin-left: -14px;
 }
 
 .header-nav-btn {

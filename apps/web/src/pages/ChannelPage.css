@@ -4,7 +4,8 @@
 ──────────────────────────────────────────────────────────── */
 .channel-page {
   --ch-header: 64px;
-  --ch-gutter: 2.5rem; /* 좌우 여백 (배경·탭 바를 끝까지 늘리는 데 씀) */
+  /* 좌우 여백 = 헤더 안쪽 여백(2.5rem). 본문 왼쪽 선이 헤더의 '<' 선과 맞도록 화면 폭과 상관없이 같게 둔다 */
+  --ch-gutter: 2.5rem;
   --ch-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ch-name-size: clamp(2.25rem, 4.5vw, 3.75rem); /* 이름 글자 크기 (스켈레톤도 같은 값) */
   --ch-avatar: 160px;
@@ -478,11 +479,6 @@
 }
 
 /* 좁은 화면 ─────────────────────── */
-@media (max-width: 1100px) {
-  .channel-page {
-    --ch-gutter: 1.5rem;
-  }
-}
 
 @media (max-width: 720px) {
   .channel-identity {
