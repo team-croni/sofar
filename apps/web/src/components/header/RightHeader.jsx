@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ChevronDown, LogOut, LogIn, Disc, Home, Search, Headset, Headphones, UserRound, Settings } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, LogOut, LogIn, Disc, Home, Search, Headset, Headphones, UserRound, Settings, AtSign } from 'lucide-react';
 import { getUserDisplayName, getUserAvatarUrl } from '../../utils/userProfile';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavHistory } from '../../hooks/useNavHistory';
+import { useHandle } from '../../hooks/useHandle';
+import { channelPath } from '../../hooks/useChannel';
 import Avatar from '../ui/Avatar';
 import Dropdown from '../ui/Dropdown';
 import './RightHeader.css';
@@ -13,6 +15,7 @@ export default function RightHeader() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { canGoBack, canGoForward } = useNavHistory();
+  const { handle: myHandle } = useHandle();
 
   const [scrollOpacity, setScrollOpacity] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -77,6 +80,7 @@ export default function RightHeader() {
     if (isNowPlayingPage) return { title: 'Now Playing', icon: <Headphones size={16} /> };
     if (location.pathname === '/me') return { title: '내 정보', icon: <UserRound size={16} /> };
     if (location.pathname === '/settings') return { title: '설정', icon: <Settings size={16} /> };
+    if (location.pathname.startsWith('/@')) return { title: '채널', icon: <AtSign size={16} /> };
     return { title: 'Home', icon: <Home size={16} /> };
   };
 
@@ -170,6 +174,18 @@ export default function RightHeader() {
               <div className="profile-dropdown-divider" />
 
               <div className="profile-dropdown-actions">
+                {!isGuest && myHandle && (
+                  <button
+                    className="profile-dropdown-item"
+                    onClick={() => {
+                      close();
+                      navigate(channelPath(myHandle));
+                    }}
+                  >
+                    <AtSign size={15} />
+                    <span>내 채널</span>
+                  </button>
+                )}
                 <button
                   className="profile-dropdown-item"
                   onClick={() => {

@@ -58,6 +58,10 @@
   align-items: center;
   gap: 0.35rem;
   height: 36px;
+  /* 광학 정렬: 버튼(36px) 안의 아이콘 여백만큼 당겨 '<'를 본문 왼쪽 선(2.5rem)에 맞춘다.
+     꼭짓점 한 점만 선에 닿는 뾰족한 모양은 선에 딱 맞추면 바깥으로 튀어나와 보이므로,
+     꼭짓점이 본문 글자의 잉크 시작점(선 +1px)에 오도록 1px 덜 당긴다. (호버 원은 살짝 바깥으로 나감) */
+  margin-left: -13px;
 }
 
 .header-nav-btn {
@@ -234,4 +238,10 @@
 .profile-dropdown-item.logout-btn:hover {
   color: #ff6b6b;
   background: rgba(255, 107, 107, 0.12);
+}
+
+/* 채널: 탭 바가 헤더 아래에 붙으면 탭 바가 헤더 뒤까지 배경을 한 장으로 깐다.
+   헤더 자체 배경까지 겹치면 두 흐림 사이에 경계선이 보이므로 그동안 헤더 배경은 숨긴다. */
+.right-panel-column:has(.channel-tabbar.is-stuck) .right-panel-header::before {
+  opacity: 0;
 }

@@ -1,0 +1,535 @@
+/* ── 채널 (sofar.app/@handle) ─────────────────────────────
+   배너(패럴렉스) → 프로필 → 헤더 아래에 붙는 탭 바 → 내용
+   스크롤 컨테이너는 .right-main-content (sticky·패럴렉스 모두 이 기준)
+──────────────────────────────────────────────────────────── */
+.channel-page {
+  --ch-header: 64px;
+  /* 좌우 여백 = 헤더 안쪽 여백(2.5rem). 본문 왼쪽 선이 헤더의 '<' 선과 맞도록 화면 폭과 상관없이 같게 둔다 */
+  --ch-gutter: 2.5rem;
+  --ch-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ch-name-size: clamp(2.25rem, 4.5vw, 3.75rem); /* 이름 글자 크기 (스켈레톤도 같은 값) */
+  --ch-avatar: 160px;
+  /* 채널은 오른쪽 패널 전체 너비를 쓴다 (다른 계정 화면의 1040px 제한 해제) */
+  max-width: none;
+  padding-top: 0;
+  padding-left: var(--ch-gutter);
+  padding-right: var(--ch-gutter);
+  gap: 0;
+}
+
+.channel-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 프로필 영역: 배경이 투명한 헤더 뒤(맨 위)부터 좌우 끝까지 번진다 ───────── */
+.channel-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  margin: 0 calc(-1 * var(--ch-gutter));
+  /* 헤더 높이 + 약간의 여백만 두고 프로필을 바로 보여 준다 (배경은 헤더 뒤까지 번짐) */
+  padding: calc(var(--ch-header) + 1.25rem) var(--ch-gutter) 1.75rem;
+  box-sizing: border-box;
+}
+
+.channel-hero-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  /* 아래로 갈수록 페이지 배경에 녹아든다 */
+  -webkit-mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 35%, transparent 100%);
+  animation: channelFade 0.7s var(--ch-ease) backwards;
+}
+
+/* 스크롤보다 느리게 내려가며 옅어진다 (JS가 --ch-parallax, --ch-hero-fade를 바꾼다) */
+.channel-hero-media {
+  position: absolute;
+  inset: -10% 0 -20%;
+  transform: translate3d(0, var(--ch-parallax, 0px), 0);
+  opacity: var(--ch-hero-fade, 1);
+  will-change: transform, opacity;
+}
+
+/* 프로필 이미지가 있으면 크게 흐려서 은은한 색으로 */
+.channel-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(80px) saturate(1.5) brightness(0.7);
+  transform: scale(1.4);
+  opacity: 0.85;
+}
+
+/* 없으면 핸들마다 다른 색 (LP판 기본색과 같은 OKLCH 톤) */
+.channel-hero-gradient {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(50% 70% at 18% 35%, oklch(0.55 0.11 var(--ch-hue)) 0%, transparent 70%),
+    radial-gradient(45% 65% at 80% 30%, oklch(0.45 0.1 calc(var(--ch-hue) + 50)) 0%, transparent 70%),
+    linear-gradient(180deg, oklch(0.36 0.07 var(--ch-hue)) 0%, oklch(0.24 0.04 var(--ch-hue)) 100%);
+}
+
+/* 프로필 ─────────────────────────── */
+.channel-identity {
+  display: flex;
+  align-items: flex-end;
+  gap: 2rem;
+  width: 100%;
+  min-width: 0;
+  transform: translate3d(0, var(--ch-hero-lift, 0px), 0);
+  opacity: var(--ch-hero-content-fade, 1);
+  will-change: transform, opacity;
+}
+
+.channel-avatar {
+  flex-shrink: 0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  border-radius: 50%;
+  animation: acctAvatarPop 0.6s var(--ch-ease) 120ms backwards;
+}
+
+.channel-identity-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  padding-bottom: 0.25rem;
+}
+
+.channel-identity-text > * {
+  animation: acctEnterUp 0.5s var(--ch-ease) backwards;
+}
+.channel-identity-text > :nth-child(1) { animation-delay: 160ms; }
+.channel-identity-text > :nth-child(2) { animation-delay: 200ms; }
+.channel-identity-text > :nth-child(3) { animation-delay: 240ms; }
+
+.channel-name {
+  margin: 0;
+  font-size: var(--ch-name-size);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text-active);
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.45rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.channel-handle {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.channel-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* 붙는 탭 바 ─────────────────────── */
+.channel-sticky-sentinel {
+  height: 0;
+}
+
+.channel-tabbar {
+  position: sticky;
+  top: var(--ch-header);
+  z-index: 20;
+  margin: 0 calc(-1 * var(--ch-gutter));
+  padding: 0 var(--ch-gutter);
+  border-bottom: 1px solid var(--border-cozy);
+}
+
+/*
+ * 붙으면 배경을 깐다. 배경은 헤더 뒤(위로 헤더 높이만큼)까지 한 장으로 늘려,
+ * 헤더와 탭 바가 각자 흐림을 그릴 때 생기던 경계선을 없앤다.
+ * (그동안 헤더 자체 배경은 RightHeader.css에서 숨긴다)
+ */
+.channel-tabbar::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--ch-header)) 0 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--bg-cozy, #121212) 84%, transparent);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.channel-tabbar.is-stuck::before {
+  opacity: 1;
+}
+
+.channel-tabbar-inner {
+  display: flex;
+  align-items: center;
+  /* 간격은 gap 대신 각 요소 여백으로 준다 (숨은 작은 프로필 뒤에 간격이 남지 않게) */
+  gap: 0;
+  height: 52px;
+}
+
+/* 붙었을 때만 왼쪽에 작은 프로필이 나타난다 */
+.channel-tabbar-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: max-width 0.35s var(--ch-ease), margin-right 0.35s var(--ch-ease), opacity 0.25s ease, transform 0.35s var(--ch-ease);
+  white-space: nowrap;
+}
+
+.channel-tabbar.is-stuck .channel-tabbar-identity {
+  max-width: 260px;
+  margin-right: 1.25rem;
+  opacity: 1;
+  transform: none;
+}
+
+.channel-tabbar-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-active);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.channel-tabs {
+  display: flex;
+  align-self: stretch;
+  gap: 0.25rem;
+  /* 탭 좌우 안쪽 여백만큼 당겨 첫 탭 글자를 아바타·카드의 왼쪽 선에 맞춘다 */
+  margin-left: -0.85rem;
+}
+
+/* 붙어서 작은 프로필이 앞에 나오면 그 뒤에 자연스럽게 이어지도록 당김을 푼다 */
+.channel-tabbar.is-stuck .channel-tabs {
+  margin-left: 0;
+}
+
+.channel-tab {
+  position: relative;
+  padding: 0 0.85rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.channel-tab::after {
+  content: '';
+  position: absolute;
+  left: 0.85rem;
+  right: 0.85rem;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-active);
+  transform: scaleX(0);
+  transition: transform 0.3s var(--ch-ease);
+}
+
+.channel-tab:hover {
+  color: var(--text-primary);
+}
+
+.channel-tab.is-active {
+  color: var(--text-active);
+}
+
+.channel-tab.is-active::after {
+  transform: scaleX(1);
+}
+
+.channel-tab:focus-visible {
+  outline: 2px solid var(--primary-warm, #d4a373);
+  outline-offset: -4px;
+  border-radius: 8px;
+}
+
+.channel-sort {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+  padding-left: 1.25rem;
+}
+
+.channel-sort-btn {
+  height: 30px;
+  padding: 0 0.8rem;
+  border: 1px solid var(--border-cozy);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.channel-sort-btn:hover {
+  color: var(--text-primary);
+}
+
+.channel-sort-btn.is-active {
+  background: var(--text-active);
+  border-color: var(--text-active);
+  color: #111;
+}
+
+/* 내용 ─────────────────────────── */
+.channel-panel {
+  padding-top: 1.75rem;
+  /* 내용이 짧아도 탭 바가 헤더 아래에 붙을 때까지 스크롤할 수 있게 (화면 높이 − 헤더 − 탭 바) */
+  min-height: calc(100vh - var(--ch-header) - 53px);
+  box-sizing: border-box;
+}
+
+/* 공개 플레이리스트: 왼쪽 위부터 한 장씩 */
+.channel-grid-item {
+  min-width: 0;
+  animation: pageEnterUp 0.45s var(--ch-ease) backwards;
+  animation-delay: calc(260ms + var(--enter-i, 0) * 40ms);
+}
+
+/* 정보 탭 */
+.channel-about {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 640px;
+}
+
+.channel-about-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.channel-about-stats li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.75rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border-cozy);
+  border-radius: 14px;
+  background: var(--bg-card);
+  animation: acctEnterUp 0.45s var(--ch-ease) backwards;
+}
+
+.channel-about-stats li:nth-child(2) { animation-delay: 40ms; }
+.channel-about-stats li:nth-child(3) { animation-delay: 80ms; }
+.channel-about-stats li:nth-child(4) { animation-delay: 120ms; }
+
+.channel-about-stats svg {
+  grid-row: span 2;
+  color: var(--text-muted);
+}
+
+.channel-about-stats strong {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-active);
+  font-variant-numeric: tabular-nums;
+}
+
+.channel-about-stats span {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.channel-about-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--border-cozy);
+  border-radius: 14px;
+}
+
+.channel-about-url {
+  min-width: 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 불러오는 중 · 없는 채널 ─────────── */
+.channel-skel {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  animation: channelPulse 1.4s ease-in-out infinite;
+}
+
+.channel-skel--avatar {
+  width: var(--ch-avatar);
+  height: var(--ch-avatar);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 이름 한 줄 높이(글자 크기 × 줄 높이 1.05)와 같게 */
+.channel-skel--name {
+  width: min(320px, 60vw);
+  height: calc(var(--ch-name-size) * 1.05);
+  border-radius: 12px;
+}
+
+.channel-skel--sub {
+  width: min(300px, 55vw);
+  height: calc(0.875rem * 1.5); /* 0.875rem 글자 한 줄 (실제 21px) */
+}
+
+.channel-skel--button {
+  width: 104px;
+  height: 36px; /* Button size="sm" 실제 높이 */
+  border-radius: 9px;
+}
+
+.channel-skel--tab {
+  width: 76px;
+  height: 18px;
+  align-self: center;
+  margin: 0 0.85rem;
+}
+
+.channel-skel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.channel-skel--cover {
+  width: 100%;
+  margin-top: 10px; /* 카드 위로 겹쳐 보이는 층 높이만큼 (PlaylistCard 표지 위치) */
+  aspect-ratio: 1;
+  border-radius: 16px;
+}
+
+.channel-skel--title {
+  width: 60%;
+  height: 14px;
+}
+
+/* 스켈레톤은 진입 애니메이션 없이 바로 자리만 잡는다 */
+.channel-layout--skeleton .channel-identity-text > * {
+  animation: none;
+}
+
+.channel-missing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 2.25rem;
+}
+
+.channel-missing-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-active);
+}
+
+.channel-missing-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+@keyframes channelPulse {
+  50% { opacity: 0.5; }
+}
+
+@keyframes channelFade {
+  from { opacity: 0; }
+}
+
+/* 좁은 화면 ─────────────────────── */
+
+@media (max-width: 720px) {
+  .channel-identity {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .channel-page {
+    --ch-avatar: 112px;
+  }
+  .channel-avatar {
+    width: var(--ch-avatar);
+    height: var(--ch-avatar);
+  }
+  .channel-tabbar.is-stuck .channel-tabbar-identity {
+    max-width: 0;
+    opacity: 0;
+  }
+  .channel-sort-btn {
+    padding: 0 0.6rem;
+  }
+}
+
+/* '동작 줄이기' · 시스템 설정: 진입 애니메이션과 패럴렉스 생략 */
+html.reduce-motion .channel-hero-backdrop,
+html.reduce-motion .channel-avatar,
+html.reduce-motion .channel-identity-text > *,
+html.reduce-motion .channel-grid-item,
+html.reduce-motion .channel-about-stats li {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .channel-hero-backdrop,
+  .channel-avatar,
+  .channel-identity-text > *,
+  .channel-grid-item,
+  .channel-about-stats li,
+  .channel-skel {
+    animation: none;
+  }
+  .channel-hero-media,
+  .channel-identity {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* 카드의 만든 시점 ('2주 전') */
+.channel-card-date {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

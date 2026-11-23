@@ -204,7 +204,7 @@ export default function LegalPage({ defaultTab }) {
             <article className="legal-content">
               <div className="legal-title-group">
                 <h1 className="legal-main-title">개인정보 처리방침</h1>
-                <p className="legal-date">시행일자: 2026년 11월 24일 (v2.5.0)</p>
+                <p className="legal-date">시행일자: 2026년 11월 24일 (v2.6.0)</p>
               </div>
 
               <section className="legal-section">
@@ -232,6 +232,9 @@ export default function LegalPage({ defaultTab }) {
                   </li>
                   <li>
                     <span>핸들(@아이디)</span>: 가입 시 닉네임을 바탕으로 자동으로 만들어지며(이메일 주소는 쓰지 않음), 이용자가 바꿀 수 있습니다. 닉네임과 마찬가지로 다른 이용자에게 공개됩니다. 사칭을 막기 위해 바꾸기 전 핸들은 30일 동안 보관한 뒤 지웁니다.
+                  </li>
+                  <li>
+                    <span>채널 페이지 (공개)</span>: 핸들 주소(예: sofar 주소/@핸들)의 채널 페이지에는 닉네임, 핸들, 직접 올린 프로필 이미지, 가입 연월, 공개 플레이리스트와 그 플레이리스트가 받은 좋아요 수가 누구에게나 표시됩니다. 이메일, 출생 연도·성별, 감상 기록은 표시하지 않습니다. 설정에서 '공유 플레이리스트에 닉네임 표시'를 끄면 채널에 플레이리스트가 표시되지 않습니다.
                   </li>
                   <li>
                     <span>프로필 수정 시 (선택)</span>: 이용자가 직접 올린 프로필 이미지
@@ -357,6 +360,7 @@ export default function LegalPage({ defaultTab }) {
               <section className="legal-section">
                 <h2>9. 개인정보 처리방침의 변경</h2>
                 <ul>
+                  <li><span>v2.6.0 (2026년 11월 24일)</span>: 채널 페이지에 공개되는 항목 추가</li>
                   <li><span>v2.5.0 (2026년 11월 24일)</span>: 출생 연도·성별 선택 입력 항목, 이용 목적(연령대·성별 통계, 추천 개선), 삭제 방법 추가, 핸들(@아이디) 항목 추가</li>
                   <li><span>v2.4.0 (2026년 11월 23일)</span>: 다른 이용자들의 감상 기록을 개인을 알아볼 수 없게 집계한 '함께 들은 곡' 정보를 추천에 활용함을 명시</li>
                   <li><span>v2.3.0 (2026년 11월 20일)</span>: 플레이리스트 좋아요·조회·공유 유입 기록과 추천 '관심 없음' 기록 수집 및 보관 기간 추가</li>

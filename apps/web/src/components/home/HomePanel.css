@@ -271,7 +271,9 @@
   height: 160px;
   padding: 0;
   border-radius: 24px;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  /* 테두리는 ::after로 이미지 위에 그린다 (아래 '커버 테두리' 참고) */
+  border: 0;
+  --cover-border: rgba(255, 255, 255, 0.15);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
   color: inherit;
@@ -449,12 +451,8 @@
 }
 
 /* 재생 중 테두리: 취향 저격 추천 카드와 같은 강조색 */
-.album-card__cover {
-  transition: border-color 0.15s ease;
-}
-
 .album-card--playing .album-card__cover {
-  border-color: var(--primary-warm, #d4a373);
+  --cover-border: var(--primary-warm, #d4a373);
 }
 
 /* ── 하단 2단 분할 ── */
@@ -1161,11 +1159,29 @@ html.reduce-motion .home-section--recommended .playlist-folder-grid > * {
   aspect-ratio: 1;
   padding: 0;
   border-radius: 16px;
-  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  /* 테두리는 ::after로 이미지 위에 그린다 (아래 '커버 테두리' 참고) */
+  border: 0;
+  --cover-border: rgba(255, 255, 255, 0.15);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.05);
   color: inherit;
   cursor: pointer;
+}
+
+/*
+ * 커버 테두리: 상자에 border를 주면 이미지가 테두리 안쪽 선으로 잘리는데,
+ * squircle 모서리에서는 바깥 선과 안쪽 선의 곡선이 달라 테두리와 이미지 사이에 틈이 보인다.
+ * 이미지는 상자 전체를 채우고, 같은 모양의 테두리를 위에 겹쳐 그려 틈을 없앤다.
+ */
+.album-card__cover::after,
+.foryou-card__cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--cover-border);
+  border-radius: inherit;
+  corner-shape: inherit;
+  pointer-events: none;
   transition: border-color 0.15s ease;
 }
 
@@ -1183,7 +1199,7 @@ html.reduce-motion .home-section--recommended .playlist-folder-grid > * {
 
 .foryou-card--active .foryou-card__cover,
 .foryou-card--playing .foryou-card__cover {
-  border-color: var(--primary-warm, #d4a373);
+  --cover-border: var(--primary-warm, #d4a373);
 }
 
 .foryou-card__img {
@@ -1349,7 +1365,7 @@ html.reduce-motion .foryou-grid.is-revealing > * {
 }
 
 .foryou-card--skeleton .foryou-card__cover {
-  border-color: rgba(255, 255, 255, 0.06);
+  --cover-border: rgba(255, 255, 255, 0.06);
   cursor: default;
 }
 

@@ -4,6 +4,7 @@
 
 | 문서 파일명 | 최종 수정일 | 수정 요약 | 버전 |
 | :--- | :--- | :--- | :--- |
+| [channel-spec.md](./channel-spec.md) | 2026-11-24 | 채널(공개 프로필, /@handle): 보여 주는 항목, 익명·정지 처리, API | v1.0.0 |
 | [supabase_profile_handles.sql](./supabase_profile_handles.sql) | 2026-11-24 | 핸들(@아이디) 컬럼·규칙·자동 생성·30일 변경 제한, 브라우저 직접 변경 차단, 표시 이름 정리·사칭 방지, 관리자 핸들 초기화 | v1.1.0 |
 | [supabase_profile_demographics.sql](./supabase_profile_demographics.sql) | 2026-11-24 | 출생 연도·성별(선택) 별도 테이블, API만 접근, profiles의 미사용 컬럼 제거 | v1.0.0 |
 | [recommendation-spec.md](./recommendation-spec.md) | 2026-11-24 | 추천 성과 대시보드(관리자), 새 방문자 `cold-start` 분리 추가 | v1.5.0 |
