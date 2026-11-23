@@ -13,6 +13,7 @@
  * 새로 공유된 플레이리스트와 인기곡 몇 개를 섞어 새로운 음악도 만나게 한다.
  */
 
+import { LtrFeatureValues, LtrWeights, scoreWithWeights } from './ltr';
 import {
   Arm,
   ArmStats,
@@ -25,6 +26,8 @@ import {
 export const ALGO_VERSION = 'hybrid-v1';
 /** 2단계: 후보 출처(팔) 비율을 Thompson sampling으로 정하는 버전 */
 export const ALGO_BANDIT = 'hybrid-v2-bandit';
+/** 3단계: 밴딧 배분 + 학습한 가중치로 곡 순위 */
+export const ALGO_LTR = 'hybrid-v3-ltr';
 
 export interface HistoryRow {
   track_key: string;
@@ -126,6 +129,8 @@ export interface EngineInput {
   playlistStats?: Record<string, PlaylistStats>;
   /** 있으면 밴딧 모드: 팔별 노출·보상 집계로 곡 자리를 나눈다 */
   bandit?: { stats: Partial<Record<Arm, ArmStats>> };
+  /** 있으면 고정 가중치 대신 학습한 가중치로 곡 점수를 낸다 (3단계) */
+  learnedWeights?: LtrWeights;
   trackLimit?: number;
   playlistLimit?: number;
 }
@@ -139,6 +144,8 @@ export interface RecommendationItem {
   score: number;
   /** 곡이 나온 후보 출처 (밴딧 학습과 성과 비교에 쓴다) */
   arm?: Arm;
+  /** 점수 재료 (0~1). 서버가 학습 데이터로 남기고, 응답에서는 뺀다 */
+  features?: LtrFeatureValues;
   track?: CandidateTrack;
   playlist?: CandidatePlaylist;
 }
@@ -394,6 +401,7 @@ interface TrackCandidate {
   score: number;
   reason: string;
   arm: Arm;
+  features: LtrFeatureValues;
 }
 
 export function recommend(input: EngineInput): EngineOutput {
@@ -461,6 +469,7 @@ export function recommend(input: EngineInput): EngineOutput {
         score: 0,
         reason: '',
         arm: 'popular',
+        features: { cooc: 0, sim: 0, artist: 0, pop: 0 },
       };
       candidates.set(key, c);
     }
@@ -507,6 +516,7 @@ export function recommend(input: EngineInput): EngineOutput {
   for (const c of candidates.values()) {
     const cooc = c.cooc / coocMax;
     const sim = c.sim / simMax;
+    c.features = { cooc, sim, artist: c.artist, pop: c.pop };
     if (coldStart) {
       c.score = c.pop + 0.3 * cooc + jitter(c.key);
       c.reason = '지금 sofar에서 인기';
@@ -519,7 +529,9 @@ export function recommend(input: EngineInput): EngineOutput {
       { kind: 'artist', v: 0.3 * c.artist },
     ];
     c.personal = parts.reduce((sum, part) => sum + part.v, 0);
-    c.score = c.personal + 0.15 * c.pop + jitter(c.key);
+    c.score = input.learnedWeights
+      ? scoreWithWeights(input.learnedWeights, c.features) + jitter(c.key)
+      : c.personal + 0.15 * c.pop + jitter(c.key);
     const top = parts.sort((a, b) => b.v - a.v)[0].kind;
     c.arm =
       c.personal <= 0
@@ -760,6 +772,7 @@ export function recommend(input: EngineInput): EngineOutput {
     itemId: c.key,
     reason: c.reason,
     arm: c.arm,
+    features: c.features,
     score: Number(c.score.toFixed(4)),
     track: c.track,
   }));
@@ -783,7 +796,12 @@ export function recommend(input: EngineInput): EngineOutput {
   }
 
   return {
-    algo: useBandit ? ALGO_BANDIT : ALGO_VERSION,
+    algo:
+      useBandit && input.learnedWeights
+        ? ALGO_LTR
+        : useBandit
+          ? ALGO_BANDIT
+          : ALGO_VERSION,
     coldStart,
     items,
     ...(armQuotas ? { armQuotas } : {}),

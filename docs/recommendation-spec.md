@@ -1,9 +1,9 @@
 # 감상 기록 수집 및 개인화 추천 명세서
 
 - **Date**: 2026-11-20
-- **Version**: v1.2.0
+- **Version**: v1.3.0
 - **관련 코드**: `apps/api/src/listening/`, `apps/web/src/utils/listeningTelemetry.js`, `apps/web/src/components/home/ForYouSection.jsx`
-- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql), [supabase_rec_bandit.sql](./supabase_rec_bandit.sql)
+- **관련 스키마**: [supabase_listening_events.sql](./supabase_listening_events.sql), [supabase_playlist_signals.sql](./supabase_playlist_signals.sql), [supabase_rec_bandit.sql](./supabase_rec_bandit.sql), [supabase_rec_ltr.sql](./supabase_rec_ltr.sql)
 
 사용자의 감상 기록을 쌓아 두고, 그 기록으로 홈 화면 **취향 저격 추천**(노래·플레이리스트)을 만드는 기능의 명세입니다. 쌓인 기록은 나중에 시간대별·연령별 통계와 추천 고도화에도 씁니다.
 
@@ -184,11 +184,37 @@
 - 기록이 없는 사용자(인기 위주)는 밴딧을 쓰지 않습니다.
 
 ### 6.3. A/B 비교
-- 사용자(또는 브라우저)를 해시로 고정 배정해 `REC_BANDIT_SHARE`%(기본 50)는 `hybrid-v2-bandit`, 나머지는 `hybrid-v1`을 봅니다.
+- 사용자(또는 브라우저)를 해시로 고정 배정합니다. `REC_AB_SPLIT`(기본 `v1:20,v2:40,v3:40`)
+  - `hybrid-v1`: 고정 가중치, `hybrid-v2-bandit`: 밴딧, `hybrid-v3-ltr:{모델 버전}`: 밴딧 + 학습 가중치
 - 이벤트의 `algo`로 버전별 클릭률·30초 이상 감상 비율을 비교합니다 (`supabase_rec_bandit.sql`의 예시 쿼리).
 
-## 7. 향후 고도화
+## 7. 3단계: 점수 가중치 학습 (`hybrid-v3-ltr`)
 
-- 3단계: 노출마다 점수 재료(함께 담긴 곡·비슷한 곡·아티스트·인기·시간대·기기·위치)와 결과를 짝지어 가중치 자체를 학습합니다(위치 편향 보정 포함).
+고정 가중치(함께 담김 0.35·비슷함 0.35·아티스트 0.3·인기 0.15) 대신, 결과로 가중치를 학습합니다. 코드: `ltr.ts`, `ltr-trainer.service.ts`.
+
+### 7.1. 학습 데이터
+- 추천을 내보낼 때 **서버가** 곡마다 점수 재료(`cooc`, `sim`, `artist`, `pop`, 0~1)·팔·위치를 `recommendation_serves`에 남깁니다. 응답에서는 빼고, 클라이언트가 보낸 값은 쓰지 않아 학습 데이터를 조작할 수 없습니다.
+- `get_ltr_training_rows(30, 200)`: 실제로 **보인** 곡만, 정답 = 눌러서 30초 이상 감상. 같은 사람·곡·날은 1행, **사람당 최근 200행까지**만 써서 한 사람(또는 봇)이 학습을 좌우하지 못합니다.
+
+### 7.2. 학습
+- 로지스틱 회귀(외부 라이브러리 없음). 감상이 드물어 양성에 가중치를 줍니다.
+- **위치 보정**: 앞자리 효과를 `1/log2(2+위치)`로 학습 입력에만 넣고, 추천 점수에서는 빼서 "같은 자리라면 얼마나 잘 들릴까"로 순서를 정합니다.
+- 사람 단위로 20%를 검증용으로 떼어(같은 사람이 양쪽에 섞이지 않게) AUC를 잽니다.
+
+### 7.3. 채택 기준 (모두 만족할 때만 새 가중치를 켬)
+1. 노출 2,000건·감상 50건 이상
+2. 검증 AUC가 기존 고정 가중치보다 `max(0.005, 1.96 × 표준오차)` 이상 높음 (Hanley–McNeil 표준오차)
+3. 학습한 가중치의 AUC가 무작위(0.5)보다 95% 신뢰로 높음
+- 무작위 데이터로 100번 시험했을 때 잘못 채택된 경우는 1번이었습니다. 잘못 채택돼도 v3 사용자에게만 적용되고 다음 날 다시 학습합니다.
+
+### 7.4. 실행·운영
+- 서버 시작 10분 뒤부터 **하루 한 번** 자동 학습 (`REC_LTR_AUTO_TRAIN=false`로 끔).
+- 관리자: `GET /api/recommend/model`(켜진 버전·마지막 학습 결과), `POST /api/recommend/model/train`(지금 학습). `x-admin-key` 필요.
+- 켜진 모델은 `rec_model_weights`에 하나만 있고, 없으면 v3는 v2(밴딧)로 동작합니다.
+- `recommendation_serves`도 2년 후 자동 파기, 회원 탈퇴 시 즉시 삭제합니다.
+
+## 8. 향후 고도화
+
 - 4단계: 감상 기록이 수만 건 이상 쌓이면 협업 필터링(행렬 분해·임베딩) 후보를 새 팔로 추가합니다.
+- 학습 재료에 시간대·기기·곡 길이 등 맥락을 추가하고, 플레이리스트 순위에도 같은 방식을 적용합니다.
 - 연령·성별 통계: `profiles.birth_year`, `profiles.gender` 컬럼은 준비되어 있으나, 입력 화면과 개인정보 처리방침 갱신 전에는 수집하지 않습니다.
