@@ -324,8 +324,10 @@ export default function SettingsPage() {
     try {
       await updatePreferences(patch);
       if (okMsg) showToast(okMsg);
+      return true;
     } catch {
       showToast('설정을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      return false;
     }
   };
 
@@ -340,7 +342,8 @@ export default function SettingsPage() {
 
   // 닉네임 표시 설정: 이미 만든 플레이리스트의 작성자 이름도 함께 바꿈
   const toggleShowNickname = async (show) => {
-    await savePref({ showNicknameOnShared: show });
+    // 설정 저장에 실패하면 작성자 이름도 바꾸지 않는다 (설정과 기록이 어긋나지 않게)
+    if (!(await savePref({ showNicknameOnShared: show }))) return;
     if (supabase && user && !isGuest) {
       await supabase
         .from('playlists')
