@@ -338,13 +338,21 @@ $$;
 REVOKE ALL ON FUNCTION public.admin_reset_handle(UUID) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_reset_handle(UUID) TO service_role;
 
--- 6. 기존 회원에게 핸들 채우기 (한 명씩 → 같은 핸들이 겹치지 않음) ------------
+-- 6. 기존 회원에게 핸들 채우기 (한 명씩 → 같은 핸들이 겹치지 않음, 프로필이 없는 계정 포함) ------------
 DO $$
 DECLARE
   r RECORD;
 BEGIN
   FOR r IN SELECT id, username FROM public.profiles WHERE handle IS NULL ORDER BY created_at LOOP
     UPDATE public.profiles SET handle = public.generate_handle(r.username) WHERE id = r.id;
+  END LOOP;
+  -- 프로필 행이 없는 계정(프로필 등록 전에 가입한 회원 등)도 프로필과 핸들을 만든다
+  FOR r IN
+    SELECT u.id FROM auth.users u
+    WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)
+    ORDER BY u.created_at
+  LOOP
+    PERFORM public.ensure_handle(r.id);
   END LOOP;
 END;
 $$;
