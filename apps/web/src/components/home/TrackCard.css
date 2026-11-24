@@ -34,7 +34,9 @@
   background: rgba(0, 0, 0, 0.45);
   color: var(--text-active, #fff);
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .track-card:hover .track-card__overlay,
@@ -43,32 +45,70 @@
   opacity: 1;
 }
 
-.track-card__play-icon {
+/* 재생 아이콘과 헤드폰 아이콘은 가운데 겹쳐 두고, 재생 상태가 바뀌면 서로 교차한다.
+   (사이드바 곡 목록의 재생 시간 ↔ 헤드폰 전환과 같은 시간·곡선·크기 변화) */
+.track-card__play-icon,
+.track-card__now {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 46px;
   height: 46px;
-  transform: scale(0.85);
-  transition: transform 0.2s ease;
+  transition:
+    opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.track-card:hover .track-card__play-icon,
-.track-card .media-card__cover:focus-visible .track-card__play-icon {
-  transform: scale(1);
+.track-card__play-icon {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(0.85);
 }
 
-/* 재생 중: 커버를 어둡게 + 헤드폰 아이콘, 테두리는 강조색 */
+.track-card:not(.track-card--playing):hover .track-card__play-icon,
+.track-card:not(.track-card--playing) .media-card__cover:focus-visible .track-card__play-icon {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.track-card__now {
+  color: var(--primary-warm, #d4a373);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+/* 재생 중: 커버를 더 어둡게, 재생 아이콘은 작아지며 사라지고 헤드폰이 커지며 나타난다. 테두리는 강조색 */
 .track-card--playing .track-card__overlay {
   background: rgba(0, 0, 0, 0.75);
+}
+
+.track-card--playing .track-card__play-icon {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+.track-card--playing .track-card__now {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .track-card--playing .media-card__cover {
   --cover-border: var(--primary-warm, #d4a373);
 }
 
-.track-card__now {
-  color: var(--primary-warm, #d4a373);
+/* 동작 줄이기: 크기 변화 없이 바로 바뀐다 */
+html.reduce-motion .track-card__overlay,
+html.reduce-motion .track-card__play-icon,
+html.reduce-motion .track-card__now {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .track-card__overlay,
+  .track-card__play-icon,
+  .track-card__now {
+    transition: none;
+  }
 }
 
 .track-card__artist {
