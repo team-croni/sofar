@@ -305,36 +305,10 @@ html.reduce-motion .playlist-bottom-control-bar.is-entering {
   padding: 0.1rem 0.875rem 0.875rem;
 }
 
-.folder-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  transition: var(--transition-smooth);
-  position: relative;
-  padding: 0.875rem;
-  border-radius: 20px;
-  align-self: start;
-  height: fit-content;
-}
 
-@supports (corner-shape: squircle) {
-  .folder-card {
-    corner-shape: squircle;
-    border-radius: 40px;
-  }
-} 
 
-.folder-card:hover:not(:has(.folder-kebab-trigger-btn:hover)):not(:has(.folder-kebab-trigger-btn.active)) {
-  background: rgba(255, 255, 255, 0.04);
-}
 
-.folder-card.active {
-  background: rgba(255, 255, 255, 0.05);
-}
 
-.folder-card.active .folder-card-title {
-  color: var(--primary-warm, #d4a373);
-}
 
 .folder-card-cover-wrapper {
   position: relative;
@@ -478,63 +452,11 @@ html.reduce-motion .playlist-bottom-control-bar.is-entering {
   color: var(--text-primary);
 }
 
-.folder-card-info {
-  display: flex;
-  flex-direction: column;
-  padding-left: 0.25rem;
-  text-align: left;
-}
 
-.folder-card-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem;
-  width: 100%;
-  margin-bottom: -2px;
-}
 
-.folder-card-title {
-  font-size: 0.75rem;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-  pointer-events: none;
-}
 
-.folder-kebab-trigger-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
 
-.folder-kebab-trigger-btn:hover,
-.folder-kebab-trigger-btn.active {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.08);
-  transform: scale(1.08);
-}
 
-.folder-card-count {
-  font-size: 0.75rem;
-  line-height: 1;
-  color: var(--text-secondary);
-  pointer-events: none;
-}
 
 /* Playlist Detail View Header */
 .playlist-detail-header {
@@ -900,21 +822,21 @@ html.reduce-motion .playlist-bottom-control-bar.is-entering {
   animation: gridZoomIn 0.16s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
 }
 
-/* Clicking folder zoom effect */
-.folder-card {
-  transform-origin: center center;
-  transition: transform 0.08s cubic-bezier(0.2, 0.9, 0.2, 1);
-  will-change: transform;
+
+
+
+/* 대기열 본문: 패널이 새로 그려질 때(대기열 탭 열기) 상세 목록과 같은 줌인으로 들어온다.
+   backwards로 써서 끝난 뒤 transform이 남지 않게 한다(드롭다운 위치 기준이 바뀌지 않도록) */
+.queue-list-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  animation: detailZoomIn 0.16s cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
 }
 
-.folder-card.entering-zoom {
-  z-index: 10;
-  transform: scale(1.06) !important;
-}
-
-.folder-card.entering-zoom .folder-card-cover-wrapper {
-  transform: scale(1.06);
-  filter: brightness(1.12);
+.queue-list-body.detail-exit-zoom {
+  animation: detailZoomOut 0.16s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
 }
 
 /* 2. Playlist Detail View Transitions */
@@ -969,13 +891,7 @@ html.reduce-motion .playlist-bottom-control-bar.is-entering {
 }
 
 /* Drag and Drop Drag-Over Visual Highlights */
-.folder-card.drag-over {
-  background: rgba(255, 255, 255, 0.04) !important;
-}
 
-.folder-card.drag-over * {
-  pointer-events: none;
-}
 
 .tab-content-panel.drag-over:not(.queue-list-panel),
 .track-item-list.drag-over {
@@ -1044,10 +960,6 @@ html.reduce-motion .playlist-bottom-control-bar.is-entering {
   animation: spin 1s linear infinite;
 }
 
-.folder-card.is-processing {
-  pointer-events: none !important;
-  user-select: none;
-}
 
 .folder-card-processing-overlay {
   position: absolute;
@@ -1107,5 +1019,40 @@ html.reduce-motion .playlist-bottom-control-bar.is-entering {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ── 동작 줄이기: 사이드바 화면 전환(헤더 페이드, 목록·상세·대기열 줌, 카드 확대)을 생략 ──
+   JS도 같은 설정이면 전환을 기다리지 않고 바로 화면을 바꾼다 (PlaylistManager.jsx prefersReducedMotion) */
+html.reduce-motion .playlist-sidebar-container .header-fade-in,
+html.reduce-motion .playlist-sidebar-container .header-fade-out,
+html.reduce-motion .playlist-sidebar-container .grid-enter-zoom,
+html.reduce-motion .playlist-sidebar-container .detail-enter-zoom,
+html.reduce-motion .playlist-sidebar-container .detail-exit-zoom,
+html.reduce-motion .playlist-sidebar-container .queue-list-body {
+  animation: none !important;
+}
+html.reduce-motion .playlist-sidebar-container .playlist-grid-wrapper,
+html.reduce-motion .playlist-sidebar-container .track-item-list {
+  transition: none;
+}
+html.reduce-motion .playlist-sidebar-container .playlist-card.entering-zoom {
+  transform: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .playlist-sidebar-container .header-fade-in,
+  .playlist-sidebar-container .header-fade-out,
+  .playlist-sidebar-container .grid-enter-zoom,
+  .playlist-sidebar-container .detail-enter-zoom,
+  .playlist-sidebar-container .detail-exit-zoom,
+  .playlist-sidebar-container .queue-list-body {
+    animation: none !important;
+  }
+  .playlist-sidebar-container .playlist-grid-wrapper,
+  .playlist-sidebar-container .track-item-list {
+    transition: none;
+  }
+  .playlist-sidebar-container .playlist-card.entering-zoom {
+    transform: none !important;
   }
 }
