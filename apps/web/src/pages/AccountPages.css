@@ -732,17 +732,17 @@
 .myinfo-page .acct-stat:nth-child(4) { animation-delay: 273ms; }
 
 /* 최근 좋아요한 곡: 줄마다 짧게 이어서 */
-#my-favorites .popular-list > * {
+#my-favorites .ranked-list > * {
   animation: acctEnterUp 0.41s var(--enter-ease) backwards;
   animation-delay: calc(434ms + min(var(--row, 0), 8) * 28ms);
 }
-#my-favorites .popular-list > :nth-child(2) { --row: 1; }
-#my-favorites .popular-list > :nth-child(3) { --row: 2; }
-#my-favorites .popular-list > :nth-child(4) { --row: 3; }
-#my-favorites .popular-list > :nth-child(5) { --row: 4; }
-#my-favorites .popular-list > :nth-child(6) { --row: 5; }
-#my-favorites .popular-list > :nth-child(7) { --row: 6; }
-#my-favorites .popular-list > :nth-child(n + 8) { --row: 7; }
+#my-favorites .ranked-list > :nth-child(2) { --row: 1; }
+#my-favorites .ranked-list > :nth-child(3) { --row: 2; }
+#my-favorites .ranked-list > :nth-child(4) { --row: 3; }
+#my-favorites .ranked-list > :nth-child(5) { --row: 4; }
+#my-favorites .ranked-list > :nth-child(6) { --row: 5; }
+#my-favorites .ranked-list > :nth-child(7) { --row: 6; }
+#my-favorites .ranked-list > :nth-child(n + 8) { --row: 7; }
 
 /* 설정의 '동작 줄이기' 또는 시스템 동작 줄이기가 켜져 있으면 진입 애니메이션 생략 */
 html.reduce-motion .acct-page * {

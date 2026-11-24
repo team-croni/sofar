@@ -1,4 +1,5 @@
 import React from 'react';
+import './RankChangeBadge.css';
 
 export default function RankChangeBadge({ type, val }) {
   if (type === 'up') {

@@ -1,0 +1,38 @@
+/* 순위 변동 배지 */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.75rem;
+  padding: 0 0.25rem;
+  line-height: 1;
+}
+
+.rank-badge--up {
+  color: #ef4444;
+}
+.rank-badge--up .rank-arrow {
+  font-size: 0.48rem;
+  margin-right: 2px;
+}
+
+.rank-badge--down {
+  color: #3b82f6;
+}
+.rank-badge--down .rank-arrow {
+  font-size: 0.48rem;
+  margin-right: 2px;
+}
+
+.rank-badge--new {
+  color: #10b981;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.rank-badge--same {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.75rem;
+}

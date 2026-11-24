@@ -1,7 +1,8 @@
 import React, { useState, useRef, useLayoutEffect } from 'react';
 import { Play, Shuffle, ListPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useHomePanel } from '../../hooks/useHomePanel';
-import StatRankRow from './StatRankRow';
+import RankedTrackRow from '../ui/RankedTrackRow';
+import RankChangeBadge from './RankChangeBadge';
 
 export default function PopularChartSection() {
   const {
@@ -222,13 +223,13 @@ export default function PopularChartSection() {
         </div>
       </div>
 
-      <div className="popular-list">
+      <div className="ranked-list">
         {currentPopularTracks.map((track, i) => {
           const actualRank = popularPage * 10 + i + 1;
           const isCurr = isTrackCurrent(track);
           const trackKey = `${actualRank}_${getTrackKey(track)}`;
           return (
-            <StatRankRow
+            <RankedTrackRow
               key={trackKey}
               ref={(el) => {
                 if (el) rowElsRef.current.set(trackKey, el);
@@ -236,9 +237,10 @@ export default function PopularChartSection() {
               }}
               track={track}
               rank={actualRank}
-              isCurrentTrack={isCurr}
+              isCurrent={isCurr}
               onPlay={(t) => handlePlayTrack(t, statTracks, '실시간 인기 순위')}
               onAddQueue={handleAddQueue}
+              change={<RankChangeBadge type={track.changeType} val={track.changeVal} />}
             />
           );
         })}

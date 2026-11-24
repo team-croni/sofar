@@ -31,23 +31,23 @@ export default function SearchSkeleton() {
             <div className="skeleton-action-btn skeleton-pulse" />
           </div>
         </div>
-        <div className="popular-list">
+        <div className="ranked-list">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="popular-row search-popular-row skeleton-track-row">
-              <span className="popular-row__col-rank">
+            <div key={i} className="ranked-row ranked-row--album skeleton-track-row">
+              <span className="ranked-row__col-rank">
                 <span className="skeleton-rank-box skeleton-pulse" />
               </span>
-              <div className="popular-row__title-group">
+              <div className="ranked-row__title-group">
                 <div className="skeleton-thumb skeleton-pulse" />
                 <div className="skeleton-track-title-box skeleton-pulse" />
               </div>
-              <span className="popular-row__artist">
+              <span className="ranked-row__artist">
                 <span className="skeleton-artist-box skeleton-pulse" />
               </span>
-              <span className="popular-row__album search-track-album">
+              <span className="ranked-row__album">
                 <span className="skeleton-album-box skeleton-pulse" />
               </span>
-              <div className="popular-row__actions">
+              <div className="ranked-row__actions">
                 <div className="skeleton-action-dot skeleton-pulse" />
               </div>
             </div>

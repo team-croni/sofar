@@ -122,7 +122,7 @@
 }
 
 /*
- * 곡 앨범 아트는 검색 결과 목록 썸네일(.popular-row__thumb)과 동일하게 squircle 적용, 아티스트는 원형 유지.
+ * 곡 앨범 아트는 검색 결과 목록 썸네일(.ranked-row__thumb)과 동일하게 squircle 적용, 아티스트는 원형 유지.
  * 로딩 행 썸네일은 .skeleton-pulse(SearchPanel.css, 나중에 로드됨)의 radius에 덮이지 않도록 상위 선택자로 지정
  */
 @supports (corner-shape: squircle) {

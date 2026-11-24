@@ -8,9 +8,9 @@
   align-items: center;
 }
 
-/* 재생 중이거나 목록 아이템(.track-row-item, .popular-row)에 호버하여 롤링될 때만 마스크 효과 활성화 */
+/* 재생 중이거나 목록 아이템(.track-row-item, .ranked-row)에 호버하여 롤링될 때만 마스크 효과 활성화 */
 .track-row-item:hover .track-meta-title-container.has-marquee,
-.popular-row:hover .track-meta-title-container.has-marquee,
+.ranked-row:hover .track-meta-title-container.has-marquee,
 .track-meta-title-container.has-marquee:has(.animate-marquee) {
   mask-image: linear-gradient(to right, transparent, black 4px, black 94%, transparent);
   -webkit-mask-image: linear-gradient(to right, transparent, black 4px, black 94%, transparent);
@@ -33,7 +33,7 @@
 
 /* 재생 중이거나 목록 아이템 호버 시: inline-block 전환 및 마키 실행 */
 .track-row-item:hover .track-meta-title-container.has-marquee .track-meta-title-scroll,
-.popular-row:hover .track-meta-title-container.has-marquee .track-meta-title-scroll,
+.ranked-row:hover .track-meta-title-container.has-marquee .track-meta-title-scroll,
 .track-meta-title-container.has-marquee .track-meta-title-scroll.animate-marquee {
   display: inline-block;
   overflow: visible;
@@ -49,7 +49,7 @@
 
 /* 롤링 시에만 복제본 노출 */
 .track-row-item:hover .track-meta-title-container.has-marquee .marquee-duplicate,
-.popular-row:hover .track-meta-title-container.has-marquee .marquee-duplicate,
+.ranked-row:hover .track-meta-title-container.has-marquee .marquee-duplicate,
 .track-meta-title-container.has-marquee .track-meta-title-scroll.animate-marquee .marquee-duplicate {
   display: inline-block;
 }

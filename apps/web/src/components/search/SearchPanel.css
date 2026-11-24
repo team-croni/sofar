@@ -918,38 +918,12 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
-/* ── 5. 트랙 리스트 테이블/목록 (HomePanel의 popular-list와 100% 일치) ── */
+/* ── 5. 트랙 리스트 테이블/목록 (공용 RankedTrackRow 목록) ── */
 .tracks-list-section {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   width: 100%;
-}
-
-.search-popular-row {
-  grid-template-columns: 32px minmax(0, 1.25fr) minmax(0, 0.7fr) minmax(0, 0.7fr) 32px !important;
-  gap: 1rem !important;
-  min-width: 0;
-}
-
-@media (max-width: 768px) {
-  .search-popular-row {
-    grid-template-columns: 28px minmax(0, 1.5fr) minmax(0, 0.8fr) 32px !important;
-    gap: 0.75rem !important;
-  }
-  .search-popular-row .popular-row__album {
-    display: none;
-  }
-}
-
-.popular-row__album,
-.search-track-album {
-  font-size: 0.75rem;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
 }
 
 /* ── 7. 스켈레톤 로딩 (SearchSkeleton) ── */
@@ -1032,7 +1006,7 @@
   flex-shrink: 0;
 }
 
-/* 로딩 후 표시되는 곡 썸네일(.popular-row__thumb)과 같은 모양 유지 */
+/* 로딩 후 표시되는 곡 썸네일(.ranked-row__thumb)과 같은 모양 유지 */
 @supports (corner-shape: squircle) {
   .skeleton-thumb {
     border-radius: 100%;
@@ -1182,15 +1156,45 @@
 .trending-column-list > :nth-child(8), .trending-artists-landing-grid > :nth-child(8) { --enter-i: 7; }
 .trending-column-list > :nth-child(9), .trending-artists-landing-grid > :nth-child(9) { --enter-i: 8; }
 
+/* ── 검색 결과 진입 애니메이션: 아티스트 섹션 → 곡 목록 섹션, 그 안의 카드·줄은 위에서부터 하나씩 ──
+   검색할 때마다 결과 영역이 새로 그려지므로 검색마다 다시 나타난다.
+   화면 밖 항목은 지연을 묶어 전체가 0.5초 안팎에 끝나게 한다. */
+.search-results-content-wrap > * {
+  animation: pageEnterUp var(--page-enter-dur) var(--page-enter-ease) backwards;
+}
+.search-results-content-wrap > :nth-child(2) { animation-delay: 60ms; }
+
+.search-artists-grid > *,
+.search-results-content-wrap .ranked-list > * {
+  animation: pageEnterUp 0.45s var(--page-enter-ease) backwards;
+  animation-delay: calc(var(--enter-base, 60ms) + min(var(--enter-i, 9), 9) * 26ms);
+}
+.search-results-content-wrap .ranked-list > * { --enter-base: 110ms; }
+.search-artists-grid > :nth-child(1), .search-results-content-wrap .ranked-list > :nth-child(1) { --enter-i: 0; }
+.search-artists-grid > :nth-child(2), .search-results-content-wrap .ranked-list > :nth-child(2) { --enter-i: 1; }
+.search-artists-grid > :nth-child(3), .search-results-content-wrap .ranked-list > :nth-child(3) { --enter-i: 2; }
+.search-artists-grid > :nth-child(4), .search-results-content-wrap .ranked-list > :nth-child(4) { --enter-i: 3; }
+.search-artists-grid > :nth-child(5), .search-results-content-wrap .ranked-list > :nth-child(5) { --enter-i: 4; }
+.search-artists-grid > :nth-child(6), .search-results-content-wrap .ranked-list > :nth-child(6) { --enter-i: 5; }
+.search-artists-grid > :nth-child(7), .search-results-content-wrap .ranked-list > :nth-child(7) { --enter-i: 6; }
+.search-artists-grid > :nth-child(8), .search-results-content-wrap .ranked-list > :nth-child(8) { --enter-i: 7; }
+.search-artists-grid > :nth-child(9), .search-results-content-wrap .ranked-list > :nth-child(9) { --enter-i: 8; }
+
 html.reduce-motion .search-landing-section,
 html.reduce-motion .trending-column-list > *,
-html.reduce-motion .trending-artists-landing-grid > * {
+html.reduce-motion .trending-artists-landing-grid > *,
+html.reduce-motion .search-results-content-wrap > *,
+html.reduce-motion .search-artists-grid > *,
+html.reduce-motion .search-results-content-wrap .ranked-list > * {
   animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .search-landing-section,
   .trending-column-list > *,
-  .trending-artists-landing-grid > * {
+  .trending-artists-landing-grid > *,
+  .search-results-content-wrap > *,
+  .search-artists-grid > *,
+  .search-results-content-wrap .ranked-list > * {
     animation: none;
   }
 }

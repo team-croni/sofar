@@ -1277,17 +1277,6 @@ export default function PlaylistManager() {
     return tracks || [];
   };
 
-  // 사이드바 카드의 재생 버튼: 플레이리스트 처음부터 재생
-  const handlePlayPlaylistFolder = async (pl) => {
-    const tracks = await loadPlaylistTracks(pl.id);
-    if (tracks.length === 0) {
-      showToast('플레이리스트에 곡이 없습니다.');
-      return;
-    }
-    playTrack(tracks[0], tracks);
-    if (setPlayingSource) setPlayingSource({ type: 'my', playlistId: pl.id });
-  };
-
   const handleAddPlaylistToQueue = async (playlistId, e) => {
     if (e) e.stopPropagation();
     const tracks = await loadPlaylistTracks(playlistId);
@@ -2217,7 +2206,6 @@ export default function PlaylistManager() {
                             className={`stagger-fade-item ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'is-drop-target' : ''} ${isProcessingThis ? 'is-processing' : ''}`}
                             style={getStaggerStyle(plIdx)}
                             onOpen={() => !isAddingBatchTracks && handleSelectPlaylistFolder(pl.id)}
-                            onPlay={() => !isAddingBatchTracks && handlePlayPlaylistFolder(pl)}
                             coverOverlay={isProcessingThis ? (
                               <div className="folder-card-processing-overlay">
                                 <Loader2 size={22} className="spin-icon" />

@@ -111,7 +111,7 @@ if (typeof window !== 'undefined') {
 }
 
 export const isInteractiveDragTarget = (e) => {
-  const selector = 'button, a, input, select, textarea, .track-actions, .track-action-dropdown, .popular-row__actions, .album-card__actions, .top-result-actions, .dropdown-container, .sofar-dropdown, .btn-delete, [data-no-dnd="true"]';
+  const selector = 'button, a, input, select, textarea, .track-actions, .track-action-dropdown, .ranked-row__actions, .media-card__actions, .top-result-actions, .dropdown-container, .sofar-dropdown, .btn-delete, [data-no-dnd="true"]';
 
   const target = e?.target;
   if (target && target.closest && target.closest(selector)) {

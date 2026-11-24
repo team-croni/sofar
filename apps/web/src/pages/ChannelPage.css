@@ -426,6 +426,8 @@
 }
 
 .channel-skel-card {
+  /* 표지 위 여백을 실제 카드처럼 카드 너비에 맞추기 위한 기준 */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
@@ -433,7 +435,7 @@
 
 .channel-skel--cover {
   width: 100%;
-  margin-top: 10px; /* 카드 위로 겹쳐 보이는 층 높이만큼 (PlaylistCard 표지 위치) */
+  margin-top: var(--playlist-stack-depth); /* 카드 위로 겹쳐 보이는 층 높이만큼 (PlaylistCard 표지 위치) */
   aspect-ratio: 1;
   border-radius: 16px;
 }
