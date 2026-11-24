@@ -926,32 +926,6 @@
   width: 100%;
 }
 
-.search-popular-row {
-  grid-template-columns: 32px minmax(0, 1.25fr) minmax(0, 0.7fr) minmax(0, 0.7fr) 32px !important;
-  gap: 1rem !important;
-  min-width: 0;
-}
-
-@media (max-width: 768px) {
-  .search-popular-row {
-    grid-template-columns: 28px minmax(0, 1.5fr) minmax(0, 0.8fr) 32px !important;
-    gap: 0.75rem !important;
-  }
-  .search-popular-row .popular-row__album {
-    display: none;
-  }
-}
-
-.popular-row__album,
-.search-track-album {
-  font-size: 0.75rem;
-  color: var(--text-secondary, rgba(255, 255, 255, 0.55));
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
 /* ── 7. 스켈레톤 로딩 (SearchSkeleton) ── */
 .search-skeleton-container {
   display: flex;
