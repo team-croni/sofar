@@ -154,8 +154,8 @@
   transform: scale(1.06) !important;
 }
 
+/* 카드 전체가 1.06배 커지므로 커버는 밝기만 올린다 (커버까지 키우면 약 1.12배로 겹쳐 커진다) */
 .playlist-card.entering-zoom .media-card__cover {
-  transform: scale(1.06);
   filter: brightness(1.12);
 }
 

@@ -17,6 +17,18 @@
   }
 }
 
+/* 동작 줄이기: 하나씩 나타나는 효과 없이 바로 보인다 */
+html.reduce-motion .stagger-fade-item {
+  opacity: 1;
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stagger-fade-item {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 /* Skeleton Delayed Fade In */
 .delayed-skeleton-container {
   opacity: 0;

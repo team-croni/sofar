@@ -45,6 +45,29 @@ import { getStaggerStyle } from '../../utils/animation';
 const SELECTED_PLAYLIST_STORAGE_KEY = 'sofar_selected_playlist_id';
 const SELECTED_PLAYLIST_TITLE_STORAGE_KEY = 'sofar_selected_playlist_title';
 
+// 사이드바 화면 전환 시간. PlaylistManager.css의 header-fade · grid/detail zoom(0.16s)과 같아야 한다.
+const VIEW_TRANSITION_MS = 160;
+// 처음 목록이 뜰 때 카드가 하나씩 나타나는 효과(stagger-fade-item)가 끝나는 시간 (최대 지연 216ms + 1s)
+const GRID_INTRO_MS = 1300;
+
+// 설정의 '동작 줄이기' 또는 시스템 동작 줄이기가 켜져 있으면 전환 애니메이션을 기다리지 않는다
+function prefersReducedMotion() {
+  if (typeof document === 'undefined') return false;
+  return document.documentElement.classList.contains('reduce-motion')
+    || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+function viewTransitionMs() {
+  return prefersReducedMotion() ? 0 : VIEW_TRANSITION_MS;
+}
+
+// 나가는 애니메이션이 끝난 뒤(동작 줄이기면 바로) 화면을 바꾼다
+function afterViewTransition(fn) {
+  const ms = viewTransitionMs();
+  if (ms === 0) fn();
+  else setTimeout(fn, ms);
+}
+
 export default function PlaylistManager() {
   const { user, loading: isAuthLoading } = useAuth();
   const { 
@@ -176,6 +199,32 @@ export default function PlaylistManager() {
   const [isEnteringDetail, setIsEnteringDetail] = useState(false);
   const [isExitingDetail, setIsExitingDetail] = useState(false);
   const [isEnteringFromDetail, setIsEnteringFromDetail] = useState(false);
+  // 들어가는 효과(상세 줌인 / 목록 줌인)는 여러 곳에서 켜므로 타이머를 하나로 관리한다
+  const enterDetailTimerRef = useRef(null);
+  const enterGridTimerRef = useRef(null);
+  const playEnterDetail = useCallback(() => {
+    clearTimeout(enterDetailTimerRef.current);
+    setIsEnteringDetail(true);
+    enterDetailTimerRef.current = setTimeout(() => setIsEnteringDetail(false), viewTransitionMs());
+  }, []);
+  const playEnterGrid = useCallback(() => {
+    clearTimeout(enterGridTimerRef.current);
+    setIsEnteringFromDetail(true);
+    enterGridTimerRef.current = setTimeout(() => setIsEnteringFromDetail(false), viewTransitionMs());
+  }, []);
+  useEffect(() => () => {
+    clearTimeout(enterDetailTimerRef.current);
+    clearTimeout(enterGridTimerRef.current);
+  }, []);
+
+  // 목록 카드가 하나씩 나타나는 효과는 처음 한 번만. 상세에서 돌아올 때는 목록 줌인만 쓴다.
+  const [gridIntroDone, setGridIntroDone] = useState(false);
+  useEffect(() => {
+    if (gridIntroDone || playlists.length === 0) return undefined;
+    const t = setTimeout(() => setGridIntroDone(true), prefersReducedMotion() ? 0 : GRID_INTRO_MS);
+    return () => clearTimeout(t);
+  }, [gridIntroDone, playlists.length]);
+
   // 하단 '대기열' 버튼은 처음 화면이 뜰 때 한 번만 등장 모션 (대기열 탭에서 돌아올 때는 생략)
   const [queueBarEntered, setQueueBarEntered] = useState(false);
   useEffect(() => {
@@ -253,6 +302,16 @@ export default function PlaylistManager() {
     }
   }, [activeTab, selectedPlaylistId, activeSharedPlaylist]);
 
+  // 로그아웃·계정 전환 시 이전 계정의 뒤로 기록을 버린다
+  const historyUserIdRef = useRef(user?.id ?? null);
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (historyUserIdRef.current !== currentUserId) {
+      historyUserIdRef.current = currentUserId;
+      sidebarHistoryRef.current = [];
+    }
+  }, [user?.id]);
+
   // 사이드바 히스토리 뒤로가기 핸들러 (부드러운 전환 및 잔상/플래시 방지)
   const handleSidebarBack = () => {
     if (isExitingDetail) return;
@@ -277,28 +336,20 @@ export default function PlaylistManager() {
     const isTargetDetail = !!(targetState.selectedPlaylistId || targetState.activeSharedPlaylist);
 
     setIsExitingDetail(true);
-    setTimeout(() => {
+    afterViewTransition(() => {
       isNavigatingBackRef.current = true;
       if (setActiveSharedPlaylist) setActiveSharedPlaylist(targetState.activeSharedPlaylist || null);
       setSelectedPlaylistId(targetState.selectedPlaylistId || null);
       setActiveTab(targetState.activeTab || 'playlists');
       setIsExitingDetail(false);
 
-      if (isTargetDetail) {
-        setIsEnteringDetail(true);
-        setIsTrackListVisible(false);
-        setTimeout(() => {
-          setIsEnteringDetail(false);
-          isNavigatingBackRef.current = false;
-        }, 180);
-      } else {
-        setIsEnteringFromDetail(true);
-        setTimeout(() => {
-          setIsEnteringFromDetail(false);
-          isNavigatingBackRef.current = false;
-        }, 180);
-      }
-    }, 160);
+      if (isTargetDetail) playEnterDetail();
+      else if ((targetState.activeTab || 'playlists') === 'playlists') playEnterGrid();
+      // 대기열은 패널이 새로 그려지며 스스로 들어가는 효과를 낸다
+      setTimeout(() => {
+        isNavigatingBackRef.current = false;
+      }, viewTransitionMs());
+    });
   };
 
   // 홈 화면 트랙 드래그앤드롭 드롭 타겟 상태 & 핸들러
@@ -867,8 +918,17 @@ export default function PlaylistManager() {
         return () => cancelAnimationFrame(raf);
       }
 
-      // 2) 트랙 데이터가 아직 DOM에 렌더링 중일 수 있으므로 activeEl 렌더링을 대기
-      //    최대 150ms까지 대기 후 activeEl 재확인 (없으면 상단 0 정렬 후 페이드인)
+      // 2) 지금 재생 중인 곡이 이 목록에 없으면 기다릴 이유가 없다: 맨 위에서 바로 보여 준다
+      //    (기다리는 동안 들어가는 줌 효과가 보이지 않은 채 지나가 버리는 것을 막는다)
+      const listTracks = activeTab === 'queue' ? queue : getCurrentDetailTracks();
+      const hasCurrentInList = !!currentTrack && (listTracks || []).some((t) => isMatchTrack(t, currentTrack));
+      if (!hasCurrentInList) {
+        if (currentContainer) currentContainer.scrollTop = 0;
+        setIsTrackListVisible(true);
+        return undefined;
+      }
+
+      // 3) 재생 중인 곡이 목록에 있지만 아직 그려지는 중이면 최대 150ms까지 기다린 뒤 다시 찾는다
       const timeoutTimer = setTimeout(() => {
         const retryActiveEl = document.querySelector('.playlist-sidebar-container .track-row-item.active');
         if (retryActiveEl) {
@@ -912,8 +972,16 @@ export default function PlaylistManager() {
     resolvedChartTracks?.length,
   ]);
 
-  // 공유 플레이리스트 열기 이전의 사이드바 상태(선택된 폴더, 탭) 보존 및 내 플레이리스트 탭 전환 + Zoom Enter 애니메이션
-  const previousSidebarStateRef = useRef(null);
+  // 열려는 플레이리스트가 내 것이면 내 플레이리스트 id, 아니면 null (실시간 차트 컨텍스트는 항상 null)
+  const getOwnPlaylistId = useCallback((pl) => {
+    if (!pl || pl.isChartContext) return null;
+    const matched = playlists.find(p => String(p.id) === String(pl.id));
+    if (matched) return matched.id;
+    if (user && pl.user_id && pl.user_id === user.id) return pl.id;
+    return null;
+  }, [playlists, user]);
+
+  // 같은 공유 플레이리스트를 다시 열 때만 들어가는 효과를 다시 낸다 (_openedAt 기준)
   const prevSharedPlaylistIdRef = useRef(null);
 
   // 외부(홈화면 등)에서 공유/차트 플레이리스트 상세 열기 이벤트 수신
@@ -922,26 +990,12 @@ export default function PlaylistManager() {
       const targetPl = e.detail;
       if (!targetPl) return;
 
-      const isMyPlaylist = !targetPl.isChartContext && (
-        playlists.some(p => String(p.id) === String(targetPl.id)) ||
-        (user && targetPl.user_id && targetPl.user_id === user.id)
-      );
-
-      if (isMyPlaylist) {
-        const matchedPlaylist = playlists.find(p => String(p.id) === String(targetPl.id));
-        const targetId = matchedPlaylist ? matchedPlaylist.id : targetPl.id;
-        if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
-        setSelectedPlaylistId(targetId);
-      } else {
-        if (setActiveSharedPlaylist) setActiveSharedPlaylist(targetPl);
-        setSelectedPlaylistId(null);
-      }
-
+      // 내 플레이리스트는 공유 보기 대신 내 플레이리스트 상세로 연다 (같은 렌더에서 바꿔 중간 화면이 기록에 남지 않게)
+      const ownId = getOwnPlaylistId(targetPl);
+      if (setActiveSharedPlaylist) setActiveSharedPlaylist(ownId != null ? null : targetPl);
+      setSelectedPlaylistId(ownId);
       setActiveTab('playlists');
-      setIsEnteringDetail(true);
-      setTimeout(() => {
-        setIsEnteringDetail(false);
-      }, 200);
+      playEnterDetail();
     };
 
     const handleOpenQueue = () => {
@@ -951,13 +1005,9 @@ export default function PlaylistManager() {
     // 외부(내 정보 등)에서 내 플레이리스트 목록 화면 열기
     const handleOpenPlaylistList = () => {
       if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
-      previousSidebarStateRef.current = null;
       setSelectedPlaylistId(null);
       setActiveTab('playlists');
-      setIsEnteringFromDetail(true);
-      setTimeout(() => {
-        setIsEnteringFromDetail(false);
-      }, 200);
+      playEnterGrid();
     };
 
     window.addEventListener('trigger-open-shared-playlist', handleOpenSharedPlaylist);
@@ -968,56 +1018,33 @@ export default function PlaylistManager() {
       window.removeEventListener('trigger-open-queue', handleOpenQueue);
       window.removeEventListener('trigger-open-playlist-list', handleOpenPlaylistList);
     };
-  }, [setActiveSharedPlaylist, playlists, user]);
+  }, [setActiveSharedPlaylist, getOwnPlaylistId, playEnterDetail, playEnterGrid]);
 
+  // 공유 플레이리스트가 이벤트 없이 바뀐 경우(지금 재생 화면 복원 등)에도 같은 규칙으로 사이드바를 맞춘다
   useEffect(() => {
-    if (activeSharedPlaylist) {
-      // 내 소유 플레이리스트인지 검사 (실시간 차트 컨텍스트 제외)
-      const isMyPlaylist = !activeSharedPlaylist.isChartContext && (
-        playlists.some(p => String(p.id) === String(activeSharedPlaylist.id)) ||
-        (user && activeSharedPlaylist.user_id && activeSharedPlaylist.user_id === user.id)
-      );
-
-      if (isMyPlaylist) {
-        const matchedPlaylist = playlists.find(p => String(p.id) === String(activeSharedPlaylist.id));
-        const targetId = matchedPlaylist ? matchedPlaylist.id : activeSharedPlaylist.id;
-
-        if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
-        setSelectedPlaylistId(targetId);
-        setActiveTab('playlists');
-        setIsEnteringDetail(true);
-        const timer = setTimeout(() => {
-          setIsEnteringDetail(false);
-        }, 200);
-        return () => clearTimeout(timer);
-      }
-
-      if (!previousSidebarStateRef.current) {
-        previousSidebarStateRef.current = {
-          selectedPlaylistId,
-          activeTab,
-        };
-      }
-      // 공유 플레이리스트 클릭 시 내 플레이리스트 탭으로 이동 & selectedPlaylistId 초기화
-      setSelectedPlaylistId(null);
-      setActiveTab('playlists');
-
-      // 해당 플레이리스트가 사이드바에 나타날 때 zoom enter 애니메이션 적용
-      const currentToken = activeSharedPlaylist._openedAt || activeSharedPlaylist.id;
-      if (prevSharedPlaylistIdRef.current !== currentToken) {
-        prevSharedPlaylistIdRef.current = currentToken;
-        if (!isNavigatingBackRef.current) {
-          setIsEnteringDetail(true);
-          const timer = setTimeout(() => {
-            setIsEnteringDetail(false);
-          }, 180);
-          return () => clearTimeout(timer);
-        }
-      }
-    } else {
+    if (!activeSharedPlaylist) {
       prevSharedPlaylistIdRef.current = null;
+      return;
     }
-  }, [activeSharedPlaylist, playlists, user, setActiveSharedPlaylist]);
+
+    const ownId = getOwnPlaylistId(activeSharedPlaylist);
+    if (ownId != null) {
+      if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
+      setSelectedPlaylistId(ownId);
+      setActiveTab('playlists');
+      playEnterDetail();
+      return;
+    }
+
+    setSelectedPlaylistId(null);
+    setActiveTab('playlists');
+
+    const currentToken = activeSharedPlaylist._openedAt || activeSharedPlaylist.id;
+    if (prevSharedPlaylistIdRef.current !== currentToken) {
+      prevSharedPlaylistIdRef.current = currentToken;
+      if (!isNavigatingBackRef.current) playEnterDetail();
+    }
+  }, [activeSharedPlaylist, getOwnPlaylistId, setActiveSharedPlaylist, playEnterDetail]);
 
   // 차트 컨텍스트가 열릴 때:
   // 1) 백엔드가 pre-enriched한 durationSec을 durationCache에 즉시 등록
@@ -1110,50 +1137,17 @@ export default function PlaylistManager() {
     };
   }, [activeSharedPlaylist?.id, activeSharedPlaylist?._openedAt]);
 
-  // 폴더 클릭 핸들러 (통일된 180ms Zoom-In 애니메이션 적용)
+  // 폴더 클릭: 누른 카드가 커지며 목록이 사라진 뒤 상세가 줌인으로 들어온다
   const handleSelectPlaylistFolder = (folderId) => {
     if (enteringFolderId || selectedPlaylistId) return;
     if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
-    previousSidebarStateRef.current = null;
     setEnteringFolderId(folderId);
 
-    setTimeout(() => {
+    afterViewTransition(() => {
       setSelectedPlaylistId(folderId);
       setEnteringFolderId(null);
-      setIsEnteringDetail(true);
-
-      setTimeout(() => {
-        setIsEnteringDetail(false);
-      }, 200);
-    }, 200);
-  };
-
-  // 상세 뷰 뒤로가기 핸들러 (통일된 200ms Zoom-Out 애니메이션 적용 및 이전 상태 복원)
-  const handleBackToFolderGrid = () => {
-    if (isExitingDetail) return;
-    setIsExitingDetail(true);
-
-    setTimeout(() => {
-      if (activeSharedPlaylist) {
-        if (setActiveSharedPlaylist) setActiveSharedPlaylist(null);
-        if (previousSidebarStateRef.current) {
-          const { selectedPlaylistId: prevId, activeTab: prevTab } = previousSidebarStateRef.current;
-          setSelectedPlaylistId(prevId || null);
-          if (prevTab) setActiveTab(prevTab);
-          previousSidebarStateRef.current = null;
-        } else {
-          setSelectedPlaylistId(null);
-        }
-      } else {
-        setSelectedPlaylistId(null);
-      }
-      setIsExitingDetail(false);
-      setIsEnteringFromDetail(true);
-
-      setTimeout(() => {
-        setIsEnteringFromDetail(false);
-      }, 200);
-    }, 200);
+      playEnterDetail();
+    });
   };
 
   // Sync fetched tracks with AudioContext playlist state
@@ -1184,8 +1178,17 @@ export default function PlaylistManager() {
 
     try {
       await deletePlaylistMutation.mutateAsync(playlistId);
-      if (selectedPlaylistId === playlistId) {
+      // 지운 플레이리스트로 '뒤로' 돌아가지 않도록 기록에서도 뺀다
+      const deletedId = String(playlistId);
+      sidebarHistoryRef.current = sidebarHistoryRef.current.filter(
+        (item) => String(item.selectedPlaylistId ?? '') !== deletedId
+          && String(item.activeSharedPlaylist?.id ?? '') !== deletedId
+      );
+      if (String(selectedPlaylistId) === deletedId) {
+        // 지금 열린 화면이 기록에 다시 쌓이지 않게 하고 목록으로 돌아간다
+        isNavigatingBackRef.current = true;
         setSelectedPlaylistId(null);
+        playEnterGrid();
       }
       showToast('플레이리스트가 삭제되었습니다.');
     } catch (err) {
@@ -2203,7 +2206,7 @@ export default function PlaylistManager() {
                             likeCount={pl.is_public ? (likeCounts[pl.id] || 0) : 0}
                             menuOptions={folderDropdownOptions}
                             draggable={false}
-                            className={`stagger-fade-item ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'is-drop-target' : ''} ${isProcessingThis ? 'is-processing' : ''}`}
+                            className={`${gridIntroDone ? '' : 'stagger-fade-item'} ${isEnteringThisFolder ? 'entering-zoom' : ''} ${dragOverFolderId === pl.id ? 'is-drop-target' : ''} ${isProcessingThis ? 'is-processing' : ''}`}
                             style={getStaggerStyle(plIdx)}
                             onOpen={() => !isAddingBatchTracks && handleSelectPlaylistFolder(pl.id)}
                             coverOverlay={isProcessingThis ? (
@@ -2381,7 +2384,7 @@ export default function PlaylistManager() {
         {activeTab === 'queue' && (
           <div className="tab-content-panel queue-list-panel">
             <div className="playlist-detail-header queue-header">
-              <div key="header-queue" className="playlist-detail-header-inner header-fade-in">
+              <div key="header-queue" className={`playlist-detail-header-inner ${isExitingDetail ? 'header-fade-out' : 'header-fade-in'}`}>
                 <Button 
                   variant="icon"
                   size="md"
@@ -2418,6 +2421,8 @@ export default function PlaylistManager() {
               </div>
             </div>
 
+            {/* 대기열 본문: 탭이 열릴 때 줌인, 뒤로 갈 때 줌아웃 (상세 목록과 같은 효과) */}
+            <div className={`queue-list-body ${isExitingDetail ? 'detail-exit-zoom' : ''}`}>
             <div 
               className="track-item-list scrollbar-none"
               onDragOver={handleContainerDragOver}
@@ -2452,6 +2457,7 @@ export default function PlaylistManager() {
                   현재 대기열이 비어 있습니다.
                 </div>
               )}
+            </div>
             </div>
           </div>
         )}
