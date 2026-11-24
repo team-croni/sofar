@@ -11,6 +11,9 @@
 .playlist-card__cover-wrap {
   /* 겹친 카드가 들어갈 자리 */
   margin-top: 10px;
+  transition:
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 0.2s ease;
 }
 
 /* 뒤에 겹친 카드 두 장: 커버 위로 보이는 띠만큼만 그려서 커버 뒤로 비치지 않게 한다 */
@@ -20,6 +23,7 @@
   position: absolute;
   border-radius: 10px 10px 0 0;
   pointer-events: none;
+  transition: background-color 0.2s ease;
 }
 
 .playlist-card__cover-wrap::before {
@@ -38,9 +42,27 @@
   background: rgba(255, 255, 255, 0.4);
 }
 
-/* 호버: 누르면 사이드바에 열린다는 것만 알 수 있게 테두리를 조금 밝힌다 */
-.playlist-card:hover .media-card__cover {
-  --cover-border: rgba(255, 255, 255, 0.3);
+/* 호버: 카드 묶음이 살짝 떠오르고 커버·테두리·뒤 카드·제목이 밝아진다.
+   지금 열려 있는 카드(--active)에는 적용하지 않아 열림 표시만 보이게 한다. */
+.playlist-card:not(.playlist-card--active):hover .playlist-card__cover-wrap {
+  transform: translateY(-3px);
+}
+
+.playlist-card:not(.playlist-card--active):hover .media-card__cover {
+  --cover-border: rgba(255, 255, 255, 0.45);
+  filter: brightness(1.1);
+}
+
+.playlist-card:not(.playlist-card--active):hover .playlist-card__cover-wrap::before {
+  background-color: rgba(255, 255, 255, 0.32);
+}
+
+.playlist-card:not(.playlist-card--active):hover .playlist-card__cover-wrap::after {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+
+.playlist-card:not(.playlist-card--active):hover .media-card__title {
+  color: var(--text-active, #fff);
 }
 
 .playlist-card__count {
@@ -75,13 +97,31 @@
   text-overflow: ellipsis;
 }
 
-/* 지금 열려 있는 플레이리스트 */
+/* 지금 열려 있는 플레이리스트: 커버 테두리를 굵은 강조색으로, 뒤 카드도 강조색으로 물들이고
+   커버 모양을 따라 은은한 빛을 둘러 다른 카드와 확실히 구분한다 */
+.playlist-card--active .playlist-card__cover-wrap {
+  filter: drop-shadow(0 6px 18px rgba(212, 163, 115, 0.3));
+}
+
 .playlist-card--active .media-card__cover {
   --cover-border: var(--primary-warm, #d4a373);
 }
 
+.playlist-card--active .media-card__cover::after {
+  border-width: 2.5px;
+}
+
+.playlist-card--active .playlist-card__cover-wrap::before {
+  background-color: rgba(212, 163, 115, 0.35);
+}
+
+.playlist-card--active .playlist-card__cover-wrap::after {
+  background-color: rgba(212, 163, 115, 0.65);
+}
+
 .playlist-card--active .media-card__title {
   color: var(--primary-warm, #d4a373);
+  font-weight: 600;
 }
 
 /* 사이드바: 곡을 끌어다 놓는 중 */
