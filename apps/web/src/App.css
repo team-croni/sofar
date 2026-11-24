@@ -377,7 +377,7 @@ image {
 /* Action buttons / Interactive controls DnD prevention */
 .track-actions,
 .track-action-dropdown,
-.popular-row__actions,
+.ranked-row__actions,
 .media-card__actions,
 .top-result-actions,
 .sofar-dropdown,

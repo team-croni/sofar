@@ -223,7 +223,7 @@ export default function PopularChartSection() {
         </div>
       </div>
 
-      <div className="popular-list">
+      <div className="ranked-list">
         {currentPopularTracks.map((track, i) => {
           const actualRank = popularPage * 10 + i + 1;
           const isCurr = isTrackCurrent(track);

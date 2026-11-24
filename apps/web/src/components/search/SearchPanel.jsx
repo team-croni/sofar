@@ -756,7 +756,7 @@ export default function SearchPanel() {
                     </div>
                   </div>
 
-                  <div className="popular-list">
+                  <div className="ranked-list">
                     {/* 트랙 행 목록 */}
                     {remainingTracks.map((track, idx) => (
                       <SearchTrackRow 

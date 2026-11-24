@@ -2,13 +2,13 @@
    홈 '실시간 인기 순위', 검색 결과 곡 목록, 내 정보 '최근 좋아요한 곡'에서 같이 쓴다.
    칸: 순위(재생 중이면 헤드폰) · 썸네일+제목 · 아티스트 · (앨범 또는 순위 변동) · 더보기 */
 
-.popular-list {
+.ranked-list {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
 }
 
-.popular-row {
+.ranked-row {
   display: grid;
   grid-template-columns:
     32px minmax(0, 1fr) minmax(0, 0.6fr) minmax(0, 0.6fr)
@@ -24,17 +24,17 @@
   }
 }
 
-.popular-row:nth-child(odd) {
+.ranked-row:nth-child(odd) {
   background: rgba(255, 255, 255, 0.02);
 }
-.popular-row:hover {
+.ranked-row:hover {
   background: rgba(255, 255, 255, 0.08);
 }
-.popular-row--playing {
+.ranked-row--playing {
   background: rgba(212, 163, 115, 0.14) !important;
 }
 
-.popular-row__col-rank {
+.ranked-row__col-rank {
   position: relative;
   font-size: 0.92rem;
   color: var(--text-secondary, #fff);
@@ -45,8 +45,8 @@
   height: 24px;
 }
 
-.popular-row__rank-num,
-.popular-row__playing-icon {
+.ranked-row__rank-num,
+.ranked-row__playing-icon {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -58,12 +58,12 @@
   user-select: none;
 }
 
-.popular-row__rank-num {
+.ranked-row__rank-num {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
 
-.popular-row__playing-icon {
+.ranked-row__playing-icon {
   position: absolute;
   color: var(--primary-warm, #d4a373);
   display: inline-flex;
@@ -74,32 +74,32 @@
 }
 
 /* 재생 중 전환 스케일 & 페이드 효과 */
-.popular-row--playing .popular-row__rank-num,
-.popular-row__col-rank.is-playing .popular-row__rank-num {
+.ranked-row--playing .ranked-row__rank-num,
+.ranked-row__col-rank.is-playing .ranked-row__rank-num {
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.6);
 }
 
-.popular-row--playing .popular-row__playing-icon,
-.popular-row__col-rank.is-playing .popular-row__playing-icon {
+.ranked-row--playing .ranked-row__playing-icon,
+.ranked-row__col-rank.is-playing .ranked-row__playing-icon {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
 }
 
-.popular-row__title-group {
+.ranked-row__title-group {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
 }
 
-.popular-row__col-change {
+.ranked-row__col-change {
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.popular-row__thumb {
+.ranked-row__thumb {
   width: 42px;
   height: 42px;
   border-radius: 8px;
@@ -108,45 +108,45 @@
 }
 
 @supports (corner-shape: squircle) {
-  .popular-row__thumb {
+  .ranked-row__thumb {
     border-radius: 100%;
     corner-shape: squircle;
   }
 }
 
-.popular-row__thumb .track-thumbnail-ring {
+.ranked-row__thumb .track-thumbnail-ring {
   width: 42px;
   height: 42px;
 }
-.popular-row__thumb .thumbnail-disk-img {
+.ranked-row__thumb .thumbnail-disk-img {
   width: 42px;
   height: 42px;
   object-fit: cover;
   border-radius: 8px;
 }
-.popular-row__thumb-img {
+.ranked-row__thumb-img {
   width: 42px;
   height: 42px;
   object-fit: cover;
   border-radius: 8px;
 }
 
-.popular-row .track-meta-title-container {
+.ranked-row .track-meta-title-container {
   height: 20px;
   flex: 1;
   min-width: 0;
 }
 
-.popular-row .track-meta-title-scroll {
+.ranked-row .track-meta-title-scroll {
   font-size: 0.875rem;
   color: var(--text-primary, #fff);
 }
 
-.popular-row--playing .track-meta-title-scroll {
+.ranked-row--playing .track-meta-title-scroll {
   color: var(--text-active, #fff);
 }
 
-.popular-row__artist {
+.ranked-row__artist {
   font-size: 0.75rem;
   color: var(--text-secondary, rgba(255, 255, 255, 0.55));
   white-space: nowrap;
@@ -154,7 +154,7 @@
   text-overflow: ellipsis;
 }
 
-.popular-row__actions {
+.ranked-row__actions {
   display: flex;
   align-items: center;
   gap: 0.2rem;
@@ -163,13 +163,13 @@
 }
 
 /* 앨범 칸이 있는 줄 (검색 결과, 최근 좋아요한 곡) */
-.popular-row--album {
+.ranked-row--album {
   grid-template-columns: 32px minmax(0, 1.25fr) minmax(0, 0.7fr) minmax(0, 0.7fr) 32px;
   gap: 1rem;
   min-width: 0;
 }
 
-.popular-row__album {
+.ranked-row__album {
   font-size: 0.75rem;
   color: var(--text-secondary, rgba(255, 255, 255, 0.55));
   white-space: nowrap;
@@ -179,11 +179,11 @@
 }
 
 @media (max-width: 768px) {
-  .popular-row--album {
+  .ranked-row--album {
     grid-template-columns: 28px minmax(0, 1.5fr) minmax(0, 0.8fr) 32px;
     gap: 0.75rem;
   }
-  .popular-row--album .popular-row__album {
+  .ranked-row--album .ranked-row__album {
     display: none;
   }
 }

@@ -443,7 +443,7 @@ export default function MyInfoPage() {
           <h3 className="section-title">최근 좋아요한 곡</h3>
         </div>
         {recentFavorites.length > 0 ? (
-          <div className="popular-list">
+          <div className="ranked-list">
             {recentFavorites.map((track, idx) => (
               <SearchTrackRow
                 key={track.id || idx}

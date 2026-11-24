@@ -29,22 +29,22 @@ const RankedTrackRow = React.forwardRef(function RankedTrackRow({
   return (
     <div
       ref={ref}
-      className={`popular-row ${hasAlbum ? 'popular-row--album' : ''} ${isCurrent ? 'popular-row--playing' : ''}`}
+      className={`ranked-row ${hasAlbum ? 'ranked-row--album' : ''} ${isCurrent ? 'ranked-row--playing' : ''}`}
       draggable
       onDragStart={(e) => handleTrackDragStart(e, track)}
       onClick={() => onPlay(track)}
     >
-      <span className={`popular-row__col-rank ${isCurrent ? 'is-playing' : ''}`}>
-        <span className="popular-row__rank-num">{rank}</span>
-        <span className="popular-row__playing-icon" title="재생 중">
+      <span className={`ranked-row__col-rank ${isCurrent ? 'is-playing' : ''}`}>
+        <span className="ranked-row__rank-num">{rank}</span>
+        <span className="ranked-row__playing-icon" title="재생 중">
           <Headphones size={16} />
         </span>
       </span>
 
-      <div className="popular-row__title-group">
-        <div className="popular-row__thumb">
+      <div className="ranked-row__title-group">
+        <div className="ranked-row__thumb">
           {artwork ? (
-            <img src={artwork} alt="" className="popular-row__thumb-img" loading="lazy" />
+            <img src={artwork} alt="" className="ranked-row__thumb-img" loading="lazy" />
           ) : (
             <TrackThumbnail title={title} artist={artist} youtubeId={track.youtube_video_id} />
           )}
@@ -52,16 +52,16 @@ const RankedTrackRow = React.forwardRef(function RankedTrackRow({
         <TrackTitleMarquee title={title} isActive={isCurrent} />
       </div>
 
-      <span className="popular-row__artist" title={artist}>{artist}</span>
+      <span className="ranked-row__artist" title={artist}>{artist}</span>
 
       {hasAlbum ? (
-        <span className="popular-row__album" title={album}>{album}</span>
+        <span className="ranked-row__album" title={album}>{album}</span>
       ) : (
-        <div className="popular-row__col-change">{change}</div>
+        <div className="ranked-row__col-change">{change}</div>
       )}
 
       <div
-        className="popular-row__actions"
+        className="ranked-row__actions"
         draggable={false}
         onDragStart={(e) => {
           e.preventDefault();
