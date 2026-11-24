@@ -3,12 +3,13 @@
    공용 뼈대(.media-card*)는 ui/MediaCard.css에 있고, 여기에는 플레이리스트 카드에만 있는 것만 둔다.
    노래 카드(TrackCard)와 구분되도록 커버 뒤에 카드가 겹친 모양을 쓴다. */
 
-/* 겹친 카드가 커버 위로 보이는 두께(맨 뒤 카드 기준).
-   카드 너비(100cqw)에 따라 약 180px 카드에서 10px, 작을수록 얇게(최소 6px), 클수록 두껍게(최대 12px).
+/* 겹친 카드 모양은 '취향 저격 추천' 카드(181px)를 기준으로 카드 너비에 똑같이 비례한다.
+   181px에서 두께 10px · 좌우 들여쓰기 20px/10px · 모서리 10px → 너비의 5.525% / 11.05% / 5.525%.
+   그래서 어느 크기에서든 같은 비율의 축소·확대판으로 보인다. (극단적인 크기만 최소·최대로 막는다)
    cqw는 쓰이는 자리에서 가장 가까운 컨테이너(.playlist-card) 기준으로 계산된다.
-   채널 페이지 스켈레톤도 같은 값을 쓴다. */
+   채널 페이지 스켈레톤도 같은 두께 값을 쓴다. */
 :root {
-  --playlist-stack-depth: clamp(6px, calc(10px + (100cqw - 180px) * 0.1), 12px);
+  --playlist-stack-depth: clamp(4px, 5.525cqw, 16px);
 }
 
 .playlist-card {
@@ -33,7 +34,7 @@
 .playlist-card__cover-wrap::after {
   content: '';
   position: absolute;
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--stack-back) var(--stack-back) 0 0;
   pointer-events: none;
   /* 펼쳐질 때 아래 끝은 그대로 두고 위 끝만 올라가게 top과 height를 같이 바꾼다 */
   transition:
@@ -42,12 +43,10 @@
     background-color 0.18s ease;
 }
 
-/* 겹친 카드의 좌우 들여쓰기는 카드 너비에 비례 (약 180px 카드에서 20px·10px).
-   cqw는 .playlist-card(컨테이너) 너비의 1% */
 .playlist-card__cover-wrap::before {
   top: calc(-1 * var(--stack-back));
-  left: clamp(12px, 11cqw, 28px);
-  right: clamp(12px, 11cqw, 28px);
+  left: clamp(8px, 11.05cqw, 32px);
+  right: clamp(8px, 11.05cqw, 32px);
   /* 커버 아래로 2px 들어가게 해 이음새가 보이지 않게 한다 */
   height: calc(var(--stack-back) + 2px);
   background: rgba(255, 255, 255, 0.22);
@@ -55,8 +54,8 @@
 
 .playlist-card__cover-wrap::after {
   top: calc(-1 * var(--stack-mid));
-  left: clamp(6px, 5.5cqw, 14px);
-  right: clamp(6px, 5.5cqw, 14px);
+  left: clamp(4px, 5.525cqw, 16px);
+  right: clamp(4px, 5.525cqw, 16px);
   height: calc(var(--stack-mid) + 2px);
   background: rgba(255, 255, 255, 0.4);
 }
