@@ -56,14 +56,14 @@ export default function TrackCard({
           onKeyDown={handleCoverKeyDown}
         >
           <TrackCover track={track} isPlaying={isPlaying} />
-          <span className="track-card__overlay">
-            {isPlaying ? (
-              <Headphones size={36} strokeWidth={1.875} className="track-card__now" />
-            ) : (
-              <span className="track-card__play-icon">
-                <Play size={36} fill="currentColor" strokeWidth={1.5} />
-              </span>
-            )}
+          {/* 재생·헤드폰 아이콘을 둘 다 그려 두고 재생 상태에 따라 서로 교차해 사라지고 나타난다 */}
+          <span className="track-card__overlay" aria-hidden="true">
+            <span className="track-card__play-icon">
+              <Play size={36} fill="currentColor" strokeWidth={1.5} />
+            </span>
+            <span className="track-card__now">
+              <Headphones size={36} strokeWidth={1.875} />
+            </span>
           </span>
         </div>
       </div>
