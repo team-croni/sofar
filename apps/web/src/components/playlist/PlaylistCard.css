@@ -6,6 +6,19 @@
 .playlist-card {
   transform-origin: center center;
   transition: transform 0.08s cubic-bezier(0.2, 0.9, 0.2, 1);
+  /* 카드 너비에 따라 겹친 카드 펼침 폭을 바꾸기 위한 기준 */
+  container: playlist-card / inline-size;
+  /* 호버·열림 때 뒤에 겹친 카드가 더 올라가는 폭 (맨 뒤 / 가운데) */
+  --stack-spread-back: 3px;
+  --stack-spread-mid: 2px;
+}
+
+/* 작은 카드(사이드바, 홈 sofar 플레이리스트 등)에서는 펼침을 덜 준다 */
+@container playlist-card (max-width: 150px) {
+  .playlist-card__cover-wrap {
+    --stack-spread-back: 2px;
+    --stack-spread-mid: 1px;
+  }
 }
 
 .playlist-card__cover-wrap {
@@ -48,14 +61,14 @@
    열려 있는 카드는 이미 펼쳐져 있으므로 호버 효과를 따로 주지 않는다. */
 .playlist-card:hover .playlist-card__cover-wrap::before,
 .playlist-card--active .playlist-card__cover-wrap::before {
-  top: -13px;
-  height: 15px;
+  top: calc(-10px - var(--stack-spread-back));
+  height: calc(12px + var(--stack-spread-back));
 }
 
 .playlist-card:hover .playlist-card__cover-wrap::after,
 .playlist-card--active .playlist-card__cover-wrap::after {
-  top: -7px;
-  height: 9px;
+  top: calc(-5px - var(--stack-spread-mid));
+  height: calc(7px + var(--stack-spread-mid));
 }
 
 .playlist-card:not(.playlist-card--active):hover .playlist-card__cover-wrap::before {
@@ -102,21 +115,18 @@
   text-overflow: ellipsis;
 }
 
-/* 지금 열려 있는 플레이리스트: 앞 카드 테두리와 뒤에 겹친 카드가 모두 강조색 (위의 펼침과 함께) */
+/* 지금 열려 있는 플레이리스트: 앞 카드 테두리는 강조색, 뒤에 겹친 카드는 강조색을 옅게 (위의 펼침과 함께).
+   제목 색은 바꾸지 않는다 */
 .playlist-card--active .media-card__cover {
   --cover-border: var(--primary-warm, #d4a373);
 }
 
 .playlist-card--active .playlist-card__cover-wrap::before {
-  background-color: rgba(212, 163, 115, 0.35);
+  background-color: rgba(212, 163, 115, 0.2);
 }
 
 .playlist-card--active .playlist-card__cover-wrap::after {
-  background-color: rgba(212, 163, 115, 0.65);
-}
-
-.playlist-card--active .media-card__title {
-  color: var(--primary-warm, #d4a373);
+  background-color: rgba(212, 163, 115, 0.38);
 }
 
 /* 사이드바: 곡을 끌어다 놓는 중 */
