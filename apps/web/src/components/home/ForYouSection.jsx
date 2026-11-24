@@ -1,28 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Headphones, MoreVertical, ListPlus, Link2, EyeOff } from 'lucide-react';
-import TrackThumbnail from '../playlist/TrackThumbnail';
-import TrackActionDropdown from '../ui/TrackActionDropdown';
-import Dropdown from '../ui/Dropdown';
+import { Play, ListPlus, Link2, EyeOff } from 'lucide-react';
 import PlaylistCard from '../playlist/PlaylistCard';
+import TrackCard from './TrackCard';
 import { useHomePanel } from '../../hooks/useHomePanel';
 import { useHomeRecommendations } from '../../hooks/useHomeRecommendations';
 import { markNextPlayAttribution } from '../../utils/listeningTelemetry';
-import { formatArtistName } from '../../utils/trackUtils';
 import { isShareablePlaylistId, copyPlaylistShareUrl } from '../../utils/shareLink';
-import { handleTrackDragStart } from '../../utils/dragUtils';
 import { sendNotInterested } from '../../utils/playlistSignals';
-
-/**
- * 커버는 키보드로도 누를 수 있는 '버튼 역할' 요소다.
- * 진짜 <button>이면 드래그 유틸이 버튼에서 시작한 드래그를 막기 때문에 div로 둔다.
- * Enter/Space를 누르면 클릭을 일으켜 카드의 클릭 동작(재생/열기)으로 이어진다.
- */
-function handleCoverKeyDown(e) {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    e.currentTarget.click();
-  }
-}
 
 const MIX_CONTEXT_ID = 'recommend-mix';
 
@@ -30,21 +14,6 @@ const TABS = [
   { id: 'track', label: '노래' },
   { id: 'playlist', label: '플레이리스트' },
 ];
-
-function TrackCover({ track, isPlaying }) {
-  const artwork = track.artwork
-    || (track.youtube_video_id ? `https://img.youtube.com/vi/${track.youtube_video_id}/hqdefault.jpg` : null);
-  if (artwork) return <img src={artwork} alt="" className="foryou-card__img" draggable={false} />;
-  return (
-    <TrackThumbnail
-      title={track.custom_title}
-      artist={track.custom_artist}
-      youtubeId={track.youtube_video_id}
-      fallback="vinyl"
-      spinning={isPlaying}
-    />
-  );
-}
 
 const SKELETON_COUNT = 12;
 const REVEAL_DURATION_MS = 900;
@@ -56,11 +25,11 @@ function ForYouSkeleton() {
   return (
     <div className="foryou-grid foryou-grid--skeleton" aria-hidden="true">
       {Array.from({ length: SKELETON_COUNT }, (_, i) => (
-        <div key={i} className="foryou-card foryou-card--track foryou-card--skeleton">
-          <div className="foryou-card__cover-wrap">
-            <div className="foryou-card__cover foryou-skeleton-block" />
+        <div key={i} className="media-card track-card foryou-card--skeleton">
+          <div className="media-card__cover-wrap">
+            <div className="media-card__cover foryou-skeleton-block" />
           </div>
-          <div className="foryou-card__meta">
+          <div className="media-card__meta">
             <span className="foryou-skeleton-line foryou-skeleton-block" style={{ width: '72%', height: 14 }} />
             <span className="foryou-skeleton-line foryou-skeleton-block" style={{ width: '46%', height: 11 }} />
             <span className="foryou-skeleton-line foryou-skeleton-block" style={{ width: '60%', height: 10 }} />
@@ -68,19 +37,6 @@ function ForYouSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-function KebabTrigger(isOpen) {
-  return (
-    <button
-      type="button"
-      className={`album-card__kebab-btn ${isOpen ? 'active' : ''}`}
-      title="더보기"
-      aria-label="더보기"
-    >
-      <MoreVertical size={14} strokeWidth={1.5} fill="currentColor" />
-    </button>
   );
 }
 
@@ -284,54 +240,17 @@ export default function ForYouSection() {
 
   const renderTrack = (item, position) => {
     const { track } = item;
-    const isPlaying = isTrackCurrent(track);
     return (
-      // 카드 전체를 누르면 재생 (키보드는 커버 버튼으로 같은 동작)
-      <article
+      <TrackCard
         key={item.id}
-        className={`foryou-card foryou-card--track ${isPlaying ? 'foryou-card--playing' : ''}`}
-        onClick={() => playRecommendedTrack(item, position)}
+        track={track}
+        isPlaying={isTrackCurrent(track)}
+        reason={item.reason}
+        onPlay={() => playRecommendedTrack(item, position)}
+        onAddQueue={handleAddQueue}
+        extraOptions={[notInterestedOption(item, position)]}
         draggable
-        onDragStart={(e) => handleTrackDragStart(e, track)}
-      >
-        <div className="foryou-card__cover-wrap">
-          <div
-            role="button"
-            tabIndex={0}
-            className="foryou-card__cover"
-            aria-label={`${track.custom_title} 재생`}
-            onKeyDown={handleCoverKeyDown}
-          >
-            <TrackCover track={track} isPlaying={isPlaying} />
-            <span className="foryou-card__overlay">
-              {isPlaying
-                ? <Headphones size={36} strokeWidth={1.875} className="foryou-card__now" />
-                : (
-                  <span className="foryou-card__play-icon">
-                    <Play size={36} fill="currentColor" strokeWidth={1.5} />
-                  </span>
-                )}
-            </span>
-          </div>
-        </div>
-        <div className="foryou-card__meta">
-          <div className="foryou-card__title-row">
-            <span className="foryou-card__title" title={track.custom_title}>{track.custom_title}</span>
-            <div className="foryou-card__actions" onClick={(e) => e.stopPropagation()}>
-              <TrackActionDropdown
-                track={track}
-                onPlay={() => playRecommendedTrack(item, position)}
-                onAddQueue={handleAddQueue}
-                align="right"
-                trigger={KebabTrigger}
-                extraOptions={[notInterestedOption(item, position)]}
-              />
-            </div>
-          </div>
-          <span className="foryou-card__sub">{formatArtistName(track.custom_artist)}</span>
-          <span className="foryou-card__reason">{item.reason}</span>
-        </div>
-      </article>
+      />
     );
   };
 
@@ -347,7 +266,6 @@ export default function ForYouSection() {
         likeCount={playlist.likeCount || 0}
         isActive={isActive}
         onOpen={() => openPlaylist(item, position)}
-        onPlay={() => playPlaylist(item, position)}
         menuOptions={playlistMenu(item, position)}
       />
     );

@@ -2,7 +2,7 @@ import React from 'react';
 import { Play, Shuffle, ListPlus } from 'lucide-react';
 import { useHomePanel } from '../../hooks/useHomePanel';
 import HScrollSection from './HScrollSection';
-import AlbumCard from './AlbumCard';
+import TrackCard from './TrackCard';
 
 export default function TrendingSection() {
   const {
@@ -126,7 +126,8 @@ export default function TrendingSection() {
       {topTracks.map(track => {
         const isCurr = isTrackCurrent(track);
         return (
-          <AlbumCard
+          <TrackCard
+            className="trending-card"
             key={track.id}
             track={track}
             isPlaying={isCurr}

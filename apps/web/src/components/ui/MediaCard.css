@@ -1,0 +1,149 @@
+/* ── 공용 카드 뼈대 ──
+   노래 카드(TrackCard)와 플레이리스트 카드(PlaylistCard)가 같이 쓰는 모양.
+   커버·제목 줄·더보기 버튼·추천 이유처럼 두 카드에서 똑같은 부분만 여기 두고,
+   종류마다 다른 부분은 TrackCard.css / PlaylistCard.css에 둔다. */
+
+.media-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  /* 카드 전체가 클릭 대상: 글자 위에서도 손가락 커서, 클릭·드래그 시 글자 선택 방지 */
+  cursor: pointer;
+  user-select: none;
+}
+
+.media-card__cover-wrap {
+  position: relative;
+}
+
+.media-card__cover {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  --cover-border: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  /* 불투명 배경: 플레이리스트 카드 뒤의 겹친 카드가 빈 칸으로 비치지 않게 */
+  background: #1c1c1f;
+  color: inherit;
+  box-sizing: border-box;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.2s ease;
+}
+
+@supports (corner-shape: squircle) {
+  .media-card__cover {
+    corner-shape: squircle;
+    border-radius: 32px;
+  }
+}
+
+/*
+ * 커버 테두리: 상자에 border를 주면 이미지가 테두리 안쪽 선으로 잘리는데,
+ * squircle 모서리에서는 바깥 선과 안쪽 선의 곡선이 달라 테두리와 이미지 사이에 틈이 보인다.
+ * 이미지는 상자 전체를 채우고, 같은 모양의 테두리를 위에 겹쳐 그려 틈을 없앤다.
+ * 색은 --cover-border로 바꾼다 (재생 중·열려 있음·드롭 대상).
+ */
+.media-card__cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border: 1.5px solid var(--cover-border);
+  border-radius: inherit;
+  corner-shape: inherit;
+  pointer-events: none;
+  transition: border-color 0.15s ease;
+}
+
+.media-card__cover:focus-visible {
+  outline: 2px solid var(--primary-warm, #d4a373);
+  outline-offset: 2px;
+}
+
+.media-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.media-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 0.1rem 0 0.25rem;
+  min-width: 0;
+}
+
+.media-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+  min-height: 18px;
+}
+
+.media-card__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  color: var(--text-primary, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+
+.media-card__actions {
+  display: flex;
+  flex-shrink: 0;
+  /* 제목·부가 정보 줄 간격을 좁게: 더보기 버튼(24px)이 줄 높이를 늘리지 않도록 위아래를 겹친다 */
+  margin: -3px 0;
+  -webkit-user-drag: none;
+}
+
+.media-card__kebab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.45));
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: -4px;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.media-card__kebab:hover {
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.media-card__kebab.active {
+  color: var(--primary-warm, #d4a373);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.media-card__reason {
+  font-size: 0.7rem;
+  font-weight: 400;
+  /* 추천 이유는 브랜드 색으로 바로 윗줄(아티스트·만든 사람)과 구분 */
+  color: var(--primary-warm, #d4a373);
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}

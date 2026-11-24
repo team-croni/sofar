@@ -60,7 +60,6 @@ export default function SharedPlaylistCard({
       likeCount={likeCount}
       isActive={isActive}
       onOpen={() => onSelectPlaylist(playlist)}
-      onPlay={() => onPlayPlaylist(playlist)}
       menuOptions={menuOptions}
     />
   );
