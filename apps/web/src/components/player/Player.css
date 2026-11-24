@@ -11,7 +11,8 @@
   height: 6rem;
   padding: 0 2.5rem;
 
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.35) 100%);
+  /* 뒤 내용이 덜 비치도록 조금 진하게 (흐림은 그대로) */
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.5) 100%);
   box-shadow: 0 0 12px 20px rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
