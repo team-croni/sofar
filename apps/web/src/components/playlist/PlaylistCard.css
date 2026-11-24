@@ -40,18 +40,20 @@
     background-color 0.18s ease;
 }
 
+/* 겹친 카드의 좌우 들여쓰기는 카드 너비에 비례 (약 180px 카드에서 20px·10px).
+   cqw는 .playlist-card(컨테이너) 너비의 1% */
 .playlist-card__cover-wrap::before {
   top: -10px;
-  left: 20px;
-  right: 20px;
+  left: clamp(12px, 11cqw, 28px);
+  right: clamp(12px, 11cqw, 28px);
   height: 12px;
   background: rgba(255, 255, 255, 0.22);
 }
 
 .playlist-card__cover-wrap::after {
   top: -5px;
-  left: 10px;
-  right: 10px;
+  left: clamp(6px, 5.5cqw, 14px);
+  right: clamp(6px, 5.5cqw, 14px);
   height: 7px;
   background: rgba(255, 255, 255, 0.4);
 }
